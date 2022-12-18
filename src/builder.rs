@@ -19,34 +19,36 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn fmt_link(config: &Config, url: &str, text: &str) -> String {
+    strfmt(&config.link_template, &HashMap::from([
+        ("url".to_string(), url),
+        ("text".to_string(), text),
+    ])).unwrap()
+}
+
 fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf, file: &Path) {
     for entity in entity.get_children() {
         if entity.is_in_system_header() {
             continue;
         }
-        let source_url;
-        let header_url;
-        if let Some(ref repo) = builder.config.repository {
-            let branch = builder.config.branch.clone().unwrap_or("main".into());
-            let header_tree = builder.config.header_tree
-                .clone().map(|p| p + "/").unwrap_or("".into());
-            let source_tree = builder.config.source_tree
-                .clone().map(|p| p + "/").unwrap_or("".into());
-            source_url = format!(
-                "{}/tree/{}/{}{}",
-                repo, branch, source_tree,
+        let source_link;
+        let header_link;
+        if let Some(ref tree) = builder.config.tree {
+            let src_url = format!(
+                "{}/{}",
+                tree,
                 entity.get_file()
                     .map(|f| f.get_path().to_str().unwrap().to_owned())
                     .unwrap_or("none".into())
-            ).into();
-            header_url = format!(
-                "{}/tree/{}/{}{}",
-                repo, branch, header_tree, file.to_str().unwrap()
-            ).into();
+            );
+            let hdr_url = format!("{}/{}", tree, file.to_str().unwrap());
+
+            header_link = fmt_link(builder.config, &hdr_url, "View Header").into();
+            source_link = fmt_link(builder.config, &src_url, "View Source").into();
         }
         else {
-            source_url = None;
-            header_url = None;
+            source_link = None;
+            header_link = None;
         }
 
         match entity.get_kind() {
@@ -58,6 +60,9 @@ fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf
                 );
             },
             EntityKind::StructDecl | EntityKind::ClassDecl => {
+                if !entity.is_definition() {
+                    continue;
+                }
                 let Some(name) = entity.get_name() else {
                     continue;
                 };
@@ -74,18 +79,24 @@ fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf
                     ),
                     (
                         "description".into(),
-                        entity.get_parsed_comment().map(|c| c.as_html()).unwrap_or(String::new())
+                        entity.get_parsed_comment()
+                            .map(|c| c.as_html())
+                            .unwrap_or("<p>No Description Provided</p>".into())
                     ),
                     (
-                        "source_url".into(),
-                        source_url.unwrap_or("#".into())
+                        "source_link".into(),
+                        source_link.unwrap_or("".into())
                     ),
                     (
-                        "header_url".into(),
-                        header_url.unwrap_or("#".into())
+                        "header_link".into(),
+                        header_link.unwrap_or("".into())
                     ),
                 ]);
-                let data = strfmt(&builder.config.class_template(), &vars).unwrap();
+                let data = strfmt(&builder.config.class_template, &vars)
+                    .map_err(|e| format!(
+                        "Unable to format class template: {}",
+                        e
+                    )).unwrap();
                 fs::create_dir_all(target_path.parent().unwrap()).unwrap();
                 fs::write(&target_path, data).unwrap();
             },
@@ -94,18 +105,44 @@ fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf
     }
 }
 
-pub fn build_docs_for(config: &Config, input_dir: &PathBuf, output_dir: &PathBuf) {
+pub fn build_docs_for(config: &Config, output_dir: &PathBuf) {
+    // init clang
     let clang = clang::Clang::new().unwrap();
-    let index = clang::Index::new(&clang, false, false);
-    for src in config.expanded_sources() {
+    let index = clang::Index::new(&clang, false, true);
+
+    // Iterate headers
+    for src in &config.headers {
         println!("Building docs for {}", src.to_str().unwrap());
+
+        // Create parser
         let unit = index.parser(&src).parse().unwrap();
         let mut builder = Builder::new(config);
+
+        // Build the doc files
         build_docs_recurse(
             &mut builder,
             unit.get_entity(),
             &output_dir,
-            src.strip_prefix(&input_dir).unwrap_or(src.as_path())
+            src.as_path()
+        );
+    }
+
+    // Iterate sources
+    for src in &config.sources {
+        println!("Building docs for {}", src.to_str().unwrap());
+        
+        // Create parser
+        let unit = index.parser(&src)
+            .arguments(&[""])
+            .parse().unwrap();
+        let mut builder = Builder::new(config);
+
+        // Build the doc files
+        build_docs_recurse(
+            &mut builder,
+            unit.get_entity(),
+            &output_dir,
+            src.as_path()
         );
     }
 }

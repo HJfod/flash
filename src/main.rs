@@ -18,12 +18,15 @@ struct Args {
     #[arg(short, long)]
     output: PathBuf,
 
+    /// Whether to overwrite output directory if it already exists
     #[arg(long, default_value_t = false)]
     overwrite: bool,
 }
 
 fn main() {
     let args = Args::parse();
+
+    // Check output dir
     if args.output.exists() && !args.overwrite {
         println!(
             "Output directory {} already exists and no --overwrite option was specified, aborting",
@@ -31,10 +34,27 @@ fn main() {
         );
         exit(1);
     }
-    fs::remove_dir_all(&args.output).unwrap();
+
+    // Delete output dir if it exists
+    if args.output.exists() {
+        fs::remove_dir_all(&args.output).unwrap();
+    }
     fs::create_dir_all(&args.output).unwrap();
-    let conf = Config::parse_file(&args.input).unwrap();
+
+    // Relink working directory to input dir and use absolute path for output
+    let full_output = fs::canonicalize(args.output)
+        .expect("Unable to get full output path");
+    std::env::set_current_dir(args.input)
+        .expect(
+            "Unable to set input dir as working directory \
+            (probable reason is it doesn't exist)"
+        );
+
+    // Parse config
+    let conf = Config::parse().unwrap();
+
+    // Build the docs
     println!("Building docs for {} ({})", conf.project, conf.version);
-    build_docs_for(&conf, &args.input, &args.output);
+    build_docs_for(&conf, &full_output);
     println!("Docs built for {}", conf.project);
 }
