@@ -3,7 +3,7 @@ use std::{collections::{HashMap, HashSet}, path::{PathBuf, Path}, fs};
 use clang::{EntityKind, Entity};
 use strfmt::strfmt;
 
-use crate::config::Config;
+use crate::config::{Config, Mode};
 
 struct Builder<'a> {
     pub config: &'a Config,
@@ -105,7 +105,19 @@ fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf
     }
 }
 
+pub fn run_generator(config: &Config) {
+    match &config.mode {
+        &Mode::CMake => {
+            println!("Running CMake");
+            cmake::build("CMakeLists.txt");
+        },
+        &Mode::Plain => {},
+    }
+}
+
 pub fn build_docs_for(config: &Config, output_dir: &PathBuf) {
+    run_generator(config);
+    
     // init clang
     let clang = clang::Clang::new().unwrap();
     let index = clang::Index::new(&clang, false, true);
@@ -115,25 +127,7 @@ pub fn build_docs_for(config: &Config, output_dir: &PathBuf) {
         println!("Building docs for {}", src.to_str().unwrap());
 
         // Create parser
-        let unit = index.parser(&src).parse().unwrap();
-        let mut builder = Builder::new(config);
-
-        // Build the doc files
-        build_docs_recurse(
-            &mut builder,
-            unit.get_entity(),
-            &output_dir,
-            src.as_path()
-        );
-    }
-
-    // Iterate sources
-    for src in &config.sources {
-        println!("Building docs for {}", src.to_str().unwrap());
-        
-        // Create parser
         let unit = index.parser(&src)
-            .arguments(&[""])
             .parse().unwrap();
         let mut builder = Builder::new(config);
 
