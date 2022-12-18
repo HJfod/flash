@@ -1,9 +1,9 @@
 
-use std::{collections::{HashMap, HashSet}, path::{PathBuf, Path}, fs};
+use std::{collections::{HashMap, HashSet}, path::{PathBuf, Path}, fs, process::Command};
 use clang::{EntityKind, Entity};
 use strfmt::strfmt;
 
-use crate::config::{Config, Mode};
+use crate::config::Config;
 
 struct Builder<'a> {
     pub config: &'a Config,
@@ -19,6 +19,23 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn run_command(cmd: &String) -> Result<(), String> {
+    if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .args(["/C", cmd])
+            .spawn()
+    }
+    else {
+        Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .spawn()
+    }
+    .map_err(|e| format!("Unable to execute prebuild command `{cmd}`: {e}"))?
+    .wait().map_err(|e| format!("Unable to wait for child to finish: {e}"))?;
+    Ok(())
+}
+
 fn fmt_link(config: &Config, url: &str, text: &str) -> String {
     strfmt(&config.link_template, &HashMap::from([
         ("url".to_string(), url),
@@ -26,7 +43,12 @@ fn fmt_link(config: &Config, url: &str, text: &str) -> String {
     ])).unwrap()
 }
 
-fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf, file: &Path) {
+fn build_docs_recurse(
+    builder: &mut Builder,
+    entity: Entity,
+    namespace: &PathBuf,
+    file: &Path
+) -> Result<(), String> {
     for entity in entity.get_children() {
         if entity.is_in_system_header() {
             continue;
@@ -57,7 +79,7 @@ fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf
                     builder, entity,
                     &namespace.join(entity.get_name().unwrap_or("_anon_ns".into())),
                     file
-                );
+                )?;
             },
             EntityKind::StructDecl | EntityKind::ClassDecl => {
                 if !entity.is_definition() {
@@ -92,34 +114,30 @@ fn build_docs_recurse(builder: &mut Builder, entity: Entity, namespace: &PathBuf
                         header_link.unwrap_or("".into())
                     ),
                 ]);
+
                 let data = strfmt(&builder.config.class_template, &vars)
-                    .map_err(|e| format!(
-                        "Unable to format class template: {}",
-                        e
-                    )).unwrap();
+                    .map_err(|e| format!("Unable to format class template: {e}"))?;
+                
                 fs::create_dir_all(target_path.parent().unwrap()).unwrap();
                 fs::write(&target_path, data).unwrap();
             },
             _ => {},
         }
     }
+
+    Ok(())
 }
 
-pub fn run_generator(config: &Config) {
-    match &config.mode {
-        &Mode::CMake => {
-            println!("Running CMake");
-            cmake::build("CMakeLists.txt");
-        },
-        &Mode::Plain => {},
+pub fn build_docs_for(config: &Config, output_dir: &PathBuf) -> Result<(), String> {
+    // Execute prebuild commands
+    if let Some(ref cmds) = config.prebuild {
+        for cmd in cmds {
+            run_command(cmd)?;
+        }
     }
-}
-
-pub fn build_docs_for(config: &Config, output_dir: &PathBuf) {
-    run_generator(config);
     
-    // init clang
-    let clang = clang::Clang::new().unwrap();
+    // Initialize clang
+    let clang = clang::Clang::new()?;
     let index = clang::Index::new(&clang, false, true);
 
     // Iterate headers
@@ -127,8 +145,7 @@ pub fn build_docs_for(config: &Config, output_dir: &PathBuf) {
         println!("Building docs for {}", src.to_str().unwrap());
 
         // Create parser
-        let unit = index.parser(&src)
-            .parse().unwrap();
+        let unit = index.parser(&src).parse()?;
         let mut builder = Builder::new(config);
 
         // Build the doc files
@@ -137,6 +154,8 @@ pub fn build_docs_for(config: &Config, output_dir: &PathBuf) {
             unit.get_entity(),
             &output_dir,
             src.as_path()
-        );
+        )?;
     }
+
+    Ok(())
 }

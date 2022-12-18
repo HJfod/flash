@@ -23,7 +23,7 @@ struct Args {
     overwrite: bool,
 }
 
-fn main() {
+fn main() -> Result<(), String> {
     let args = Args::parse();
 
     // Check output dir
@@ -51,10 +51,12 @@ fn main() {
         );
 
     // Parse config
-    let conf = Config::parse().unwrap();
+    let conf = Config::parse()?;
 
     // Build the docs
     println!("Building docs for {} ({})", conf.project, conf.version);
-    build_docs_for(&conf, &full_output);
+    build_docs_for(&conf, &full_output)?;
     println!("Docs built for {}", conf.project);
+
+    Ok(())
 }

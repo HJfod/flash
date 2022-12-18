@@ -72,15 +72,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmake"
-version = "0.1.49"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db34956e100b30725f2eb215f90d4871051239535632f84fea3bc92722c66b7c"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "errno"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -107,7 +98,6 @@ version = "0.1.0"
 dependencies = [
  "clang",
  "clap",
- "cmake",
  "glob",
  "serde",
  "serde_json",

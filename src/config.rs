@@ -38,20 +38,13 @@ where
 }
 
 #[derive(Deserialize)]
-pub enum Mode {
-    Plain,
-    CMake,
-}
-
-#[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
     pub project: String,
     pub version: String,
     #[serde(deserialize_with = "parse_glob")]
     pub headers: Vec<PathBuf>,
-    pub mode: Mode,
-    pub cmake_args: Vec<String>,
+    pub prebuild: Option<Vec<String>>,
     pub repository: Option<String>,
     pub tree: Option<String>,
     #[serde(deserialize_with = "parse_template", default = "def_class_template")]
