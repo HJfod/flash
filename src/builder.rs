@@ -175,11 +175,16 @@ fn build_docs_with_cmake(config: &Config, output_dir: &Path) -> Result<(), Strin
 
     println!("Parsing {}", target_src.to_str().unwrap());
 
+    let list = cmake::cmake_compile_args_for(config)
+        .expect("Unable to infer CMake compile args");
+
+    println!("args: {:?}", list);
+
     // Create parser
     let unit = index
         .parser(&target_src)
         .arguments(
-            &cmake::cmake_compile_args_for(config).expect("Unable to infer CMake compile args"),
+            &list,
         )
         .parse()?;
 

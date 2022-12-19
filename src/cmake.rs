@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{fs, path::PathBuf, process::Command};
+use std::{fs, path::{PathBuf}, process::Command};
 
 use crate::config::Config;
 
@@ -16,9 +16,6 @@ impl CompileCommand {
         self.command.split(" ")
             // Skip clang.exe
             .skip(1)
-            // Only include parameters for defines, includes and std version 
-            // because for some reason including all of them causes Clang 
-            // to break
             .filter_map(|s|
                 // Expand .rsp files into their include directives
                 // For some reason LibClang just doesn't want to work with the .rsp 
@@ -33,7 +30,15 @@ impl CompileCommand {
                             .collect()
                     )
                 } else {
-                    if s.starts_with("-I") || s.starts_with("-D") || s.starts_with("-std") {
+                    // Only include parameters for defines, includes and std version 
+                    // because for some reason including all of them causes LibClang 
+                    // to break
+                    if
+                        s.starts_with("-I") ||
+                        s.starts_with("-D") ||
+                        s.starts_with("-std") ||
+                        s.starts_with("-m")
+                    {
                         Some(vec![s.to_owned()])
                     }
                     else {
