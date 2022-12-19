@@ -1,12 +1,12 @@
-
-use std::{path::PathBuf, fs, process::exit};
 use clap::Parser;
 use config::Config;
+use std::{fs, path::PathBuf, process::exit};
 
 use crate::builder::build_docs_for;
 
-mod config;
 mod builder;
+mod cmake;
+mod config;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -42,13 +42,11 @@ fn main() -> Result<(), String> {
     fs::create_dir_all(&args.output).unwrap();
 
     // Relink working directory to input dir and use absolute path for output
-    let full_output = fs::canonicalize(args.output)
-        .expect("Unable to get full output path");
-    std::env::set_current_dir(args.input)
-        .expect(
-            "Unable to set input dir as working directory \
-            (probable reason is it doesn't exist)"
-        );
+    let full_output = fs::canonicalize(args.output).expect("Unable to get full output path");
+    std::env::set_current_dir(args.input).expect(
+        "Unable to set input dir as working directory \
+            (probable reason is it doesn't exist)",
+    );
 
     // Parse config
     let conf = Config::parse()?;
