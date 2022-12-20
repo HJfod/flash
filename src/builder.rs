@@ -193,6 +193,8 @@ fn build_docs_with_cmake(config: &Config) -> Result<(), String> {
         )
         .parse()?;
 
+    println!("Building docs");
+    
     // Build the doc files
     let mut builder = Builder::new(config);
     build_docs_recurse(&mut builder, unit.get_entity(), &config.output_dir)?;

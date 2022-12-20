@@ -28,7 +28,8 @@ impl CompileCommand {
                         .map(|s| s.to_owned())
                         .collect()
                 } else {
-                    vec![s.to_owned()]
+                    // Hacky fix to make sure -DMACRO="" defines MACRO as empty and not as ""
+                    vec![s.to_owned().replace("=\"\"", "=")]
                 }
             )
             .chain(vec![format!("-I{}", config.input_dir.to_str().unwrap())])
