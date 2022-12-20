@@ -37,15 +37,13 @@ where
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Mode {
-    CMake,
-}
-
-impl Default for Mode {
-    fn default() -> Self {
-        Mode::CMake
-    }
+#[serde(rename_all = "kebab-case")]
+pub struct CMakeConfig {
+    pub config_args: Option<Vec<String>>,
+    pub build_args: Option<Vec<String>>,
+    #[serde(default = "cmake_build_default")]
+    pub build: bool,
+    pub infer_args_from: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -55,15 +53,11 @@ pub struct Config {
     pub version: String,
 
     #[serde(deserialize_with = "parse_glob")]
-    pub headers: Vec<PathBuf>,
+    pub include: Vec<PathBuf>,
+    #[serde(deserialize_with = "parse_glob", default = "Vec::new")]
+    pub exclude: Vec<PathBuf>,
 
-    #[serde(default)]
-    pub mode: Mode,
-    pub cmake_config_args: Option<Vec<String>>,
-    pub cmake_build_args: Option<Vec<String>>,
-    #[serde(default = "cmake_build_default")]
-    pub cmake_build: bool,
-    pub cmake_infer_args_from: Option<PathBuf>,
+    pub cmake: Option<CMakeConfig>,
     pub prebuild: Option<Vec<String>>,
 
     pub repository: Option<String>,
@@ -73,14 +67,30 @@ pub struct Config {
     pub class_template: String,
     #[serde(deserialize_with = "parse_template", default = "def_link_template")]
     pub link_template: String,
+
+    #[serde(skip)]
+    pub input_dir: PathBuf,
+    #[serde(skip)]
+    pub output_dir: PathBuf,
 }
 
 impl Config {
-    pub fn parse() -> Result<Config, String> {
-        serde_json::from_str(
-            &fs::read_to_string(std::env::current_dir().unwrap().join("flash.json"))
-                .map_err(|e| format!("Unable to read flash.json: {e}"))?,
+    pub fn parse(input_dir: PathBuf, output_dir: PathBuf) -> Result<Config, String> {
+        let mut config: Config = toml::from_str(
+            &fs::read_to_string(input_dir.join("flash.toml"))
+                .map_err(|e| format!("Unable to read flash.toml: {e}"))?,
         )
-        .map_err(|e| format!("Unable to parse config: {e}"))
+        .map_err(|e| format!("Unable to parse config: {e}"))?;
+
+        config.input_dir = input_dir;
+        config.output_dir = output_dir;
+        Ok(config)
+    }
+
+    pub fn filtered_includes(&self) -> Vec<&PathBuf> {
+        self.include
+            .iter()
+            .filter(|p| !self.exclude.contains(p))
+            .collect()
     }
 }

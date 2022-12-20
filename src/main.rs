@@ -42,18 +42,21 @@ fn main() -> Result<(), String> {
     fs::create_dir_all(&args.output).unwrap();
 
     // Relink working directory to input dir and use absolute path for output
-    let full_output = fs::canonicalize(args.output).expect("Unable to get full output path");
-    std::env::set_current_dir(args.input).expect(
+    // Not using fs::canonicalize because that returns UNC paths on Windows and
+    // those break things
+    let full_output = std::env::current_dir().unwrap().join(args.output);
+    let full_input = std::env::current_dir().unwrap().join(args.input);
+    std::env::set_current_dir(&full_input).expect(
         "Unable to set input dir as working directory \
             (probable reason is it doesn't exist)",
     );
 
     // Parse config
-    let conf = Config::parse()?;
+    let conf = Config::parse(full_input, full_output)?;
 
     // Build the docs
     println!("Building docs for {} ({})", conf.project, conf.version);
-    build_docs_for(&conf, &full_output)?;
+    build_docs_for(&conf)?;
     println!("Docs built for {}", conf.project);
 
     Ok(())
