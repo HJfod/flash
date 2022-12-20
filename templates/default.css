@@ -1,0 +1,86 @@
+
+:root {
+    --flash-bg:     #212121;
+    --flash-text:   #eee;
+    --flash-item:   #576D9D;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    height: calc(100% - 2rem);
+    background: var(--flash-bg);
+    color: var(--flash-text);
+    display: flex;
+    flex-direction: row;
+}
+
+nav {
+    padding: 1rem;
+    width: 20rem;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+}
+
+nav details > div {
+    padding-left: 1.25rem;
+}
+
+nav summary {
+    font-family: 'Source Code Pro', monospace;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: .25rem;
+    user-select: none;
+}
+
+nav summary:hover {
+    background-color: rgba(255, 255, 255, .1);
+    cursor: pointer;
+}
+
+nav .feather {
+    height: 1.2rem;
+    opacity: 50%;
+}
+
+nav details[open] > summary > .feather {
+    transform: rotate(90deg);
+}
+
+nav a {
+    color: var(--flash-item);
+    text-decoration: none;
+    font-family: 'Source Code Pro', monospace;
+    display: flex;
+    flex-direction: row;
+    padding: .25rem;
+    user-select: none;
+}
+
+nav a:hover {
+    background-color: rgba(255, 255, 255, .1);
+}
+
+main {
+    padding: 1rem;
+}
+
+h1 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 3rem;
+}
+
+p {
+    font-family: 'Open Sans', sans-serif;
+}

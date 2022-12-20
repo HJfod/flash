@@ -32,8 +32,12 @@ impl CompileCommand {
                     vec![s.to_owned().replace("=\"\"", "=")]
                 }
             )
+            // Add header root to include directories
             .chain(vec![format!("-I{}", config.input_dir.to_str().unwrap())])
+            // Set working directory
             .chain(vec![format!("-working-directory={}", self.directory.to_str().unwrap())])
+            // Add extra compile args
+            .chain(config.analysis.compile_args.clone())
             .collect();
 
         // Passing -c crashes LibClang

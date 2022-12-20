@@ -2,23 +2,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geode Docs</title>
+    <title>{name} Docs</title>
+    {default_head}
 </head>
 <body>
-    <h1>Class <em>{name}</em></h1>
-    <div>
-        {header_link}
-    </div>
-    <div>
-        {description}
-    </div>
-    <div>
-        <h2>Public member functions</h2>
+    <nav>
+        {default_navbar}
+    </nav>
+    <main>
+        <h1>Class <em>{name}</em></h1>
         <div>
+            {header_link}
         </div>
-    </div>
+        <div>
+            {description}
+        </div>
+        <div>
+            <h2>Public member functions</h2>
+            <div>
+            </div>
+        </div>
+    </main>
+    <script defer>
+        {default_script}
+    </script>
 </body>
 </html>

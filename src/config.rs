@@ -3,12 +3,24 @@ use std::{fs, path::PathBuf};
 use glob::glob;
 use serde::{Deserialize, Deserializer};
 
-fn def_class_template() -> String {
+fn default_class_template() -> String {
     include_str!("../templates/class.html").into()
 }
 
-fn def_index_template() -> String {
+fn default_index_template() -> String {
     include_str!("../templates/index.html").into()
+}
+
+fn default_head_template() -> String {
+    include_str!("../templates/head.html").into()
+}
+
+fn default_css() -> String {
+    include_str!("../templates/default.css").into()
+}
+
+fn default_js() -> String {
+    include_str!("../templates/script.js").into()
 }
 
 const fn cmake_build_default() -> bool {
@@ -64,18 +76,55 @@ pub struct RunConfig {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct AnalysisConfig {
+    #[serde(default = "Vec::new")]
+    pub compile_args: Vec<String>,
+}
+
+impl Default for AnalysisConfig {
+    fn default() -> Self {
+        Self {
+            compile_args: Vec::new()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct PresentationConfig {
-    #[serde(deserialize_with = "parse_template", default = "def_class_template")]
+    #[serde(
+        deserialize_with = "parse_template",
+        default = "default_class_template"
+    )]
     pub class_template: String,
-    #[serde(deserialize_with = "parse_template", default = "def_index_template")]
+    
+    #[serde(
+        deserialize_with = "parse_template",
+        default = "default_index_template"
+    )]
     pub index_template: String,
+
+    #[serde(
+        deserialize_with = "parse_template",
+        default = "default_head_template"
+    )]
+    pub head_template: String,
+
+    #[serde(deserialize_with = "parse_template", default = "default_css")]
+    pub css: String,
+
+    #[serde(deserialize_with = "parse_template", default = "default_js")]
+    pub js: String,
 }
 
 impl Default for PresentationConfig {
     fn default() -> Self {
         Self {
-            class_template: def_class_template(),
-            index_template: def_index_template(),
+            class_template: default_class_template(),
+            index_template: default_index_template(),
+            head_template:  default_head_template(),
+            css:            default_css(),
+            js:             default_js(),
         }
     }
 }
@@ -102,6 +151,9 @@ pub struct Config {
     pub cmake: Option<CMakeConfig>,
     /// Options for commands to run while building docs
     pub run: Option<RunConfig>,
+    #[serde(default)]
+    /// Options for LibClang
+    pub analysis: AnalysisConfig,
 
     #[serde(skip)]
     pub input_dir: PathBuf,
@@ -123,7 +175,8 @@ impl Config {
     }
 
     pub fn filtered_includes(&self) -> Vec<&PathBuf> {
-        self.docs.include
+        self.docs
+            .include
             .iter()
             .filter(|p| !self.docs.exclude.contains(p))
             .collect()

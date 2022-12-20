@@ -1,67 +1,243 @@
 use clang::{Entity, EntityKind};
-use indicatif::{ProgressStyle, ProgressBar};
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-    process::Command, time::Duration,
-};
+use indicatif::ProgressBar;
+use std::{collections::HashMap, fs, path::PathBuf};
 use strfmt::strfmt;
 
-use crate::{cmake, config::Config};
+use crate::config::Config;
 
-struct Page<'e> {
-    pub url: String,
-    pub entity: Entity<'e>,
+pub trait AnEntry<'e> {
+    fn new(entity: Entity<'e>) -> Self;
+    fn entity(&self) -> &Entity<'e>;
+    fn name(&self) -> String;
+    fn url(&self) -> String {
+        String::from("./") + &get_fully_qualified_name(&self.entity()).join("/")
+    }
+    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String>;
+    fn build_nav(&self, relative: &String) -> String;
 }
 
-struct Builder<'a, 'e> {
-    pub config: &'a Config,
-    pub index: HashMap<String, Page<'e>>,
+pub enum Entry<'e> {
+    Namespace(Namespace<'e>),
+    Class(Class<'e>),
 }
 
-impl<'a> Builder<'a, '_> {
-    pub fn new(config: &'a Config) -> Self {
-        Self {
-            config,
-            index: HashMap::new(),
+impl<'e> Entry<'e> {
+    pub fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+        match self {
+            Entry::Namespace(ns) => ns.build(builder),
+            Entry::Class(cs) => cs.build(builder),
+        }
+    }
+
+    pub fn build_nav(&self, relative: &String) -> String {
+        match self {
+            Entry::Namespace(ns) => ns.build_nav(relative),
+            Entry::Class(cs) => cs.build_nav(relative),
         }
     }
 }
 
-fn run_command(cmd: &String) -> Result<(), String> {
-    let args =
-        shlex::split(cmd).unwrap_or_else(|| panic!("Unable to parse prebuild command `{cmd}`"));
-    let exit = Command::new(&args[0])
-        .args(&args[1..])
-        .spawn()
-        .map_err(|e| format!("Unable to execute prebuild command `{cmd}`: {e}"))?
-        .wait()
-        .unwrap();
-    if exit.success() {
+pub struct Namespace<'e> {
+    entity: Entity<'e>,
+    entries: HashMap<String, Entry<'e>>,
+}
+
+impl<'e> AnEntry<'e> for Namespace<'e> {
+    fn new(entity: Entity<'e>) -> Self {
+        let mut ret = Self {
+            entity,
+            entries: HashMap::new(),
+        };
+        ret.load_entries();
+        ret
+    }
+
+    fn entity(&self) -> &Entity<'e> {
+        &self.entity
+    }
+
+    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+        for (_, entry) in &self.entries {
+            entry.build(builder)?;
+        }
         Ok(())
-    } else {
-        Err(format!("Prebuild command `{cmd}` failed"))
+    }
+
+    fn build_nav(&self, relative: &String) -> String {
+        let mut namespaces = self.entries
+            .iter()
+            .filter(|e| matches!(e.1, Entry::Namespace(_)))
+            .collect::<Vec<_>>();
+        
+        namespaces.sort_by_key(|p| p.0);
+
+        let mut other = self.entries
+            .iter()
+            .filter(|e| !matches!(e.1, Entry::Namespace(_)))
+            .collect::<Vec<_>>();
+
+        other.sort_by_key(|p| p.0);
+
+        namespaces.extend(other);
+
+        // If this is a translation unit (aka root in Builder) then just output 
+        // the contents of the nav section and not the title
+        if matches!(self.entity.get_kind(), EntityKind::TranslationUnit) {
+            namespaces
+                .iter()
+                .map(|e| e.1.build_nav(relative))
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+        // Otherwise foldable namespace name
+        else {
+            format!(
+                "<details>
+                    <summary><i data-feather='chevron-right'></i>{}</summary>
+                    <div>{}</div>
+                </details>
+                ",
+                self.name(),
+                namespaces
+                    .iter()
+                    .map(|e| e.1.build_nav(relative))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            )
+        }
+    }
+
+    fn name(&self) -> String {
+        self.entity.get_name().unwrap_or("<Anonymous namespace>".into())
     }
 }
 
-fn create_analyzable_file(config: &Config) -> Result<PathBuf, String> {
-    let out_path = config.output_dir.join("_analyze.cpp");
+impl<'e> Namespace<'e> {
+    fn load_entries(&mut self) {
+        for child in &self.entity.get_children() {
+            match child.get_kind() {
+                EntityKind::Namespace => {
+                    let entry = Namespace::new(child.clone());
+                    // Merge existing entries of namespace
+                    if let Some(key) = self.entries.get_mut(&entry.name()) {
+                        if let Entry::Namespace(ns) = key {
+                            ns.entries.extend(entry.entries);
+                        }
+                    }
+                    // Insert new namespace
+                    else {
+                        self.entries.insert(entry.name(), Entry::Namespace(entry));
+                    }
+                },
 
-    let mut data = String::from(
-        "// File generated by Flash for including all headers in order to\n\
-        // parse them\n",
-    );
-    for hdr in &config.filtered_includes() {
-        data += &format!("#include <{}>\n", hdr.to_str().unwrap());
+                EntityKind::StructDecl | EntityKind::ClassDecl => {
+                    if child.is_definition() && child.get_name().is_some() {
+                        let entry = Class::new(child.clone());
+                        self.entries.insert(entry.name(), Entry::Class(entry));
+                    }
+                },
+
+                _ => continue,
+            }
+        }
     }
-    fs::write(&out_path, data)
-        .map_err(|e| format!("Unable to create source file for parsing headers: {e}"))?;
-
-    Ok(out_path)
 }
 
-fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
+pub struct Class<'e> {
+    entity: Entity<'e>,
+}
+
+impl<'e> AnEntry<'e> for Class<'e> {
+    fn new(entity: Entity<'e>) -> Self {
+        Self {
+            entity
+        }
+    }
+
+    fn entity(&self) -> &Entity<'e> {
+        &self.entity
+    }
+
+    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+        // Target directory
+        let dir_path = builder.config.output_dir.join(&self.url());
+        fs::create_dir_all(&dir_path).unwrap();
+    
+        write_docs_output(
+            builder,
+            &builder.config.presentation.class_template,
+            &self.url(),
+            [
+                ("name".to_string(), self.entity.get_name().unwrap()),
+                (
+                    "description".into(),
+                    self.entity
+                        .get_parsed_comment()
+                        .map(|c| c.as_html())
+                        .unwrap_or("<p>No Description Provided</p>".into()),
+                ),
+                (
+                    "header_link".into(),
+                    get_header_url(builder.config, &self.entity)
+                        .map(|url| format!("<a href='{}'>View Header</a>", url))
+                        .unwrap_or(String::new()),
+                ),
+            ]
+        )?;
+    
+        Ok(())
+    }
+
+    fn build_nav(&self, relative: &String) -> String {
+        format!(
+            "<a href='.{}/{}'>{}</a>\n",
+            "/..".repeat(relative.matches("/").count()),
+            get_fully_qualified_name(&self.entity).join("/"),
+            self.name()
+        )
+    }
+
+    fn name(&self) -> String {
+        self.entity.get_name().unwrap_or("<Anonymous class or struct>".into())
+    }
+}
+
+pub struct Builder<'c, 'e> {
+    pub config: &'c Config,
+    pub root: Namespace<'e>,
+}
+
+impl<'c, 'e> Builder<'c, 'e> {
+    pub fn new(config: &'c Config, root: Entity<'e>) -> Self {
+        Self {
+            config,
+            root: Namespace::new(root),
+        }
+    }
+
+    pub fn build(&mut self, pbar: Option<&ProgressBar>) -> Result<(), String> {
+        let mut i = 0f64;
+        let len = self.root.entries.len() as f64;
+        for (_, entry) in &self.root.entries {
+            if let Some(pbar) = pbar {
+                pbar.set_position((i / len * pbar.length().unwrap_or(1) as f64) as u64);
+            }
+            i += 1f64;
+            entry.build(self)?;
+        }
+    
+        write_docs_output(
+            &self,
+            &self.config.presentation.index_template,
+            &String::new(),
+            []
+        )?;
+    
+        Ok(())
+    }
+}
+
+pub fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
     let mut name = Vec::new();
     if let Some(parent) = entity.get_semantic_parent() {
         if !matches!(parent.get_kind(), EntityKind::TranslationUnit) {
@@ -72,216 +248,65 @@ fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
     name
 }
 
-fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
+pub fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
+    let path = entity
+        .get_definition()?
+        .get_location()?
+        .get_file_location()
+        .file?
+        .get_path();
+
     Some(
-        config.docs.tree.clone()? + &entity.get_file()?.get_path().to_str()?.replace("\\", "/")
+        config.docs.tree.clone()?
+            + "/"
+            + &path
+                .strip_prefix(&config.input_dir)
+                .unwrap_or(&path)
+                .to_str()?
+                .replace("\\", "/"),
     )
 }
 
-fn build_class_docs<'e>(
-    builder: &mut Builder<'_, 'e>,
-    entity: Entity<'e>,
-    nest_dir: &Path
+pub fn get_css_path(config: &Config) -> PathBuf {
+    config.output_dir.join("style.css")
+}
+
+fn default_format(config: &Config, target_url: &String) -> HashMap<String, String> {
+    HashMap::from([
+        ("project_name".into(), config.project.name.clone()),
+        ("project_version".into(), config.project.version.clone()),
+        (
+            "style_css_url".into(), 
+            format!("./{}style.css", "../".repeat(target_url.matches("/").count()))
+        ),
+        ("default_script".into(), config.presentation.js.clone()),
+    ])
+}
+
+fn write_docs_output<'e, T: IntoIterator<Item = (String, String)>>(
+    builder: &Builder<'_, 'e>,
+    template: &String,
+    target_url: &String,
+    vars: T
 ) -> Result<(), String> {
-    // Skip anonymous
-    let Some(name) = entity.get_name() else {
-        return Ok(());
-    };
-    let full_name = get_fully_qualified_name(&entity);
-
-    // Target directory
-    let dir_path = nest_dir.join(name);
-
-    // index.html location
-    let index_html_path = builder.config.output_dir.join(&dir_path).join("index.html");
-
-    builder.index.insert(
-        full_name.join("::"),
-        Page {
-            // Convert dir path to relative URL
-            url: String::from("./") + &dir_path.to_str().unwrap().replace("\\", "/"),
-            entity: entity.clone()
-        }
-    );
-
-    let vars = HashMap::from([
-        ("name".to_string(), entity.get_name().unwrap()),
+    let mut fmt = default_format(builder.config, &target_url);
+    fmt.extend(vars);
+    fmt.extend([
         (
-            "description".into(),
-            entity
-                .get_parsed_comment()
-                .map(|c| c.as_html())
-                .unwrap_or("<p>No Description Provided</p>".into()),
+            "default_head".into(),
+            strfmt(
+                &builder.config.presentation.head_template,
+                &default_format(builder.config, target_url)
+            ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
         ),
-        (
-            "header_link".into(),
-            get_header_url(builder.config, &entity)
-                .map(|url| format!("<a href='{}'>View Header</a>", url))
-                .unwrap_or(String::new())
-        ),
+        ("default_navbar".into(), builder.root.build_nav(target_url)),
     ]);
 
-    let data = strfmt(&builder.config.presentation.class_template, &vars)
-        .map_err(|e| format!("Unable to format class template: {e}"))?;
+    let data = strfmt(template, &fmt)
+        .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
-    fs::create_dir_all(index_html_path.parent().unwrap()).unwrap();
-    fs::write(&index_html_path, data).unwrap();
-    
-    Ok(())
-}
-
-fn build_docs_recurse<'e>(
-    builder: &mut Builder<'_, 'e>,
-    entity: Entity<'e>,
-    nest_dir: &Path,
-    pbar: Option<&ProgressBar>,
-) -> Result<(), String> {
-    let children = entity.get_children();
-    let mut i = 0f64;
-    let len = children.len() as f64;
-    for entity in children {
-        if let Some(pbar) = pbar {
-            pbar.set_position(
-                (i / len * pbar.length().unwrap_or(1) as f64) as u64
-            );
-        }
-        i += 1f64;
-        if entity.is_in_system_header() {
-            continue;
-        }
-        match entity.get_kind() {
-            EntityKind::Namespace => {
-                build_docs_recurse(
-                    builder,
-                    entity,
-                    &nest_dir.join(entity.get_name().unwrap_or("_anon_ns".into())),
-                    None,
-                )?;
-            }
-            EntityKind::StructDecl | EntityKind::ClassDecl => {
-                build_class_docs(builder, entity, nest_dir)?;
-            }
-            _ => {}
-        }
-    }
+    fs::write(&builder.config.output_dir.join(target_url).join("index.html"), data)
+        .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
 
     Ok(())
-}
-
-fn build_index_page(
-    builder: &Builder,
-    output_dir: &Path,
-) -> Result<(), String> {
-    let vars = HashMap::from([
-        ("project_name".to_string(), builder.config.project.name.clone()),
-        (
-            "links".into(),
-            builder.index
-                .iter()
-                .map(|item| {
-                    format!(
-                        "<div>\n\
-                            <p>{}</p>\n\
-                            <a href='{}'>View Page</a>\n\
-                        </div>",
-                        item.0, item.1.url
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-        ),
-    ]);
-
-    let data = strfmt(&builder.config.presentation.index_template, &vars)
-        .map_err(|e| format!("Unable to format index template: {e}"))?;
-
-    fs::write(output_dir.join("index.html"), data).unwrap();
-
-    Ok(())
-}
-
-fn build_docs_with_cmake(config: &Config) -> Result<(), String> {
-    // Configure the cmake project
-    cmake::cmake_configure(
-        config
-            .cmake
-            .as_ref()
-            .unwrap()
-            .config_args
-            .as_ref()
-            .unwrap_or(&Vec::new()),
-    )?;
-
-    // Build the cmake project
-    if config.cmake.as_ref().unwrap().build {
-        cmake::cmake_build(
-            config
-                .cmake
-                .as_ref()
-                .unwrap()
-                .build_args
-                .as_ref()
-                .unwrap_or(&Vec::new()),
-        )?;
-    }
-
-    // Initialize clang
-    let clang = clang::Clang::new()?;
-    let index = clang::Index::new(&clang, false, true);
-
-    // Create a single source file that includes all headers
-    let target_src = create_analyzable_file(config)?;
-
-    let pbar = ProgressBar::new_spinner();
-    pbar.set_style(
-        ProgressStyle::with_template("{msg:>15} {spinner} [{elapsed_precise}] [{bar}]")
-        .unwrap()
-    );
-    pbar.set_message("Analyzing");
-    pbar.enable_steady_tick(Duration::from_millis(200));
-
-    // Create parser
-    let unit = index
-        .parser(&target_src)
-        .arguments(
-            &cmake::cmake_compile_args_for(config).expect("Unable to infer CMake compile args"),
-        )
-        .parse()?;
-
-    pbar.set_length(25);
-    pbar.set_message("Building docs");
-    pbar.tick();
-
-    // Build the doc files
-    let mut builder = Builder::new(config);
-    build_docs_recurse(&mut builder, unit.get_entity(), &PathBuf::from(""), Some(&pbar))?;
-
-    pbar.set_message("Building index");
-
-    build_index_page(&builder, &config.output_dir)?;
-
-    pbar.set_message("Cleaning up files");
-
-    // Clean up analyzable file
-    fs::remove_file(target_src).unwrap();
-
-    pbar.finish_using_style();
-
-    Ok(())
-}
-
-pub fn build_docs_for(config: &Config) -> Result<(), String> {
-    // Execute prebuild commands
-    if let Some(cmds) = config.run.as_ref().and_then(|c| c.prebuild.as_ref()) {
-        for cmd in cmds {
-            run_command(cmd)?;
-        }
-    }
-
-    // Build based on mode
-    if config.cmake.is_some() {
-        build_docs_with_cmake(config)
-    } else {
-        todo!("Impl plain config")
-    }
 }
