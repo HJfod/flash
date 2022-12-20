@@ -115,6 +115,9 @@ impl<'e> AnEntry<'e> for Namespace<'e> {
 impl<'e> Namespace<'e> {
     fn load_entries(&mut self) {
         for child in &self.entity.get_children() {
+            if child.is_in_system_header() || child.get_name().is_none() {
+                continue;
+            }
             match child.get_kind() {
                 EntityKind::Namespace => {
                     let entry = Namespace::new(child.clone());
@@ -131,7 +134,7 @@ impl<'e> Namespace<'e> {
                 },
 
                 EntityKind::StructDecl | EntityKind::ClassDecl => {
-                    if child.is_definition() && child.get_name().is_some() {
+                    if child.is_definition() {
                         let entry = Class::new(child.clone());
                         self.entries.insert(entry.name(), Entry::Class(entry));
                     }
