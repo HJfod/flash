@@ -7,8 +7,8 @@ fn def_class_template() -> String {
     include_str!("../templates/class.html").into()
 }
 
-fn def_link_template() -> String {
-    include_str!("../templates/link.html").into()
+fn def_index_template() -> String {
+    include_str!("../templates/index.html").into()
 }
 
 const fn cmake_build_default() -> bool {
@@ -67,15 +67,15 @@ pub struct RunConfig {
 pub struct PresentationConfig {
     #[serde(deserialize_with = "parse_template", default = "def_class_template")]
     pub class_template: String,
-    #[serde(deserialize_with = "parse_template", default = "def_link_template")]
-    pub link_template: String,
+    #[serde(deserialize_with = "parse_template", default = "def_index_template")]
+    pub index_template: String,
 }
 
 impl Default for PresentationConfig {
     fn default() -> Self {
         Self {
             class_template: def_class_template(),
-            link_template: def_link_template(),
+            index_template: def_index_template(),
         }
     }
 }
