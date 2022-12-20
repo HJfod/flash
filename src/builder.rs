@@ -41,7 +41,7 @@ fn run_command(cmd: &String) -> Result<(), String> {
 
 fn fmt_link(config: &Config, url: &str, text: &str) -> String {
     strfmt(
-        &config.link_template,
+        &config.presentation.link_template,
         &HashMap::from([("url".to_string(), url), ("text".to_string(), text)]),
     )
     .unwrap()
@@ -78,7 +78,7 @@ fn build_docs_recurse(
         // );
         let source_link;
         let header_link;
-        if let Some(ref tree) = builder.config.tree {
+        if let Some(ref tree) = builder.config.docs.tree {
             let src_url = format!(
                 "{}/{}",
                 tree,
@@ -138,7 +138,7 @@ fn build_docs_recurse(
                     ("header_link".into(), header_link.unwrap_or("".into())),
                 ]);
 
-                let data = strfmt(&builder.config.class_template, &vars)
+                let data = strfmt(&builder.config.presentation.class_template, &vars)
                     .map_err(|e| format!("Unable to format class template: {e}"))?;
 
                 fs::create_dir_all(target_path.parent().unwrap()).unwrap();
@@ -207,7 +207,7 @@ fn build_docs_with_cmake(config: &Config) -> Result<(), String> {
 
 pub fn build_docs_for(config: &Config) -> Result<(), String> {
     // Execute prebuild commands
-    if let Some(ref cmds) = config.prebuild {
+    if let Some(cmds) = config.run.as_ref().and_then(|c| c.prebuild.as_ref()) {
         for cmd in cmds {
             run_command(cmd)?;
         }

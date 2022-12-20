@@ -55,9 +55,9 @@ fn main() -> Result<(), String> {
     let conf = Config::parse(full_input, full_output)?;
 
     // Build the docs
-    println!("Building docs for {} ({})", conf.project, conf.version);
+    println!("Building docs for {} ({})", conf.project.name, conf.project.version);
     build_docs_for(&conf)?;
-    println!("Docs built for {}", conf.project);
+    println!("Docs built for {}", conf.project.name);
 
     Ok(())
 }

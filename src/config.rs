@@ -48,25 +48,60 @@ pub struct CMakeConfig {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct Config {
-    pub project: String,
-    pub version: String,
-
+pub struct DocsConfig {
     #[serde(deserialize_with = "parse_glob")]
     pub include: Vec<PathBuf>,
     #[serde(deserialize_with = "parse_glob", default = "Vec::new")]
     pub exclude: Vec<PathBuf>,
-
-    pub cmake: Option<CMakeConfig>,
-    pub prebuild: Option<Vec<String>>,
-
-    pub repository: Option<String>,
     pub tree: Option<String>,
+}
 
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RunConfig {
+    pub prebuild: Option<Vec<String>>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct PresentationConfig {
     #[serde(deserialize_with = "parse_template", default = "def_class_template")]
     pub class_template: String,
     #[serde(deserialize_with = "parse_template", default = "def_link_template")]
     pub link_template: String,
+}
+
+impl Default for PresentationConfig {
+    fn default() -> Self {
+        Self {
+            class_template: def_class_template(),
+            link_template: def_link_template(),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ProjectConfig {
+    pub name: String,
+    pub version: String,
+    pub repository: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Config {
+    /// Options for the project
+    pub project: ProjectConfig,
+    /// Options for the documentation
+    pub docs: DocsConfig,
+    #[serde(default)]
+    /// Options for docs outlook
+    pub presentation: PresentationConfig,
+    /// Options for CMake
+    pub cmake: Option<CMakeConfig>,
+    /// Options for commands to run while building docs
+    pub run: Option<RunConfig>,
 
     #[serde(skip)]
     pub input_dir: PathBuf,
@@ -88,9 +123,9 @@ impl Config {
     }
 
     pub fn filtered_includes(&self) -> Vec<&PathBuf> {
-        self.include
+        self.docs.include
             .iter()
-            .filter(|p| !self.exclude.contains(p))
+            .filter(|p| !self.docs.exclude.contains(p))
             .collect()
     }
 }
