@@ -1,7 +1,7 @@
 
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{fs, path::PathBuf, process::Command, time::Duration};
-use crate::{cmake, config::Config, builder::{Builder, get_css_path}};
+use crate::{cmake, config::Config, builder::builder::{get_css_path, Builder}};
 
 fn run_command(cmd: &String) -> Result<(), String> {
     let args =

@@ -15,6 +15,14 @@ fn default_head_template() -> String {
     include_str!("../templates/head.html").into()
 }
 
+fn default_nav_template() -> String {
+    include_str!("../templates/nav.html").into()
+}
+
+fn default_file_template() -> String {
+    include_str!("../templates/file.html").into()
+}
+
 fn default_css() -> String {
     include_str!("../templates/default.css").into()
 }
@@ -56,6 +64,20 @@ pub struct CMakeConfig {
     #[serde(default = "cmake_build_default")]
     pub build: bool,
     pub infer_args_from: PathBuf,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BrowserRoot {
+    pub path: PathBuf,
+    pub name: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct BrowserConfig {
+    #[serde(default = "Vec::new")]
+    pub roots: Vec<BrowserRoot>,
 }
 
 #[derive(Deserialize)]
@@ -110,6 +132,18 @@ pub struct PresentationConfig {
     )]
     pub head_template: String,
 
+    #[serde(
+        deserialize_with = "parse_template",
+        default = "default_nav_template"
+    )]
+    pub nav_template: String,
+
+    #[serde(
+        deserialize_with = "parse_template",
+        default = "default_file_template"
+    )]
+    pub file_template: String,
+
     #[serde(deserialize_with = "parse_template", default = "default_css")]
     pub css: String,
 
@@ -123,6 +157,8 @@ impl Default for PresentationConfig {
             class_template: default_class_template(),
             index_template: default_index_template(),
             head_template:  default_head_template(),
+            file_template:  default_file_template(),
+            nav_template:   default_nav_template(),
             css:            default_css(),
             js:             default_js(),
         }
@@ -144,6 +180,8 @@ pub struct Config {
     pub project: ProjectConfig,
     /// Options for the documentation
     pub docs: DocsConfig,
+    /// Options for the docs browser / navigation
+    pub browser: BrowserConfig,
     #[serde(default)]
     /// Options for docs outlook
     pub presentation: PresentationConfig,

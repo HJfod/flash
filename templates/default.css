@@ -1,8 +1,18 @@
 
 :root {
-    --flash-bg:     #212121;
-    --flash-text:   #eee;
-    --flash-item:   #576D9D;
+    --flash-gray:           #272727;
+    --flash-gray-darker:    #111;
+    --flash-gray-dark:      #222;
+    --flash-white:          #eee;
+    --flash-light:          #aaa;
+    --flash-blue:           #6a80d8;
+    --flash-cyan:           #6ac2d8;
+    --flash-green:          #9ff4b7;
+    --flash-pink:           #f49fe9;
+    --flash-skin:           #EC897C;
+    --flash-red:            #e23485;
+    --flash-border:         rgba(255, 255, 255, .2);
+    --flash-hover:          rgba(255, 255, 255, .1);
 }
 
 html {
@@ -13,16 +23,51 @@ body {
     margin: 0;
     padding: 0;
     height: calc(100% - 2rem);
-    background: var(--flash-bg);
-    color: var(--flash-text);
-    display: flex;
-    flex-direction: row;
+    background: var(--flash-gray);
+    color: var(--flash-white);
+    display: grid;
+    grid-template-columns: 22.5rem 1fr;
+    grid-template-rows: 100% 100%;
 }
 
 nav {
+    background-color: var(--flash-gray-dark);
     padding: 1rem;
-    width: 20rem;
     height: 100%;
+    display: grid;
+    grid-template-rows: min-content 1fr min-content;
+}
+
+nav > .mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+nav > .mode > button {
+    font-family: 'Open Sans', sans-serif;
+    color: var(--flash-white);
+    padding: .5rem;
+    background-color: rgba(0, 0, 0, 0);
+    border: none;
+    transition: background;
+    transition-duration: .1s;
+}
+
+nav > .mode > button.selected {
+    border-bottom: .2rem solid var(--flash-skin);
+    border-top: .2rem solid rgba(0, 0, 0, 0);
+}
+
+nav > .mode > button:not(.selected) {
+    border-bottom: .2rem solid var(--flash-border);
+    border-top: .2rem solid rgba(0, 0, 0, 0);
+}
+
+nav > .mode > button:hover {
+    background-color: var(--flash-hover);
+}
+
+nav > .content {
     overflow-x: hidden;
     overflow-y: auto;
     display: flex;
@@ -30,11 +75,11 @@ nav {
     justify-content: stretch;
 }
 
-nav details > div {
+nav > .content details:not(.nav-root) > div {
     padding-left: 1.25rem;
 }
 
-nav summary {
+nav > .content summary {
     font-family: 'Source Code Pro', monospace;
     display: flex;
     flex-direction: row;
@@ -43,44 +88,100 @@ nav summary {
     user-select: none;
 }
 
-nav summary:hover {
-    background-color: rgba(255, 255, 255, .1);
+nav > .content details.nav-root > summary {
+    color: var(--flash-light);
+}
+
+nav > .content summary:hover {
+    background-color: var(--flash-hover);
     cursor: pointer;
+}
+
+nav > .search {
+    padding: .5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: .2rem solid var(--flash-border);
+}
+
+nav > .search > input {
+    background: var(--flash-gray-darker);
+    border: none;
+    border-radius: 9999px;
+    padding: .75rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    color: var(--flash-white);
+    outline: none;
 }
 
 nav .feather {
     height: 1.2rem;
     opacity: 50%;
+    margin-right: .25rem;
 }
 
-nav details[open] > summary > .feather {
+nav > .content details[open] > summary > .feather:first-child {
     transform: rotate(90deg);
 }
 
 nav a {
-    color: var(--flash-item);
+    color: var(--flash-white);
     text-decoration: none;
     font-family: 'Source Code Pro', monospace;
     display: flex;
     flex-direction: row;
     padding: .25rem;
     user-select: none;
+    transition: background;
+    transition-duration: .1s;
 }
 
 nav a:hover {
-    background-color: rgba(255, 255, 255, .1);
+    background-color: var(--flash-hover);
 }
 
 main {
+    font-family: 'Open Sans', sans-serif;
     padding: 1rem;
 }
 
-h1 {
+main h1 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
     font-size: 3rem;
 }
 
-p {
-    font-family: 'Open Sans', sans-serif;
+main h2 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 1.75rem;
+}
+
+main a {
+    display: inline-grid;
+    border-radius: 9999px;
+    color: var(--flash-white);
+    background-color: rgba(0, 0, 0, 0);
+    padding: 1rem;
+    padding-left: 3rem;
+    padding-right: 3rem;
+    text-align: center;
+    text-decoration: none;
+    border: .15rem solid var(--flash-white); 
+    transition: color, border;
+    transition-duration: .1s;
+}
+
+main a:hover {
+    color: var(--flash-cyan);
+    border-color: var(--flash-cyan);
+}
+
+.class-icon {
+    color: var(--flash-red);
+}
+
+.file-icon {
+    color: var(--flash-green);
 }
