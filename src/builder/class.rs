@@ -1,7 +1,6 @@
 
-use std::fs;
 use clang::Entity;
-use super::builder::{AnEntry, Builder, write_docs_output, get_header_url, get_fully_qualified_name};
+use super::builder::{AnEntry, Builder, get_header_url, get_fully_qualified_name, OutputEntry};
 
 pub struct Class<'e> {
     entity: Entity<'e>,
@@ -9,33 +8,7 @@ pub struct Class<'e> {
 
 impl<'e> AnEntry<'e> for Class<'e> {
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
-        // Target directory
-        let dir_path = builder.config.output_dir.join(&self.url());
-        fs::create_dir_all(&dir_path).unwrap();
-    
-        write_docs_output(
-            builder,
-            &builder.config.presentation.class_template,
-            &self.url(),
-            [
-                ("name".to_string(), self.entity.get_name().unwrap()),
-                (
-                    "description".into(),
-                    self.entity
-                        .get_parsed_comment()
-                        .map(|c| c.as_html())
-                        .unwrap_or("<p>No Description Provided</p>".into()),
-                ),
-                (
-                    "header_link".into(),
-                    get_header_url(builder.config, &self.entity)
-                        .map(|url| format!("<a href='{}'>View Header</a>", url))
-                        .unwrap_or(String::new()),
-                ),
-            ]
-        )?;
-    
-        Ok(())
+        builder.create_output_for(self)
     }
 
     fn build_nav(&self, relative: &String) -> String {
@@ -56,6 +29,30 @@ impl<'e> AnEntry<'e> for Class<'e> {
 
     fn url(&self) -> String {
         String::from("./") + &get_fully_qualified_name(&self.entity).join("/")
+    }
+}
+
+impl<'c, 'e> OutputEntry<'c, 'e> for Class<'e> {
+    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>) {
+        (
+            &builder.config.presentation.class_template,
+            vec![
+                ("name".to_string(), self.entity.get_name().unwrap()),
+                (
+                    "description".into(),
+                    self.entity
+                        .get_parsed_comment()
+                        .map(|c| c.as_html())
+                        .unwrap_or("<p>No Description Provided</p>".into()),
+                ),
+                (
+                    "header_link".into(),
+                    get_header_url(builder.config, &self.entity)
+                        .map(|url| format!("<a href='{}'>View Header</a>", url))
+                        .unwrap_or(String::new()),
+                ),
+            ]
+        )
     }
 }
 

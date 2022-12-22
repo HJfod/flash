@@ -73,6 +73,7 @@ nav > .content {
     display: flex;
     flex-direction: column;
     justify-content: stretch;
+    padding: .25rem;
 }
 
 nav > .content details:not(.nav-root) > div {
@@ -86,10 +87,19 @@ nav > .content summary {
     align-items: center;
     padding: .25rem;
     user-select: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 5rem;
 }
 
 nav > .content details.nav-root > summary {
     color: var(--flash-light);
+}
+
+nav > .content details.nav-root:not(:last-child) {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: .1rem solid var(--flash-hover);
 }
 
 nav > .content summary:hover {
@@ -125,7 +135,7 @@ nav > .content details[open] > summary > .feather:first-child {
     transform: rotate(90deg);
 }
 
-nav a {
+nav > .content a {
     color: var(--flash-white);
     text-decoration: none;
     font-family: 'Source Code Pro', monospace;
@@ -135,6 +145,9 @@ nav a {
     user-select: none;
     transition: background;
     transition-duration: .1s;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 5rem;
 }
 
 nav a:hover {

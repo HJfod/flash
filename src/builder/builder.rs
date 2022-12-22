@@ -5,13 +5,17 @@ use strfmt::strfmt;
 
 use crate::config::Config;
 
-use super::{namespace::Namespace, files::Root};
+use super::{namespace::Namespace, files::Root, index::Index};
 
 pub trait AnEntry<'e> {
     fn name(&self) -> String;
     fn url(&self) -> String;
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String>;
     fn build_nav(&self, relative: &String) -> String;
+}
+
+pub trait OutputEntry<'c, 'e>: AnEntry<'e> {
+    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>);
 }
 
 pub struct Builder<'c, 'e> {
@@ -27,6 +31,35 @@ impl<'c, 'e> Builder<'c, 'e> {
             root: Namespace::new(root),
             file_roots: Root::from_config(config),
         }
+    }
+
+    pub fn create_output_for<E: OutputEntry<'c, 'e>>(&self, entry: &E) -> Result<(), String> {
+        let (template, vars) = entry.output(self);
+        let target_url = &entry.url();
+        
+        let mut fmt = default_format(self.config, target_url);
+        fmt.extend(vars);
+        fmt.extend([
+            (
+                "default_head".into(),
+                strfmt(
+                    &self.config.presentation.head_template,
+                    &default_format(self.config, target_url)
+                ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
+            ),
+            ("navbar".into(), self.build_nav(target_url)?),
+        ]);
+    
+        let data = strfmt(&template, &fmt)
+            .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+    
+        fs::create_dir_all(self.config.output_dir.join(target_url))
+            .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
+
+        fs::write(&self.config.output_dir.join(target_url).join("index.html"), data)
+            .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
+    
+        Ok(())
     }
 
     pub fn build(&mut self, pbar: Option<&ProgressBar>) -> Result<(), String> {
@@ -55,12 +88,7 @@ impl<'c, 'e> Builder<'c, 'e> {
             root.build(self)?;
         }
     
-        write_docs_output(
-            &self,
-            &self.config.presentation.index_template,
-            &String::new(),
-            []
-        )?;
+        self.create_output_for(&Index {})?;
     
         Ok(())
     }
@@ -129,32 +157,4 @@ fn default_format(config: &Config, target_url: &String) -> HashMap<String, Strin
         ),
         ("default_script".into(), config.presentation.js.clone()),
     ])
-}
-
-pub fn write_docs_output<'e, T: IntoIterator<Item = (String, String)>>(
-    builder: &Builder<'_, 'e>,
-    template: &String,
-    target_url: &String,
-    vars: T
-) -> Result<(), String> {
-    let mut fmt = default_format(builder.config, &target_url);
-    fmt.extend(vars);
-    fmt.extend([
-        (
-            "default_head".into(),
-            strfmt(
-                &builder.config.presentation.head_template,
-                &default_format(builder.config, target_url)
-            ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
-        ),
-        ("navbar".into(), builder.build_nav(target_url)?),
-    ]);
-
-    let data = strfmt(template, &fmt)
-        .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
-
-    fs::write(&builder.config.output_dir.join(target_url).join("index.html"), data)
-        .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
-
-    Ok(())
 }

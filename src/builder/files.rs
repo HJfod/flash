@@ -1,7 +1,7 @@
 
-use std::{collections::HashMap, fs, path::{PathBuf, Path}};
+use std::{collections::HashMap, path::{PathBuf, Path}};
 use crate::config::{BrowserRoot, Config};
-use super::builder::{AnEntry, Builder, write_docs_output};
+use super::builder::{AnEntry, Builder, OutputEntry};
 
 pub struct File {
     name: String,
@@ -18,15 +18,26 @@ impl<'e> AnEntry<'e> for File {
     }
 
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
-        // Target directory
-        let dir_path = builder.config.output_dir.join(&self.url());
-        fs::create_dir_all(&dir_path).unwrap();
-    
-        write_docs_output(
-            builder,
+        builder.create_output_for(self)
+    }
+
+    fn build_nav(&self, relative: &String) -> String {
+        format!(
+            "<a href='.{}/files/{}'>
+                <i data-feather='file' class='file-icon'></i>{}
+            </a>",
+            "/..".repeat(relative.matches("/").count()),
+            self.path,
+            self.name
+        )
+    }
+}
+
+impl<'c, 'e> OutputEntry<'c, 'e> for File {
+    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>) {
+        (
             &builder.config.presentation.file_template,
-            &self.url(),
-            [
+            vec![
                 ("name".to_string(), self.name.clone()),
                 (
                     "description".into(),
@@ -39,19 +50,6 @@ impl<'e> AnEntry<'e> for File {
                     ).unwrap_or("".into()),
                 ),
             ]
-        )?;
-    
-        Ok(())
-    }
-
-    fn build_nav(&self, relative: &String) -> String {
-        format!(
-            "<a href='.{}/files/{}'>
-                <i data-feather='file' class='file-icon'></i>{}
-            </a>",
-            "/..".repeat(relative.matches("/").count()),
-            self.path,
-            self.name
         )
     }
 }
