@@ -3,32 +3,46 @@ use std::collections::HashMap;
 
 use clang::{Entity, EntityKind};
 
-use super::{builder::{Builder, AnEntry, get_fully_qualified_name}, class::Class};
+use super::{builder::{Builder, AnEntry, get_fully_qualified_name, NavItem}, class::Class};
 
-pub enum Entry<'e> {
+pub enum CppItem<'e> {
     Namespace(Namespace<'e>),
     Class(Class<'e>),
 }
 
-impl<'e> Entry<'e> {
-    pub fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+impl<'e> AnEntry<'e> for CppItem<'e> {
+    fn name(&self) -> String {
         match self {
-            Entry::Namespace(ns) => ns.build(builder),
-            Entry::Class(cs) => cs.build(builder),
+            CppItem::Namespace(ns) => ns.name(),
+            CppItem::Class(cs) => cs.name(),
+        }
+    }
+    
+    fn url(&self) -> String {
+        match self {
+            CppItem::Namespace(ns) => ns.url(),
+            CppItem::Class(cs) => cs.url(),
         }
     }
 
-    pub fn build_nav(&self, relative: &String) -> String {
+    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
         match self {
-            Entry::Namespace(ns) => ns.build_nav(relative),
-            Entry::Class(cs) => cs.build_nav(relative),
+            CppItem::Namespace(ns) => ns.build(builder),
+            CppItem::Class(cs) => cs.build(builder),
+        }
+    }
+
+    fn nav(&self) -> NavItem {
+        match self {
+            CppItem::Namespace(ns) => ns.nav(),
+            CppItem::Class(cs) => cs.nav(),
         }
     }
 }
 
 pub struct Namespace<'e> {
     entity: Entity<'e>,
-    pub entries: HashMap<String, Entry<'e>>,
+    pub entries: HashMap<String, CppItem<'e>>,
 }
 
 impl<'e> AnEntry<'e> for Namespace<'e> {
@@ -39,46 +53,23 @@ impl<'e> AnEntry<'e> for Namespace<'e> {
         Ok(())
     }
 
-    fn build_nav(&self, relative: &String) -> String {
-        let mut namespaces = self.entries
-            .iter()
-            .filter(|e| matches!(e.1, Entry::Namespace(_)))
-            .collect::<Vec<_>>();
-        
-        namespaces.sort_by_key(|p| p.0);
+    fn nav(&self) -> NavItem {
+        let mut entries = self.entries.iter().collect::<Vec<_>>();
 
-        let mut other = self.entries
-            .iter()
-            .filter(|e| !matches!(e.1, Entry::Namespace(_)))
-            .collect::<Vec<_>>();
+        // Namespaces first in sorted order, everything else after in sorted order
+        entries.sort_by_key(|p| (!matches!(p.1, CppItem::Namespace(_)), p.0));
 
-        other.sort_by_key(|p| p.0);
-
-        namespaces.extend(other);
-
-        // If this is a translation unit (aka root in Builder) then just output 
-        // the contents of the nav section and not the title
-        if matches!(self.entity.get_kind(), EntityKind::TranslationUnit) {
-            namespaces
-                .iter()
-                .map(|e| e.1.build_nav(relative))
-                .collect::<Vec<_>>()
-                .join("\n")
+        if self.entity.get_kind() == EntityKind::TranslationUnit {
+            NavItem::new_root(None, entries.iter().map(|e| e.1.nav()).collect())
         }
-        // Otherwise foldable namespace name
         else {
-            format!(
-                "<details>
-                    <summary><i data-feather='chevron-right'></i>{}</summary>
-                    <div>{}</div>
-                </details>
-                ",
-                self.name(),
-                namespaces
+            NavItem::new_dir(
+                &self.name(),
+                entries
                     .iter()
-                    .map(|e| e.1.build_nav(relative))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                    .map(|e| e.1.nav())
+                    .collect(),
+                None
             )
         }
     }
@@ -112,20 +103,20 @@ impl<'e> Namespace<'e> {
                     let entry = Namespace::new(child.clone());
                     // Merge existing entries of namespace
                     if let Some(key) = self.entries.get_mut(&entry.name()) {
-                        if let Entry::Namespace(ns) = key {
+                        if let CppItem::Namespace(ns) = key {
                             ns.entries.extend(entry.entries);
                         }
                     }
                     // Insert new namespace
                     else {
-                        self.entries.insert(entry.name(), Entry::Namespace(entry));
+                        self.entries.insert(entry.name(), CppItem::Namespace(entry));
                     }
                 },
 
                 EntityKind::StructDecl | EntityKind::ClassDecl => {
                     if child.is_definition() {
                         let entry = Class::new(child.clone());
-                        self.entries.insert(entry.name(), Entry::Class(entry));
+                        self.entries.insert(entry.name(), CppItem::Class(entry));
                     }
                 },
 

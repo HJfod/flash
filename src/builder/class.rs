@@ -1,6 +1,6 @@
 
 use clang::Entity;
-use super::builder::{AnEntry, Builder, get_header_url, get_fully_qualified_name, OutputEntry};
+use super::builder::{AnEntry, Builder, get_header_url, get_fully_qualified_name, OutputEntry, NavItem};
 
 pub struct Class<'e> {
     entity: Entity<'e>,
@@ -11,15 +11,11 @@ impl<'e> AnEntry<'e> for Class<'e> {
         builder.create_output_for(self)
     }
 
-    fn build_nav(&self, relative: &String) -> String {
-        format!(
-            "<a href='.{}/{}'>
-                <i data-feather='box' class='class-icon'></i>
-                {}
-            </a>",
-            "/..".repeat(relative.matches("/").count()),
-            get_fully_qualified_name(&self.entity).join("/"),
-            self.name()
+    fn nav(&self) -> NavItem {
+        NavItem::new_link(
+            &self.name(),
+            &get_fully_qualified_name(&self.entity).join("/"),
+            Some("box")
         )
     }
 

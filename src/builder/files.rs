@@ -1,7 +1,7 @@
 
 use std::{collections::HashMap, path::{PathBuf, Path}};
 use crate::config::{BrowserRoot, Config};
-use super::builder::{AnEntry, Builder, OutputEntry};
+use super::builder::{AnEntry, Builder, OutputEntry, NavItem};
 
 pub struct File {
     name: String,
@@ -14,22 +14,15 @@ impl<'e> AnEntry<'e> for File {
     }
 
     fn url(&self) -> String {
-        String::from("./files/") + &self.path
+        String::from("./") + &self.path
     }
 
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
         builder.create_output_for(self)
     }
 
-    fn build_nav(&self, relative: &String) -> String {
-        format!(
-            "<a href='.{}/files/{}'>
-                <i data-feather='file' class='file-icon'></i>{}
-            </a>",
-            "/..".repeat(relative.matches("/").count()),
-            self.path,
-            self.name
-        )
+    fn nav(&self) -> NavItem {
+        NavItem::new_link(&self.name, &self.path, Some("file"))
     }
 }
 
@@ -58,7 +51,7 @@ impl File {
     pub fn new(path: PathBuf) -> Self {
         Self {
             name: path.file_name().unwrap().to_str().unwrap().to_string(),
-            path: path.components()
+            path: String::from("files/") + &path.components()
                 .map(|c| c.as_os_str().to_str().unwrap().to_string())
                 .collect::<Vec<_>>().join("/")
         }
@@ -91,24 +84,15 @@ impl<'e> AnEntry<'e> for Dir {
         Ok(())
     }
 
-    fn build_nav(&self, relative: &String) -> String {
-        format!(
-            "<details>
-                <summary>
-                    <i data-feather='chevron-right'></i>
-                    <i data-feather='folder'></i>
-                    {}
-                </summary>
-                <div>{}</div>
-            </details>
-            ",
-            self.name,
+    fn nav(&self) -> NavItem {
+        NavItem::new_dir(
+            &self.name,
             self.dirs
                 .iter()
-                .map(|e| e.1.build_nav(relative))
-                .chain(self.files.iter().map(|e| e.1.build_nav(relative)))
-                .collect::<Vec<_>>()
-                .join("\n")
+                .map(|e| e.1.nav())
+                .chain(self.files.iter().map(|e| e.1.nav()))
+                .collect::<Vec<_>>(),
+            Some("folder"),
         )
     }
 }
@@ -117,7 +101,7 @@ impl Dir {
     pub fn new(path: PathBuf) -> Self {
         Self {
             name: path.file_name().unwrap().to_str().unwrap().to_string(),
-            path: path.components()
+            path: String::from("files/") + &path.components()
                 .map(|c| c.as_os_str().to_str().unwrap().to_string())
                 .collect::<Vec<_>>().join("/"),
             dirs: HashMap::new(),
@@ -129,6 +113,31 @@ impl Dir {
 pub struct Root<'b> {
     pub def: &'b BrowserRoot,
     pub dir: Dir,
+}
+
+impl<'b, 'e> AnEntry<'e> for Root<'b> {
+    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+        self.dir.build(builder)
+    }
+
+    fn name(&self) -> String {
+        self.def.name.clone()
+    }
+
+    fn url(&self) -> String {
+        ".".into()
+    }
+
+    fn nav(&self) -> NavItem {
+        NavItem::Root(
+            Some(self.name()),
+            self.dir.dirs
+                .iter()
+                .map(|e| e.1.nav())
+                .chain(self.dir.files.iter().map(|e| e.1.nav()))
+                .collect()
+        )
+    }
 }
 
 impl<'b> Root<'b> {
@@ -180,26 +189,5 @@ impl<'b> Root<'b> {
         else {
             &mut self.dir
         }
-    }
-
-    pub fn build(&self, builder: &Builder<'_, '_>) -> Result<(), String> {
-        self.dir.build(builder)
-    }
-
-    pub fn build_nav(&self, relative: &String) -> String {
-        format!(
-            "<details open class=\"nav-root\">
-                <summary><i data-feather='chevron-right'></i>{}</summary>
-                <div>{}</div>
-            </details>
-            ",
-            self.def.name,
-            self.dir.dirs
-                .iter()
-                .map(|e| e.1.build_nav(relative))
-                .chain(self.dir.files.iter().map(|e| e.1.build_nav(relative)))
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
     }
 }

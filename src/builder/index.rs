@@ -1,5 +1,5 @@
 
-use super::builder::{AnEntry, OutputEntry, Builder};
+use super::builder::{AnEntry, OutputEntry, Builder, NavItem};
 
 pub struct Index {}
 
@@ -16,8 +16,8 @@ impl<'e> AnEntry<'e> for Index {
         builder.create_output_for(self)
     }
 
-    fn build_nav(&self, _: &String) -> String {
-        String::new()
+    fn nav(&self) -> NavItem {
+        NavItem::new_link("Home", ".", None)
     }
 }
 

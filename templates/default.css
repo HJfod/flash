@@ -76,7 +76,7 @@ nav > .content {
     padding: .25rem;
 }
 
-nav > .content details:not(.nav-root) > div {
+nav > .content details:not(.root) > div {
     padding-left: 1.25rem;
 }
 
@@ -92,11 +92,11 @@ nav > .content summary {
     min-width: 5rem;
 }
 
-nav > .content details.nav-root > summary {
+nav > .content details.root > summary {
     color: var(--flash-light);
 }
 
-nav > .content details.nav-root:not(:last-child) {
+nav > .content details.root:not(:last-child) {
     padding-bottom: 1rem;
     margin-bottom: 1rem;
     border-bottom: .1rem solid var(--flash-hover);
@@ -131,7 +131,7 @@ nav .feather {
     margin-right: .25rem;
 }
 
-nav > .content details[open] > summary > .feather:first-child {
+nav > .content details[open] > summary > .feather-chevron-right {
     transform: rotate(90deg);
 }
 
@@ -191,10 +191,10 @@ main a:hover {
     border-color: var(--flash-cyan);
 }
 
-.class-icon {
+.icon.feather-box {
     color: var(--flash-red);
 }
 
-.file-icon {
+.icon.feather-file {
     color: var(--flash-green);
 }
