@@ -3,9 +3,25 @@ use std::{collections::HashMap, path::{PathBuf, Path}};
 use crate::config::{BrowserRoot, Config};
 use super::builder::{AnEntry, Builder, OutputEntry, NavItem};
 
+pub fn pathbuf_to_url(path: &PathBuf) -> String {
+    path.components()
+        .map(|c| c.as_os_str().to_str().unwrap().to_string())
+        .collect::<Vec<_>>().join("/")
+}
+
+pub fn pathbuf_to_url_base(path: &PathBuf) -> String {
+    let url = pathbuf_to_url(path);
+    if url.is_empty() {
+        url
+    } else {
+        url + "/"
+    }
+}
+
 pub struct File {
     name: String,
     path: String,
+    prefix: String,
 }
 
 impl<'e> AnEntry<'e> for File {
@@ -14,7 +30,7 @@ impl<'e> AnEntry<'e> for File {
     }
 
     fn url(&self) -> String {
-        String::from("./") + &self.path
+        String::from("./files/") + &self.path
     }
 
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
@@ -22,7 +38,7 @@ impl<'e> AnEntry<'e> for File {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.name, &self.path, Some("file"))
+        NavItem::new_link(&self.name, &(String::from("files/") + &self.path), Some("file"))
     }
 }
 
@@ -37,30 +53,32 @@ impl<'c, 'e> OutputEntry<'c, 'e> for File {
                     "<p>No Description Provided</p>".into(),
                 ),
                 (
-                    "file_link".into(),
+                    "file_url".into(),
                     builder.config.docs.tree.as_ref().map(|tree| 
-                        format!("<a href='{}/{}'>View Header</a>", tree, self.path)
+                        format!("{}/{}", tree, self.path)
                     ).unwrap_or("".into()),
                 ),
+                ("file_path".into(), self.prefix.clone() + &self.path),
             ]
         )
     }
 }
 
 impl File {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, prefix: &PathBuf) -> Self {
         Self {
             name: path.file_name().unwrap().to_str().unwrap().to_string(),
-            path: String::from("files/") + &path.components()
-                .map(|c| c.as_os_str().to_str().unwrap().to_string())
-                .collect::<Vec<_>>().join("/")
+            path: pathbuf_to_url(&path),
+            prefix: pathbuf_to_url_base(prefix),
         }
     }
 }
 
 pub struct Dir {
-    pub name: String,
-    pub path: String,
+    name: String,
+    path: String,
+    #[allow(dead_code)]
+    prefix: String,
     pub dirs: HashMap<String, Dir>,
     pub files: HashMap<String, File>,
 }
@@ -98,12 +116,11 @@ impl<'e> AnEntry<'e> for Dir {
 }
 
 impl Dir {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf, prefix: &PathBuf) -> Self {
         Self {
             name: path.file_name().unwrap().to_str().unwrap().to_string(),
-            path: String::from("files/") + &path.components()
-                .map(|c| c.as_os_str().to_str().unwrap().to_string())
-                .collect::<Vec<_>>().join("/"),
+            path: pathbuf_to_url(&path),
+            prefix: pathbuf_to_url_base(prefix),
             dirs: HashMap::new(),
             files: HashMap::new(),
         }
@@ -125,7 +142,7 @@ impl<'b, 'e> AnEntry<'e> for Root<'b> {
     }
 
     fn url(&self) -> String {
-        ".".into()
+        String::new()
     }
 
     fn nav(&self) -> NavItem {
@@ -144,7 +161,7 @@ impl<'b> Root<'b> {
     pub fn from_config(config: &'b Config) -> Vec<Self> {
         let mut roots = config.browser.roots.iter().map(|root| Root {
             def: root,
-            dir: Dir::new(root.name.clone().into()),
+            dir: Dir::new(root.name.clone().into(), &root.include_prefix),
         }).collect::<Vec<_>>();
     
         for file in config.filtered_includes() {
@@ -160,9 +177,10 @@ impl<'b> Root<'b> {
                 }
                 else {
                     // Add to parent if one exists, or to root if one doesn't
+                    let prefix = root.def.include_prefix.clone();
                     root.try_add_dirs(cut_path.parent()).files.insert(
                         cut_path.file_name().unwrap().to_str().unwrap().to_string(),
-                        File::new(cut_path.to_owned())
+                        File::new(cut_path.to_owned(), &prefix)
                     );
                 }
             }
@@ -177,7 +195,10 @@ impl<'b> Root<'b> {
             let url = target.url();
             target = target.dirs
                 .entry(part.to_str().unwrap().to_string())
-                .or_insert(Dir::new(PathBuf::from(url).join(part)));
+                .or_insert(Dir::new(
+                    PathBuf::from(url).join(part),
+                    &self.def.include_prefix
+                ));
         }
         target
     }

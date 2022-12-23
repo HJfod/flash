@@ -1,6 +1,6 @@
 
 use clang::Entity;
-use super::builder::{AnEntry, Builder, get_header_url, get_fully_qualified_name, OutputEntry, NavItem};
+use super::builder::{AnEntry, Builder, get_header_url, get_fully_qualified_name, OutputEntry, NavItem, get_header_path};
 
 pub struct Class<'e> {
     entity: Entity<'e>,
@@ -42,10 +42,12 @@ impl<'c, 'e> OutputEntry<'c, 'e> for Class<'e> {
                         .unwrap_or("<p>No Description Provided</p>".into()),
                 ),
                 (
-                    "header_link".into(),
-                    get_header_url(builder.config, &self.entity)
-                        .map(|url| format!("<a href='{}'>View Header</a>", url))
-                        .unwrap_or(String::new()),
+                    "header_url".into(),
+                    get_header_url(builder.config, &self.entity).unwrap_or(String::new()),
+                ),
+                (
+                    "header_path".into(),
+                    get_header_path(builder.config, &self.entity).unwrap_or(String::new()),
                 ),
             ]
         )

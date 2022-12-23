@@ -1,11 +1,12 @@
 use clang::{Entity, EntityKind};
 use indicatif::ProgressBar;
+use url_path::UrlPath;
 use std::{collections::HashMap, fs};
 use strfmt::strfmt;
 
 use crate::config::Config;
 
-use super::{namespace::Namespace, files::Root, index::Index};
+use super::{namespace::Namespace, files::{Root, pathbuf_to_url_base}, index::Index};
 
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
@@ -115,6 +116,9 @@ impl<'c, 'e> Builder<'c, 'e> {
         let target_url = &entry.url();
         
         let mut fmt = default_format(self.config);
+        fmt.extend(HashMap::from([
+            ("page_url".to_owned(), full_page_url(self.config, target_url)),
+        ]));
         fmt.extend(vars);
     
         let content = strfmt(&template, &fmt)
@@ -239,6 +243,29 @@ pub fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
                 .to_str()?
                 .replace("\\", "/"),
     )
+}
+
+pub fn get_header_path(config: &Config, entity: &Entity) -> Option<String> {
+    let path = entity
+        .get_definition()?
+        .get_location()?
+        .get_file_location()
+        .file?
+        .get_path();
+    
+    let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
+    
+    for root in &config.browser.roots {
+        if let Ok(stripped) = rel_path.strip_prefix(&root.path) {
+            return Some(
+                pathbuf_to_url_base(&root.include_prefix) + &UrlPath::new(
+                    &stripped.to_str().unwrap().to_string().replace("\\", "/")
+                ).normalize()
+            );
+        }
+    }
+
+    None
 }
 
 fn full_page_url(config: &Config, url: &String) -> String {

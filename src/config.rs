@@ -45,6 +45,7 @@ pub struct Script {
 #[serde(rename_all = "kebab-case")]
 pub struct BrowserRoot {
     pub path: PathBuf,
+    pub include_prefix: PathBuf,
     pub name: String,
 }
 

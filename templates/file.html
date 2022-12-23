@@ -1,7 +1,11 @@
 
-<h1>File <em>{name}</em></h1>
+<h1>File <i data-feather="file" class="icon"></i><a href="{page_url}">{name}</a></h1>
 <div>
-    {file_link}
+    <a href="{file_url}" class="header-link">
+        <code>
+            #include <span class="url">&lt;{file_path}&gt;</span>
+        </code>
+    </a>
 </div>
 <div>
     {description}

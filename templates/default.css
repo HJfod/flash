@@ -5,9 +5,15 @@
     --flash-gray-dark:      #222;
     --flash-white:          #eee;
     --flash-light:          #aaa;
+    --flash-less-light:     #888;
+    --flash-dark:           #4a4a4a;
     --flash-blue:           #6a80d8;
+    --flash-cyan-light:     #7adff8;
     --flash-cyan:           #6ac2d8;
+    --flash-cyan-dark:      #427b8a;
+    --flash-cyan-darker:    #294e57;
     --flash-green:          #9ff4b7;
+    --flash-purple:         #714a9a;
     --flash-pink:           #f49fe9;
     --flash-skin:           #EC897C;
     --flash-red:            #e23485;
@@ -82,6 +88,7 @@ nav > .content details:not(.root) > div {
 
 nav > .content summary {
     font-family: 'Source Code Pro', monospace;
+    color: var(--flash-light);
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -104,6 +111,7 @@ nav > .content details.root:not(:last-child) {
 
 nav > .content summary:hover {
     background-color: var(--flash-hover);
+    color: var(--flash-white);
     cursor: pointer;
 }
 
@@ -128,6 +136,9 @@ nav > .search > input {
 nav .feather {
     height: 1.2rem;
     opacity: 50%;
+}
+
+nav .feather:not(.feather-chevron-right) {
     margin-right: .25rem;
 }
 
@@ -136,15 +147,13 @@ nav > .content details[open] > summary > .feather-chevron-right {
 }
 
 nav > .content a {
-    color: var(--flash-white);
+    color: var(--flash-light);
     text-decoration: none;
     font-family: 'Source Code Pro', monospace;
     display: flex;
     flex-direction: row;
     padding: .25rem;
     user-select: none;
-    transition: background;
-    transition-duration: .1s;
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 5rem;
@@ -152,17 +161,49 @@ nav > .content a {
 
 nav a:hover {
     background-color: var(--flash-hover);
+    color: var(--flash-white);
 }
 
 main {
+    display: flex;
+    flex-direction: column;
     font-family: 'Open Sans', sans-serif;
     padding: 1rem;
+}
+
+main div {
+    margin-bottom: 1rem;
 }
 
 main h1 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
+    font-size: 2.25rem;
+    color: var(--flash-less-light);
+}
+
+main h1 > .feather {
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-right: .5rem;
+}
+
+main h1 > a {
+    color: var(--flash-white);
+    font-style: normal;
     font-size: 3rem;
+}
+
+main h1 > a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+main h1::after {
+    content: ' ';
+    display: block;
+    margin-top: .5rem;
+    border: .1rem solid var(--flash-less-light); 
 }
 
 main h2 {
@@ -172,22 +213,40 @@ main h2 {
 }
 
 main a {
+    text-decoration: none;
+}
+
+main a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+main .button {
     display: inline-grid;
     border-radius: 9999px;
     color: var(--flash-white);
-    background-color: rgba(0, 0, 0, 0);
-    padding: 1rem;
+    background-color: var(--flash-dark);
+    padding: .5rem;
     padding-left: 3rem;
     padding-right: 3rem;
     text-align: center;
     text-decoration: none;
-    border: .15rem solid var(--flash-white); 
-    transition: color, border;
+    transition: color, border, background;
     transition-duration: .1s;
 }
 
-main a:hover {
-    color: var(--flash-cyan);
+main .button:hover {
+    background-color: var(--flash-cyan-darker);
+    color: var(--flash-cyan-light);
+}
+
+main .button.outlined {
+    background-color: rgba(0, 0, 0, 0);
+    border: .15rem solid var(--flash-white); 
+}
+
+main .button.outlined:hover {
+    background-color: rgba(0, 0, 0, 0);
     border-color: var(--flash-cyan);
 }
 
@@ -196,5 +255,20 @@ main a:hover {
 }
 
 .icon.feather-file {
+    color: var(--flash-light);
+}
+
+code {
+    padding: 1rem;
+    background-color: var(--flash-gray-darker);
+    border-radius: .5rem;
+}
+
+.header-link {
+    font-size: 1.1rem;
+    color: var(--flash-purple);
+}
+
+.header-link .url {
     color: var(--flash-green);
 }

@@ -32,6 +32,7 @@ function navigate(url) {
                 // "title": 
             }, "", url);
             mainBody.innerHTML = content;
+            feather.replace();
         })
         .catch(err => {
             console.error(err);
@@ -42,5 +43,6 @@ window.onpopstate = e => {
     if (e.state) {
         mainBody.innerHTML = e.state.html;
         // document.title = e.state.title;
+        feather.replace();
     }
 };
