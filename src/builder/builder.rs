@@ -1,6 +1,6 @@
 use clang::{Entity, EntityKind};
 use indicatif::ProgressBar;
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs};
 use strfmt::strfmt;
 
 use crate::config::Config;
@@ -29,11 +29,10 @@ impl NavItem {
     pub fn to_html(&self, nest_level: usize) -> String {
         match self {
             NavItem::Link(name, url, icon) => format!(
-                "<a href='.{}/{}'>{}{}</a>",
+                "<a href='{}'>{}{}</a>",
                 // If we're in a nested folder already, we first have to 
                 // navigate back to root
-                "/..".repeat(nest_level),
-                url,
+                relative_url(url, nest_level),
                 icon
                     .as_ref()
                     .map(|i| format!("<i data-feather='{}' class='icon'></i>", i))
@@ -100,7 +99,17 @@ impl<'c, 'e> Builder<'c, 'e> {
             root: Namespace::new(root),
             file_roots: Root::from_config(config),
             nav_caches: HashMap::new(),
+        }.setup()
+    }
+
+    fn setup(self) -> Self {
+        for script in self.config.presentation.css.iter().chain(&self.config.presentation.js) {
+            fs::write(
+                self.config.output_dir.join(&script.name),
+                &script.content
+            ).unwrap();
         }
+        self
     }
 
     pub fn create_output_for<E: OutputEntry<'c, 'e>>(&self, entry: &E) -> Result<(), String> {
@@ -110,24 +119,30 @@ impl<'c, 'e> Builder<'c, 'e> {
         
         let mut fmt = default_format(self.config, nest_level);
         fmt.extend(vars);
-        fmt.extend([
-            (
-                "default_head".into(),
-                strfmt(
-                    &self.config.presentation.head_template,
-                    &default_format(self.config, nest_level)
-                ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
-            ),
-            ("navbar".into(), self.build_nav(nest_level)?),
-        ]);
     
-        let data = strfmt(&template, &fmt)
+        let content = strfmt(&template, &fmt)
             .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
-    
+        
+        let page = strfmt(
+            &self.config.presentation.page_template,
+            &HashMap::from([
+                (
+                    "head_content".to_owned(), 
+                    strfmt(
+                        &self.config.presentation.head_template,
+                        &default_format(self.config, nest_level)
+                    ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
+                ),
+                ("navbar_content".to_owned(), self.build_nav(nest_level)?),
+                ("main_content".to_owned(), content),
+            ])
+        )
+            .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+
         fs::create_dir_all(self.config.output_dir.join(target_url))
             .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
 
-        fs::write(&self.config.output_dir.join(target_url).join("index.html"), data)
+        fs::write(&self.config.output_dir.join(target_url).join("index.html"), page)
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
     
         Ok(())
@@ -238,8 +253,8 @@ pub fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
     )
 }
 
-pub fn get_css_path(config: &Config) -> PathBuf {
-    config.output_dir.join("style.css")
+fn relative_url(url: &String, nest_level: usize) -> String {
+    format!(".{}/{}", "/..".repeat(nest_level), url)
 }
 
 fn get_nest_level(url: &String) -> usize {
@@ -250,10 +265,6 @@ fn default_format(config: &Config, nest_level: usize) -> HashMap<String, String>
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),
-        (
-            "style_css_url".into(), 
-            format!("./{}style.css", "../".repeat(nest_level))
-        ),
-        ("default_script".into(), config.presentation.js.clone()),
+        ("root_url".into(), format!(".{}", "/..".repeat(nest_level))),
     ])
 }

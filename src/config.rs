@@ -23,12 +23,22 @@ fn default_file_template() -> String {
     include_str!("../templates/file.html").into()
 }
 
-fn default_css() -> String {
-    include_str!("../templates/default.css").into()
+fn default_page_template() -> String {
+    include_str!("../templates/page.html").into()
 }
 
-fn default_js() -> String {
-    include_str!("../templates/script.js").into()
+fn default_css() -> Vec<ScriptFile> {
+    vec![ScriptFile {
+        name: "default.css".into(),
+        content: include_str!("../templates/default.css").into()
+    }]
+}
+
+fn default_js() -> Vec<ScriptFile> {
+    vec![ScriptFile {
+        name: "script.js".into(),
+        content: include_str!("../templates/script.js").into()
+    }]
 }
 
 const fn cmake_build_default() -> bool {
@@ -113,6 +123,14 @@ impl Default for AnalysisConfig {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
+pub struct ScriptFile {
+    pub name: String,
+    #[serde(deserialize_with = "parse_template")]
+    pub content: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct PresentationConfig {
     #[serde(
         deserialize_with = "parse_template",
@@ -144,11 +162,17 @@ pub struct PresentationConfig {
     )]
     pub file_template: String,
 
-    #[serde(deserialize_with = "parse_template", default = "default_css")]
-    pub css: String,
+    #[serde(
+        deserialize_with = "parse_template",
+        default = "default_page_template"
+    )]
+    pub page_template: String,
 
-    #[serde(deserialize_with = "parse_template", default = "default_js")]
-    pub js: String,
+    #[serde(default = "default_css")]
+    pub css: Vec<ScriptFile>,
+
+    #[serde(default = "default_js")]
+    pub js: Vec<ScriptFile>,
 }
 
 impl Default for PresentationConfig {
@@ -158,6 +182,7 @@ impl Default for PresentationConfig {
             index_template: default_index_template(),
             head_template:  default_head_template(),
             file_template:  default_file_template(),
+            page_template:  default_page_template(),
             nav_template:   default_nav_template(),
             css:            default_css(),
             js:             default_js(),

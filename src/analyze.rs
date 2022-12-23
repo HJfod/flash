@@ -1,7 +1,7 @@
 
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{fs, path::PathBuf, process::Command, time::Duration};
-use crate::{cmake, config::Config, builder::builder::{get_css_path, Builder}};
+use crate::{cmake, config::Config, builder::builder::Builder};
 
 fn run_command(cmd: &String) -> Result<(), String> {
     let args =
@@ -17,11 +17,6 @@ fn run_command(cmd: &String) -> Result<(), String> {
     } else {
         Err(format!("Prebuild command `{cmd}` failed"))
     }
-}
-
-fn setup_output(config: &Config) -> Result<(), String> {
-    fs::write(get_css_path(config), &config.presentation.css).unwrap();
-    Ok(())
 }
 
 fn create_analyzable_file(config: &Config) -> Result<PathBuf, String> {
@@ -119,9 +114,6 @@ pub fn create_docs(config: &Config) -> Result<(), String> {
             run_command(cmd)?;
         }
     }
-
-    // Setup output directory
-    setup_output(config)?;
 
     // Build based on mode
     if config.cmake.is_some() {
