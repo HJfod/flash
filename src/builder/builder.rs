@@ -26,13 +26,11 @@ impl NavItem {
         NavItem::Root(name.map(|s| s.into()), items)
     }
 
-    pub fn to_html(&self, nest_level: usize) -> String {
+    pub fn to_html(&self, config: &Config) -> String {
         match self {
             NavItem::Link(name, url, icon) => format!(
-                "<a href='{}'>{}{}</a>",
-                // If we're in a nested folder already, we first have to 
-                // navigate back to root
-                relative_url(url, nest_level),
+                "<a onclick='navigate(\"{}\")'>{}{}</a>",
+                full_page_url(config, url),
                 icon
                     .as_ref()
                     .map(|i| format!("<i data-feather='{}' class='icon'></i>", i))
@@ -53,7 +51,7 @@ impl NavItem {
                     .map(|i| format!("<i data-feather='{}' class='icon'></i>", i))
                     .unwrap_or(String::new()),
                 name,
-                items.iter().map(|i| i.to_html(nest_level)).collect::<String>()
+                items.iter().map(|i| i.to_html(config)).collect::<String>()
             ),
 
             NavItem::Root(name, items) => if let Some(name) = name {
@@ -65,10 +63,10 @@ impl NavItem {
                         </summary>
                         <div>{}</div>
                     </details>",
-                    name, items.iter().map(|i| i.to_html(nest_level)).collect::<String>()
+                    name, items.iter().map(|i| i.to_html(config)).collect::<String>()
                 )
             } else {
-                items.iter().map(|i| i.to_html(nest_level)).collect::<String>()
+                items.iter().map(|i| i.to_html(config)).collect::<String>()
             }
         }
     }
@@ -89,7 +87,7 @@ pub struct Builder<'c, 'e> {
     pub config: &'c Config,
     root: Namespace<'e>,
     file_roots: Vec<Root<'c>>,
-    nav_caches: HashMap<usize, String>,
+    nav_cache: Option<String>,
 }
 
 impl<'c, 'e> Builder<'c, 'e> {
@@ -98,7 +96,7 @@ impl<'c, 'e> Builder<'c, 'e> {
             config,
             root: Namespace::new(root),
             file_roots: Root::from_config(config),
-            nav_caches: HashMap::new(),
+            nav_cache: None,
         }.setup()
     }
 
@@ -115,9 +113,8 @@ impl<'c, 'e> Builder<'c, 'e> {
     pub fn create_output_for<E: OutputEntry<'c, 'e>>(&self, entry: &E) -> Result<(), String> {
         let (template, vars) = entry.output(self);
         let target_url = &entry.url();
-        let nest_level = get_nest_level(target_url);
         
-        let mut fmt = default_format(self.config, nest_level);
+        let mut fmt = default_format(self.config);
         fmt.extend(vars);
     
         let content = strfmt(&template, &fmt)
@@ -130,18 +127,24 @@ impl<'c, 'e> Builder<'c, 'e> {
                     "head_content".to_owned(), 
                     strfmt(
                         &self.config.templates.head,
-                        &default_format(self.config, nest_level)
+                        &default_format(self.config)
                     ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
                 ),
-                ("navbar_content".to_owned(), self.build_nav(nest_level)?),
-                ("main_content".to_owned(), content),
+                ("navbar_content".to_owned(), self.build_nav()?),
+                ("main_content".to_owned(), content.clone()),
             ])
         )
             .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
+        // Make sure output directory exists
         fs::create_dir_all(self.config.output_dir.join(target_url))
             .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
 
+        // Write the plain content output
+        fs::write(&self.config.output_dir.join(target_url).join("content.html"), content)
+            .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
+
+        // Write the full page
         fs::write(&self.config.output_dir.join(target_url).join("index.html"), page)
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
     
@@ -162,7 +165,7 @@ impl<'c, 'e> Builder<'c, 'e> {
         let total_len = (entries_len + self.file_roots.len()) as f64;
 
         // Prebuild cached navbars for much faster docs builds
-        self.prebuild_navs()?;
+        self.prebuild_nav()?;
 
         // Create docs for all entries
         let mut i = 0f64;
@@ -180,19 +183,18 @@ impl<'c, 'e> Builder<'c, 'e> {
         Ok(())
     }
 
-    pub fn build_nav(&self, nest_level: usize) -> Result<String, String> {
-        if let Some(cached) = self.nav_caches.get(&nest_level) {
+    pub fn build_nav(&self) -> Result<String, String> {
+        if let Some(ref cached) = self.nav_cache {
             return Ok(cached.to_owned());
         }
-
-        let mut fmt = default_format(self.config, nest_level);
+        let mut fmt = default_format(self.config);
         fmt.extend([
-            ("entity_content".into(), self.root.nav().to_html(nest_level)),
+            ("entity_content".into(), self.root.nav().to_html(self.config)),
             (
                 "file_content".into(),
                 self.file_roots
                     .iter()
-                    .map(|root| root.nav().to_html(nest_level))
+                    .map(|root| root.nav().to_html(self.config))
                     .collect::<Vec<_>>()
                     .join("\n")
             ),
@@ -203,17 +205,8 @@ impl<'c, 'e> Builder<'c, 'e> {
         )
     }
 
-    fn prebuild_navs(&mut self) -> Result<(), String> {
-        for lvl in self
-            .all_entries()
-            .iter()
-            .map(|p| get_nest_level(&p.url()))
-            .collect::<Vec<_>>()
-        {
-            if !self.nav_caches.contains_key(&lvl) {
-                self.nav_caches.insert(lvl, self.build_nav(lvl)?);
-            }
-        }
+    fn prebuild_nav(&mut self) -> Result<(), String> {
+        self.nav_cache = Some(self.build_nav()?);
         Ok(())
     }
 }
@@ -248,18 +241,27 @@ pub fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
     )
 }
 
-fn relative_url(url: &String, nest_level: usize) -> String {
-    format!(".{}/{}", "/..".repeat(nest_level), url)
+fn full_page_url(config: &Config, url: &String) -> String {
+    format!(
+        "/{}{}",
+        config.relative_output_dir
+            .as_ref()
+            .map(|p| p.to_str().unwrap().to_string() + "/")
+            .unwrap_or(String::new()),
+        url
+    )
 }
 
-fn get_nest_level(url: &String) -> usize {
-    url.matches("/").count()
-}
-
-fn default_format(config: &Config, nest_level: usize) -> HashMap<String, String> {
+fn default_format(config: &Config) -> HashMap<String, String> {
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),
-        ("root_url".into(), format!(".{}", "/..".repeat(nest_level))),
+        (
+            "output_dir".into(),
+            config.relative_output_dir
+                .as_ref()
+                .map(|p| p.to_str().unwrap().into())
+                .unwrap_or(String::new())
+        ),
     ])
 }

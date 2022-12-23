@@ -89,11 +89,16 @@ decl_config! {
         },
         let input_dir: PathBuf,
         let output_dir: PathBuf,
+        let relative_output_dir: Option<PathBuf>,
     }
 }
 
 impl Config {
-    pub fn parse(input_dir: PathBuf, output_dir: PathBuf) -> Result<Config, String> {
+    pub fn parse(
+        input_dir: PathBuf,
+        output_dir: PathBuf,
+        relative_output_dir: Option<PathBuf>,
+    ) -> Result<Config, String> {
         let mut config: Config = toml::from_str(
             &fs::read_to_string(input_dir.join("flash.toml"))
                 .map_err(|e| format!("Unable to read flash.toml: {e}"))?,
@@ -102,6 +107,7 @@ impl Config {
 
         config.input_dir = input_dir;
         config.output_dir = output_dir;
+        config.relative_output_dir = relative_output_dir;
         Ok(config)
     }
 
