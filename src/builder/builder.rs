@@ -159,12 +159,7 @@ impl<'c, 'e> Builder<'c, 'e> {
     pub fn build(&mut self, pbar: Option<&ProgressBar>) -> Result<(), String> {
         // For tracking progress
         let entries_len = self.root.entries.len();
-        let total_len = (entries_len + self.file_roots
-            .iter()
-            .map(|p| p.dir.dirs.len() + p.dir.files.len())
-            .reduce(|acc, p| acc + p)
-            .unwrap_or(0)
-        ) as f64;
+        let total_len = (entries_len + self.file_roots.len()) as f64;
 
         // Prebuild cached navbars for much faster docs builds
         self.prebuild_navs()?;
