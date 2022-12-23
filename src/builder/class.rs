@@ -31,7 +31,7 @@ impl<'e> AnEntry<'e> for Class<'e> {
 impl<'c, 'e> OutputEntry<'c, 'e> for Class<'e> {
     fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>) {
         (
-            &builder.config.presentation.class_template,
+            &builder.config.templates.class,
             vec![
                 ("name".to_string(), self.entity.get_name().unwrap()),
                 (

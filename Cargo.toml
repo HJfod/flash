@@ -15,3 +15,4 @@ serde_json = "1.0.91"
 shlex = "1.1.0"
 strfmt = "0.2.2"
 toml = "0.5.10"
+flash-macros = { path = "macros" }

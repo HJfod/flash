@@ -29,7 +29,7 @@ impl<'e> AnEntry<'e> for File {
 impl<'c, 'e> OutputEntry<'c, 'e> for File {
     fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>) {
         (
-            &builder.config.presentation.file_template,
+            &builder.config.templates.file,
             vec![
                 ("name".to_string(), self.name.clone()),
                 (

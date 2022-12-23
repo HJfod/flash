@@ -103,7 +103,7 @@ impl<'c, 'e> Builder<'c, 'e> {
     }
 
     fn setup(self) -> Self {
-        for script in self.config.presentation.css.iter().chain(&self.config.presentation.js) {
+        for script in self.config.scripts.css.iter().chain(&self.config.scripts.js) {
             fs::write(
                 self.config.output_dir.join(&script.name),
                 &script.content
@@ -124,12 +124,12 @@ impl<'c, 'e> Builder<'c, 'e> {
             .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
         
         let page = strfmt(
-            &self.config.presentation.page_template,
+            &self.config.templates.page,
             &HashMap::from([
                 (
                     "head_content".to_owned(), 
                     strfmt(
-                        &self.config.presentation.head_template,
+                        &self.config.templates.head,
                         &default_format(self.config, nest_level)
                     ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
                 ),
@@ -198,7 +198,7 @@ impl<'c, 'e> Builder<'c, 'e> {
             ),
         ]);
         Ok(
-            strfmt(&self.config.presentation.nav_template, &fmt)
+            strfmt(&self.config.templates.nav, &fmt)
                 .map_err(|e| format!("Unable to format navbar: {e}"))?
         )
     }

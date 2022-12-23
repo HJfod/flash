@@ -1,49 +1,7 @@
 use std::{fs, path::PathBuf};
-
 use glob::glob;
 use serde::{Deserialize, Deserializer};
-
-fn default_class_template() -> String {
-    include_str!("../templates/class.html").into()
-}
-
-fn default_index_template() -> String {
-    include_str!("../templates/index.html").into()
-}
-
-fn default_head_template() -> String {
-    include_str!("../templates/head.html").into()
-}
-
-fn default_nav_template() -> String {
-    include_str!("../templates/nav.html").into()
-}
-
-fn default_file_template() -> String {
-    include_str!("../templates/file.html").into()
-}
-
-fn default_page_template() -> String {
-    include_str!("../templates/page.html").into()
-}
-
-fn default_css() -> Vec<ScriptFile> {
-    vec![ScriptFile {
-        name: "default.css".into(),
-        content: include_str!("../templates/default.css").into()
-    }]
-}
-
-fn default_js() -> Vec<ScriptFile> {
-    vec![ScriptFile {
-        name: "script.js".into(),
-        content: include_str!("../templates/script.js").into()
-    }]
-}
-
-const fn cmake_build_default() -> bool {
-    false
-}
+use flash_macros::decl_config;
 
 fn parse_template<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
@@ -66,14 +24,21 @@ where
         .collect())
 }
 
+macro_rules! default_script {
+    ($name: literal) => {
+        Script {
+            name: $name.into(),
+            content: include_str!(concat!("../templates/", $name)).into(),
+        }
+    };
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub struct CMakeConfig {
-    pub config_args: Option<Vec<String>>,
-    pub build_args: Option<Vec<String>>,
-    #[serde(default = "cmake_build_default")]
-    pub build: bool,
-    pub infer_args_from: PathBuf,
+pub struct Script {
+    pub name: String,
+    #[serde(deserialize_with = "parse_template")]
+    pub content: String,
 }
 
 #[derive(Deserialize)]
@@ -83,145 +48,48 @@ pub struct BrowserRoot {
     pub name: String,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct BrowserConfig {
-    #[serde(default = "Vec::new")]
-    pub roots: Vec<BrowserRoot>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct DocsConfig {
-    #[serde(deserialize_with = "parse_glob")]
-    pub include: Vec<PathBuf>,
-    #[serde(deserialize_with = "parse_glob", default = "Vec::new")]
-    pub exclude: Vec<PathBuf>,
-    pub tree: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct RunConfig {
-    pub prebuild: Option<Vec<String>>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct AnalysisConfig {
-    #[serde(default = "Vec::new")]
-    pub compile_args: Vec<String>,
-}
-
-impl Default for AnalysisConfig {
-    fn default() -> Self {
-        Self {
-            compile_args: Vec::new()
-        }
+decl_config! {
+    struct Config {
+        project {
+            name: String,
+            version: String,
+            repository?: String,
+        },
+        docs {
+            include: Vec<PathBuf> as parse_glob,
+            exclude: Vec<PathBuf> as parse_glob = Vec::new(),
+            tree?: String,
+        },
+        browser {
+            roots: Vec<BrowserRoot> = Vec::new(),
+        },
+        run? {
+            prebuild?: Vec<String>,
+        },
+        analysis {
+            compile_args: Vec<String> = Vec::new(),
+        },
+        cmake? {
+            config_args?: Vec<String>,
+            build_args?: Vec<String>,
+            build: bool = false,
+            infer_args_from: PathBuf,
+        },
+        templates {
+            class: String as parse_template = include_str!("../templates/class.html").to_string(),
+            index: String as parse_template = include_str!("../templates/index.html").to_string(),
+            head:  String as parse_template = include_str!("../templates/head.html").to_string(),
+            nav:   String as parse_template = include_str!("../templates/nav.html").to_string(),
+            file:  String as parse_template = include_str!("../templates/file.html").to_string(),
+            page:  String as parse_template = include_str!("../templates/page.html").to_string(),
+        },
+        scripts {
+            css: Vec<Script> = vec![default_script!("default.css")],
+            js:  Vec<Script> = vec![default_script!("script.js")],
+        },
+        let input_dir: PathBuf,
+        let output_dir: PathBuf,
     }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ScriptFile {
-    pub name: String,
-    #[serde(deserialize_with = "parse_template")]
-    pub content: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct PresentationConfig {
-    #[serde(
-        deserialize_with = "parse_template",
-        default = "default_class_template"
-    )]
-    pub class_template: String,
-    
-    #[serde(
-        deserialize_with = "parse_template",
-        default = "default_index_template"
-    )]
-    pub index_template: String,
-
-    #[serde(
-        deserialize_with = "parse_template",
-        default = "default_head_template"
-    )]
-    pub head_template: String,
-
-    #[serde(
-        deserialize_with = "parse_template",
-        default = "default_nav_template"
-    )]
-    pub nav_template: String,
-
-    #[serde(
-        deserialize_with = "parse_template",
-        default = "default_file_template"
-    )]
-    pub file_template: String,
-
-    #[serde(
-        deserialize_with = "parse_template",
-        default = "default_page_template"
-    )]
-    pub page_template: String,
-
-    #[serde(default = "default_css")]
-    pub css: Vec<ScriptFile>,
-
-    #[serde(default = "default_js")]
-    pub js: Vec<ScriptFile>,
-}
-
-impl Default for PresentationConfig {
-    fn default() -> Self {
-        Self {
-            class_template: default_class_template(),
-            index_template: default_index_template(),
-            head_template:  default_head_template(),
-            file_template:  default_file_template(),
-            page_template:  default_page_template(),
-            nav_template:   default_nav_template(),
-            css:            default_css(),
-            js:             default_js(),
-        }
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct ProjectConfig {
-    pub name: String,
-    pub version: String,
-    pub repository: Option<String>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Config {
-    /// Options for the project
-    pub project: ProjectConfig,
-    /// Options for the documentation
-    pub docs: DocsConfig,
-    /// Options for the docs browser / navigation
-    pub browser: BrowserConfig,
-    #[serde(default)]
-    /// Options for docs outlook
-    pub presentation: PresentationConfig,
-    /// Options for CMake
-    pub cmake: Option<CMakeConfig>,
-    /// Options for commands to run while building docs
-    pub run: Option<RunConfig>,
-    #[serde(default)]
-    /// Options for LibClang
-    pub analysis: AnalysisConfig,
-
-    #[serde(skip)]
-    pub input_dir: PathBuf,
-    #[serde(skip)]
-    pub output_dir: PathBuf,
 }
 
 impl Config {
