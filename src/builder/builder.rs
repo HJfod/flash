@@ -1,22 +1,21 @@
 use clang::{Entity, EntityKind};
 use indicatif::ProgressBar;
-use url_path::UrlPath;
 use std::{collections::HashMap, fs};
 use strfmt::strfmt;
 
-use crate::config::Config;
+use crate::{config::Config, url::Url};
 
 use super::{namespace::Namespace, files::{Root, pathbuf_to_url_base}, index::Index};
 
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
     Dir(String, Vec<NavItem>, Option<String>),
-    Link(String, String, Option<String>),
+    Link(String, Url, Option<String>),
 }
 
 impl NavItem {
-    pub fn new_link(name: &str, url: &str, icon: Option<&str>) -> NavItem {
-        NavItem::Link(name.into(), url.into(), icon.map(|s| s.into()))
+    pub fn new_link(name: &str, url: Url, icon: Option<&str>) -> NavItem {
+        NavItem::Link(name.into(), url, icon.map(|s| s.into()))
     }
 
     pub fn new_dir(name: &str, items: Vec<NavItem>, icon: Option<&str>) -> NavItem {
@@ -31,7 +30,7 @@ impl NavItem {
         match self {
             NavItem::Link(name, url, icon) => format!(
                 "<a onclick='navigate(\"{}\")'>{}{}</a>",
-                full_page_url(config, url),
+                url.to_absolute(config),
                 icon
                     .as_ref()
                     .map(|i| format!("<i data-feather='{}' class='icon'></i>", i))
