@@ -1,7 +1,7 @@
 use clap::Parser;
 use config::Config;
 use std::{fs, path::PathBuf, process::exit};
-use crate::analyze::create_docs;
+use crate::{analyze::create_docs, url::UrlPath};
 
 mod builder;
 mod cmake;
@@ -43,7 +43,7 @@ fn main() -> Result<(), String> {
     fs::create_dir_all(&args.output).unwrap();
 
     let relative_output = if args.output.is_relative() {
-        Some(args.output.clone())
+        Some(UrlPath::from(&args.output))
     } else {
         None
     };

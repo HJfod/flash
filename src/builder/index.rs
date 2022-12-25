@@ -1,15 +1,17 @@
 
+use crate::url::UrlPath;
+
 use super::builder::{AnEntry, OutputEntry, Builder, NavItem};
 
 pub struct Index {}
 
 impl<'e> AnEntry<'e> for Index {
     fn name(&self) -> String {
-        "[index]".into()
+        "Home".into()
     }
 
-    fn url(&self) -> String {
-        ".".into()
+    fn url(&self) -> UrlPath {
+        UrlPath::new()
     }
 
     fn build(&self, builder: &super::builder::Builder<'_, 'e>) -> Result<(), String> {
@@ -17,7 +19,7 @@ impl<'e> AnEntry<'e> for Index {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link("Home", ".", None)
+        NavItem::new_link(&self.name(), self.url(), None)
     }
 }
 

@@ -3,6 +3,8 @@ use glob::glob;
 use serde::{Deserialize, Deserializer};
 use flash_macros::decl_config;
 
+use crate::url::UrlPath;
+
 fn parse_template<'de, D>(deserializer: D) -> Result<String, D::Error>
 where
     D: Deserializer<'de>,
@@ -44,8 +46,8 @@ pub struct Script {
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct BrowserRoot {
-    pub path: PathBuf,
-    pub include_prefix: PathBuf,
+    pub path: UrlPath,
+    pub include_prefix: UrlPath,
     pub name: String,
 }
 
@@ -59,7 +61,7 @@ decl_config! {
         docs {
             include: Vec<PathBuf> as parse_glob,
             exclude: Vec<PathBuf> as parse_glob = Vec::new(),
-            tree?: String,
+            tree?: UrlPath,
         },
         browser {
             roots: Vec<BrowserRoot> = Vec::new(),
@@ -90,7 +92,7 @@ decl_config! {
         },
         let input_dir: PathBuf,
         let output_dir: PathBuf,
-        let relative_output_dir: Option<PathBuf>,
+        let output_url: Option<UrlPath>,
     }
 }
 
@@ -98,7 +100,7 @@ impl Config {
     pub fn parse(
         input_dir: PathBuf,
         output_dir: PathBuf,
-        relative_output_dir: Option<PathBuf>,
+        output_url: Option<UrlPath>,
     ) -> Result<Config, String> {
         let mut config: Config = toml::from_str(
             &fs::read_to_string(input_dir.join("flash.toml"))
@@ -108,7 +110,7 @@ impl Config {
 
         config.input_dir = input_dir;
         config.output_dir = output_dir;
-        config.relative_output_dir = relative_output_dir;
+        config.output_url = output_url;
         Ok(config)
     }
 

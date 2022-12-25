@@ -1,30 +1,28 @@
 
 use clang::Entity;
-use super::builder::{AnEntry, Builder, get_header_url, get_fully_qualified_name, OutputEntry, NavItem, get_header_path};
+use crate::url::UrlPath;
+
+use super::builder::{AnEntry, Builder, get_github_url, get_fully_qualified_name, OutputEntry, NavItem, get_header_path};
 
 pub struct Class<'e> {
     entity: Entity<'e>,
 }
 
 impl<'e> AnEntry<'e> for Class<'e> {
+    fn name(&self) -> String {
+        self.entity.get_name().unwrap_or("<Anonymous class or struct>".into())
+    }
+
+    fn url(&self) -> UrlPath {
+        UrlPath::new_with_path(get_fully_qualified_name(&self.entity))
+    }
+
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
         builder.create_output_for(self)
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(
-            &self.name(),
-            &get_fully_qualified_name(&self.entity).join("/"),
-            Some("box")
-        )
-    }
-
-    fn name(&self) -> String {
-        self.entity.get_name().unwrap_or("<Anonymous class or struct>".into())
-    }
-
-    fn url(&self) -> String {
-        String::from("./") + &get_fully_qualified_name(&self.entity).join("/")
+        NavItem::new_link(&self.name(), self.url(), Some("box"))
     }
 }
 
@@ -43,11 +41,11 @@ impl<'c, 'e> OutputEntry<'c, 'e> for Class<'e> {
                 ),
                 (
                     "header_url".into(),
-                    get_header_url(builder.config, &self.entity).unwrap_or(String::new()),
+                    get_github_url(builder.config, &self.entity).unwrap_or(String::new()),
                 ),
                 (
                     "header_path".into(),
-                    get_header_path(builder.config, &self.entity).unwrap_or(String::new()),
+                    get_header_path(builder.config, &self.entity).unwrap_or(UrlPath::new()).to_raw_string(),
                 ),
             ]
         )

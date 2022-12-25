@@ -3,18 +3,18 @@ use indicatif::ProgressBar;
 use std::{collections::HashMap, fs};
 use strfmt::strfmt;
 
-use crate::{config::Config, url::Url};
+use crate::{config::Config, url::UrlPath};
 
-use super::{namespace::Namespace, files::{Root, pathbuf_to_url_base}, index::Index};
+use super::{namespace::Namespace, files::Root, index::Index};
 
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
     Dir(String, Vec<NavItem>, Option<String>),
-    Link(String, Url, Option<String>),
+    Link(String, UrlPath, Option<String>),
 }
 
 impl NavItem {
-    pub fn new_link(name: &str, url: Url, icon: Option<&str>) -> NavItem {
+    pub fn new_link(name: &str, url: UrlPath, icon: Option<&str>) -> NavItem {
         NavItem::Link(name.into(), url, icon.map(|s| s.into()))
     }
 
@@ -74,7 +74,7 @@ impl NavItem {
 
 pub trait AnEntry<'e> {
     fn name(&self) -> String;
-    fn url(&self) -> String;
+    fn url(&self) -> UrlPath;
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String>;
     fn nav(&self) -> NavItem;
 }
@@ -116,7 +116,7 @@ impl<'c, 'e> Builder<'c, 'e> {
         
         let mut fmt = default_format(self.config);
         fmt.extend(HashMap::from([
-            ("page_url".to_owned(), full_page_url(self.config, target_url)),
+            ("page_url".to_owned(), target_url.to_absolute(self.config).to_string()),
         ]));
         fmt.extend(vars);
     
@@ -140,15 +140,15 @@ impl<'c, 'e> Builder<'c, 'e> {
             .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
         // Make sure output directory exists
-        fs::create_dir_all(self.config.output_dir.join(target_url))
+        fs::create_dir_all(self.config.output_dir.join(target_url.to_pathbuf()))
             .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
 
         // Write the plain content output
-        fs::write(&self.config.output_dir.join(target_url).join("content.html"), content)
+        fs::write(&self.config.output_dir.join(target_url.to_pathbuf()).join("content.html"), content)
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
 
         // Write the full page
-        fs::write(&self.config.output_dir.join(target_url).join("index.html"), page)
+        fs::write(&self.config.output_dir.join(target_url.to_pathbuf()).join("index.html"), page)
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
     
         Ok(())
@@ -225,7 +225,7 @@ pub fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
     name
 }
 
-pub fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
+pub fn get_github_url(config: &Config, entity: &Entity) -> Option<String> {
     let path = entity
         .get_definition()?
         .get_location()?
@@ -235,16 +235,16 @@ pub fn get_header_url(config: &Config, entity: &Entity) -> Option<String> {
 
     Some(
         config.docs.tree.clone()?
-            + "/"
-            + &path
+            .join(UrlPath::from(path
                 .strip_prefix(&config.input_dir)
                 .unwrap_or(&path)
                 .to_str()?
-                .replace("\\", "/"),
+                .replace("\\", "/")
+            )).to_string(),
     )
 }
 
-pub fn get_header_path(config: &Config, entity: &Entity) -> Option<String> {
+pub fn get_header_path(config: &Config, entity: &Entity) -> Option<UrlPath> {
     let path = entity
         .get_definition()?
         .get_location()?
@@ -255,11 +255,9 @@ pub fn get_header_path(config: &Config, entity: &Entity) -> Option<String> {
     let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
     
     for root in &config.browser.roots {
-        if let Ok(stripped) = rel_path.strip_prefix(&root.path) {
+        if let Ok(stripped) = rel_path.strip_prefix(root.path.to_pathbuf()) {
             return Some(
-                pathbuf_to_url_base(&root.include_prefix) + &UrlPath::new(
-                    &stripped.to_str().unwrap().to_string().replace("\\", "/")
-                ).normalize()
+                root.include_prefix.join(UrlPath::from(stripped.to_path_buf()))
             );
         }
     }
@@ -267,27 +265,10 @@ pub fn get_header_path(config: &Config, entity: &Entity) -> Option<String> {
     None
 }
 
-fn full_page_url(config: &Config, url: &String) -> String {
-    format!(
-        "/{}{}",
-        config.relative_output_dir
-            .as_ref()
-            .map(|p| p.to_str().unwrap().to_string() + "/")
-            .unwrap_or(String::new()),
-        url
-    )
-}
-
 fn default_format(config: &Config) -> HashMap<String, String> {
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),
-        (
-            "output_dir".into(),
-            config.relative_output_dir
-                .as_ref()
-                .map(|p| p.to_str().unwrap().into())
-                .unwrap_or(String::new())
-        ),
+        ("output_url".into(), config.output_url.as_ref().unwrap_or(&UrlPath::new()).to_string()),
     ])
 }

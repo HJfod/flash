@@ -3,6 +3,8 @@ use std::collections::HashMap;
 
 use clang::{Entity, EntityKind};
 
+use crate::url::UrlPath;
+
 use super::{builder::{Builder, AnEntry, get_fully_qualified_name, NavItem}, class::Class};
 
 pub enum CppItem<'e> {
@@ -18,7 +20,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
         }
     }
     
-    fn url(&self) -> String {
+    fn url(&self) -> UrlPath {
         match self {
             CppItem::Namespace(ns) => ns.url(),
             CppItem::Class(cs) => cs.url(),
@@ -78,8 +80,8 @@ impl<'e> AnEntry<'e> for Namespace<'e> {
         self.entity.get_name().unwrap_or("<Anonymous namespace>".into())
     }
 
-    fn url(&self) -> String {
-        String::from("./") + &get_fully_qualified_name(&self.entity).join("/")
+    fn url(&self) -> UrlPath {
+        UrlPath::new_with_path(get_fully_qualified_name(&self.entity))
     }
 }
 
