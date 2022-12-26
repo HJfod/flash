@@ -9,6 +9,26 @@ const entTab = document.getElementById("nav-tab-entities");
 const fileTab = document.getElementById("nav-tab-files");
 const mainBody = document.querySelector("body > main");
 
+document.querySelector("#nav-search")?.addEventListener('input', e => {
+    currentNav().querySelectorAll('a').forEach(a => {
+        if (a.innerText) {
+            
+        }
+    });
+});
+
+function fuzzyMatch(str, query) {
+    
+}
+
+function currentNav() {
+    if (fileTab.classList.contains('selected')) {
+        return fileNav;
+    } else {
+        return entNav;
+    }
+}
+
 function showEntityNav() {
     entNav.style.display = null;
     fileNav.style.display = 'none';

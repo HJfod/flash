@@ -36,6 +36,8 @@ body {
     grid-template-rows: 100% 100%;
 }
 
+/* Navigation */
+
 nav {
     background-color: var(--flash-gray-dark);
     padding: 1rem;
@@ -56,11 +58,10 @@ nav > .mode > button {
     background-color: rgba(0, 0, 0, 0);
     border: none;
     transition: background;
-    transition-duration: .1s;
 }
 
 nav > .mode > button.selected {
-    border-bottom: .2rem solid var(--flash-skin);
+    border-bottom: .2rem solid var(--flash-light);
     border-top: .2rem solid rgba(0, 0, 0, 0);
 }
 
@@ -115,24 +116,6 @@ nav > .content summary:hover {
     cursor: pointer;
 }
 
-nav > .search {
-    padding: .5rem;
-    display: grid;
-    grid-template-columns: 1fr;
-    border-top: .2rem solid var(--flash-border);
-}
-
-nav > .search > input {
-    background: var(--flash-gray-darker);
-    border: none;
-    border-radius: 9999px;
-    padding: .75rem;
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-    color: var(--flash-white);
-    outline: none;
-}
-
 nav .feather {
     height: 1.2rem;
     opacity: 50%;
@@ -164,6 +147,39 @@ nav a:hover {
     color: var(--flash-white);
     cursor: pointer;
 }
+
+.search {
+    border-top: .2rem solid var(--flash-border);
+    padding-top: .5rem;
+}
+
+.input {
+    background: var(--flash-gray-darker);
+    border-radius: .25rem;
+    display: flex;
+    flex-direction: row;
+    padding-left: .5rem;
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+.input input {
+    padding: .5rem;
+    display: block;
+    background: none;
+    border: none;
+    width: 100%;
+    color: var(--flash-white);
+    outline: none;
+    flex-grow: 1;
+}
+
+.input .feather {
+    padding: .5rem;
+    align-self: center;
+}
+
+/* Content */
 
 main {
     display: flex;
@@ -233,7 +249,6 @@ main .button {
     text-align: center;
     text-decoration: none;
     transition: color, border, background;
-    transition-duration: .1s;
 }
 
 main .button:hover {
