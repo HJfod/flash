@@ -15,7 +15,7 @@ impl<'b, 'e> AnEntry<'e> for File<'b> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::from("files").join(&self.path)
+        UrlPath::parse("files").unwrap().join(&self.path)
     }
 
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
@@ -37,7 +37,7 @@ impl<'b, 'c, 'e> OutputEntry<'c, 'e> for File<'b> {
                 (
                     "file_url".into(),
                     builder.config.docs.tree.as_ref().map(|tree| 
-                        tree.join(self.prefix).join(self.path).to_string()
+                        tree.to_owned() + &self.def.path.join(&self.path).to_string()
                     ).unwrap_or("".into()),
                 ),
                 ("file_path".into(), self.prefix.join(&self.path).to_raw_string()),
@@ -70,7 +70,7 @@ impl<'b, 'e> AnEntry<'e> for Dir<'b> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::from("files").join(&self.path)
+        UrlPath::parse("files").unwrap().join(&self.path)
     }
 
     fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
@@ -142,7 +142,7 @@ impl<'b> Root<'b> {
     pub fn from_config(config: &'b Config) -> Vec<Self> {
         let mut roots = config.browser.roots.iter().map(|root| Root {
             def: root,
-            dir: Dir::new(root, root.name.clone().into(), root.include_prefix.clone()),
+            dir: Dir::new(root, root.name.clone().try_into().unwrap(), root.include_prefix.clone()),
         }).collect::<Vec<_>>();
     
         for file in config.filtered_includes() {
@@ -159,7 +159,7 @@ impl<'b> Root<'b> {
                 else {
                     // Add to parent if one exists, or to root if one doesn't
                     let prefix = root.def.include_prefix.clone();
-                    let url = UrlPath::from(cut_path);
+                    let url = UrlPath::try_from(&cut_path.to_path_buf()).unwrap();
                     let def = root.def;
                     root.try_add_dirs(cut_path.parent()).files.insert(
                         url.file_name().unwrap().to_owned(),
@@ -181,7 +181,7 @@ impl<'b> Root<'b> {
                 .entry(part_name.clone())
                 .or_insert(Dir::new(
                     self.def,
-                    url.join(UrlPath::from(part_name)),
+                    url.join(UrlPath::try_from(&part_name).unwrap()),
                     self.def.include_prefix.clone()
                 ));
         }

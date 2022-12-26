@@ -43,7 +43,7 @@ fn main() -> Result<(), String> {
     fs::create_dir_all(&args.output).unwrap();
 
     let relative_output = if args.output.is_relative() {
-        Some(UrlPath::from(&args.output))
+        Some(UrlPath::try_from(&args.output).ok()).flatten()
     } else {
         None
     };

@@ -162,6 +162,7 @@ nav > .content a {
 nav a:hover {
     background-color: var(--flash-hover);
     color: var(--flash-white);
+    cursor: pointer;
 }
 
 main {

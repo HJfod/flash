@@ -3,32 +3,29 @@ use std::{path::PathBuf, fmt::Display};
 use serde::{Deserialize, de::Visitor};
 use crate::config::Config;
 
+// The URL crate doesn't support paths like /some/file, it needs the protocol and hostname
+// (which is undesirable for Flash as docs links are /docs/namespace/entity)
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct UrlPath {
-    protocol: Option<String>,
-    host: Option<String>,
     parts: Vec<String>,
 }
 
 impl UrlPath {
     pub fn new() -> Self {
         Self {
-            protocol: None,
-            host: None,
             parts: Vec::new()
         }
     }
 
     pub fn new_with_path(parts: Vec<String>) -> Self {
         Self {
-            protocol: None,
-            host: None,
             parts
         }.clean()
     }
 
-    pub fn parse(url: String) -> Result<Self, String> {
-        
+    pub fn parse(url: &str) -> Result<Self, String> {
+        Ok(UrlPath::new_with_path(url.split("/").map(|s| s.to_owned()).collect()))
     }
 
     fn clean(mut self) -> Self {
@@ -52,14 +49,6 @@ impl UrlPath {
         buf.clean()
     }
 
-    pub fn protocol(&self) -> &Option<String> {
-        &self.protocol
-    }
-
-    pub fn host(&self) -> &Option<String> {
-        &self.host
-    }
-
     pub fn file_name(&self) -> Option<&String> {
         self.parts.last()
     }
@@ -73,7 +62,7 @@ impl UrlPath {
     }
 
     pub fn to_absolute(&self, config: &Config) -> Self {
-        UrlPath::from(config.output_url.as_ref().unwrap_or(&UrlPath::new())).join(self)
+        config.output_url.as_ref().unwrap_or(&UrlPath::new()).join(self)
     }
 }
 
@@ -90,14 +79,14 @@ impl<'de> Visitor<'de> for UrlVisitor {
         where
             E: serde::de::Error
     {
-        Ok(UrlPath::from(v))
+        UrlPath::try_from(v).map_err(|e| serde::de::Error::custom(e))
     }
 
     fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
         where
             E: serde::de::Error,
     {
-        Ok(UrlPath::from(v))
+        UrlPath::try_from(v).map_err(|e| serde::de::Error::custom(e))
     }
 }
 
@@ -118,10 +107,10 @@ impl AsRef<UrlPath> for UrlPath {
     }
 }
 
-impl TryFrom<PathBuf> for UrlPath {
+impl TryFrom<&PathBuf> for UrlPath {
     type Error = String;
 
-    fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
+    fn try_from(value: &PathBuf) -> Result<Self, Self::Error> {
         Ok(UrlPath::new_with_path(
             value
                 .components()
@@ -135,11 +124,27 @@ impl TryFrom<PathBuf> for UrlPath {
     }
 }
 
+impl TryFrom<&str> for UrlPath {
+    type Error = String;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        UrlPath::parse(value)
+    }
+}
+
 impl TryFrom<String> for UrlPath {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        
+        UrlPath::parse(&value)
+    }
+}
+
+impl TryFrom<&String> for UrlPath {
+    type Error = String;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        UrlPath::parse(&value)
     }
 }
 

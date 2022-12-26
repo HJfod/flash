@@ -61,7 +61,7 @@ decl_config! {
         docs {
             include: Vec<PathBuf> as parse_glob,
             exclude: Vec<PathBuf> as parse_glob = Vec::new(),
-            tree?: UrlPath,
+            tree?: String,
         },
         browser {
             roots: Vec<BrowserRoot> = Vec::new(),

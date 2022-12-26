@@ -234,13 +234,13 @@ pub fn get_github_url(config: &Config, entity: &Entity) -> Option<String> {
         .get_path();
 
     Some(
-        config.docs.tree.clone()?
-            .join(UrlPath::from(path
-                .strip_prefix(&config.input_dir)
-                .unwrap_or(&path)
-                .to_str()?
-                .replace("\\", "/")
-            )).to_string(),
+        config.docs.tree.clone()? + 
+            &UrlPath::try_from(
+                &path
+                    .strip_prefix(&config.input_dir)
+                    .unwrap_or(&path)
+                    .to_path_buf()
+            ).ok()?.to_string(),
     )
 }
 
@@ -257,7 +257,7 @@ pub fn get_header_path(config: &Config, entity: &Entity) -> Option<UrlPath> {
     for root in &config.browser.roots {
         if let Ok(stripped) = rel_path.strip_prefix(root.path.to_pathbuf()) {
             return Some(
-                root.include_prefix.join(UrlPath::from(stripped.to_path_buf()))
+                root.include_prefix.join(UrlPath::try_from(&stripped.to_path_buf()).ok()?)
             );
         }
     }
