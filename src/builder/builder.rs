@@ -29,7 +29,7 @@ impl NavItem {
     pub fn to_html(&self, config: &Config) -> String {
         match self {
             NavItem::Link(name, url, icon) => format!(
-                "<a onclick='navigate(\"{}\")'>{}{}</a>",
+                "<a onclick='return navigate(\"{0}\")' href='{0}'>{1}{2}</a>",
                 url.to_absolute(config),
                 icon
                     .as_ref()

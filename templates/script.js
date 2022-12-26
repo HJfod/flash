@@ -37,6 +37,9 @@ function navigate(url) {
         .catch(err => {
             console.error(err);
         });
+    
+    // Prevent calling default onclick handler
+    return false;
 }
 
 window.onpopstate = e => {
