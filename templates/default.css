@@ -1,5 +1,5 @@
 
-:root {
+.flash-theme-dark {
     --flash-gray:           #272727;
     --flash-gray-dark:      #222;
     --flash-gray-darker:    #1a1a1a;
@@ -7,6 +7,7 @@
     --flash-white:          #eee;
     --flash-light:          #aaa;
     --flash-less-light:     #888;
+    --flash-less-dark:      #6a6a6a;
     --flash-dark:           #4a4a4a;
     --flash-blue:           #6a80d8;
     --flash-cyan-light:     #7adff8;
@@ -14,12 +15,87 @@
     --flash-cyan-dark:      #427b8a;
     --flash-cyan-darker:    #294e57;
     --flash-green:          #9ff4b7;
-    --flash-purple:         #714a9a;
+    --flash-purple:         #9e6ad4;
     --flash-pink:           #f49fe9;
     --flash-skin:           #EC897C;
     --flash-red:            #e23485;
+    --flash-yellow:         #f5dd9f;
     --flash-border:         rgba(255, 255, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
+    --flash-shadow:         rgba(0, 0, 0, .2);
+
+    --flash-body-bg:            var(--flash-gray);
+    --flash-h1-color:           var(--flash-white);
+    --flash-tab-selected-bg:    var(--flash-light);
+    --flash-tab-selected-color: var(--flash-dark);
+    --flash-search-match:       var(--flash-blue);
+    --flash-nav-arrow:          var(--flash-light);
+}
+
+.flash-theme-ocean {
+    --flash-gray:           #272737;
+    --flash-gray-dark:      #223;
+    --flash-gray-darker:    #1a1a2a;
+    --flash-gray-darkest:   #112;
+    --flash-white:          #eee;
+    --flash-light:          #aaa;
+    --flash-less-light:     #888;
+    --flash-less-dark:      #6a6a6a;
+    --flash-dark:           #4a4a4a;
+    --flash-blue:           #6a80d8;
+    --flash-cyan-light:     #7adff8;
+    --flash-cyan:           #6ac2d8;
+    --flash-cyan-dark:      #427b8a;
+    --flash-cyan-darker:    #294e57;
+    --flash-green:          #9ff4b7;
+    --flash-purple:         #9e6ad4;
+    --flash-pink:           #f49fe9;
+    --flash-skin:           #EC897C;
+    --flash-red:            #e23485;
+    --flash-yellow:         #f5dd9f;
+    --flash-border:         rgba(155, 155, 255, .2);
+    --flash-hover:          rgba(255, 255, 255, .1);
+    --flash-shadow:         rgba(0, 0, 0, .2);
+
+    --flash-body-bg:            var(--flash-gray);
+    --flash-h1-color:           var(--flash-white);
+    --flash-tab-selected-bg:    var(--flash-blue);
+    --flash-tab-selected-color: var(--flash-white);
+    --flash-search-match:       var(--flash-cyan);
+    --flash-nav-arrow:          var(--flash-light);
+}
+
+.flash-theme-peach {
+    --flash-gray:           #372737;
+    --flash-gray-dark:      #323;
+    --flash-gray-darker:    #2a1a2a;
+    --flash-gray-darkest:   #212;
+    --flash-white:          #eee;
+    --flash-light:          #aaa;
+    --flash-less-light:     #888;
+    --flash-less-dark:      #6a6a6a;
+    --flash-dark:           #4a4a4a;
+    --flash-blue:           #6a80d8;
+    --flash-cyan-light:     #7adff8;
+    --flash-cyan:           #6ac2d8;
+    --flash-cyan-dark:      #427b8a;
+    --flash-cyan-darker:    #294e57;
+    --flash-green:          #9ff4b7;
+    --flash-purple:         #9e6ad4;
+    --flash-pink:           #f49fe9;
+    --flash-skin:           #EC897C;
+    --flash-red:            #e23485;
+    --flash-yellow:         #f5dd9f;
+    --flash-border:         rgba(255, 225, 155, .2);
+    --flash-hover:          rgba(255, 255, 255, .1);
+    --flash-shadow:         rgba(0, 0, 0, .2);
+
+    --flash-body-bg:            var(--flash-gray);
+    --flash-h1-color:           var(--flash-yellow);
+    --flash-tab-selected-bg:    var(--flash-yellow);
+    --flash-tab-selected-color: var(--flash-dark);
+    --flash-search-match:       var(--flash-yellow);
+    --flash-nav-arrow:          var(--flash-white);
 }
 
 html {
@@ -30,11 +106,53 @@ body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: var(--flash-gray);
+    background: var(--flash-body-bg);
     color: var(--flash-white);
     display: grid;
     grid-template-columns: 22.5rem 1fr;
     grid-template-rows: 100% 100%;
+}
+
+body > .overlay {
+    top: 1rem;
+    right: 1rem;
+    position: absolute;
+    display: flex;
+    flex-direction: row;
+    border-radius: 9999px;
+    box-shadow: 0 .25rem .5rem var(--flash-shadow);
+}
+
+body > .overlay > button {
+    background-color: var(--flash-dark);
+    color: var(--flash-light);
+    border: none;
+    padding: .35rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+body > .overlay > button:first-child {
+    border-top-left-radius: 9999px;
+    border-bottom-left-radius: 9999px;
+}
+
+body > .overlay > button:last-child {
+    border-top-right-radius: 9999px;
+    border-bottom-right-radius: 9999px;
+}
+
+body > .overlay > button:hover:not(.selected) {
+    background-color: var(--flash-less-dark);
+}
+
+body > .overlay > button.selected {
+    background-color: var(--flash-tab-selected-bg);
+    color: var(--flash-tab-selected-color);
+}
+
+body > .overlay > button > .feather {
+    height: 1.25rem;
 }
 
 /* Navigation */
@@ -66,7 +184,7 @@ nav > .mode > button {
 }
 
 nav > .mode > button.selected {
-    border-bottom: .2rem solid var(--flash-light);
+    border-bottom: .2rem solid var(--flash-tab-selected-bg);
     border-top: .2rem solid rgba(0, 0, 0, 0);
 }
 
@@ -123,7 +241,11 @@ nav > .content summary:hover {
 
 nav .feather {
     height: 1.2rem;
+}
+
+nav .feather-chevron-right {
     opacity: 50%;
+    color: var(--flash-nav-arrow);
 }
 
 nav .feather:not(.feather-chevron-right) {
@@ -154,7 +276,7 @@ nav a:hover {
 }
 
 nav a .matched {
-    color: var(--flash-blue);
+    color: var(--flash-search-match);
     font-weight: bold;
 }
 
@@ -231,7 +353,7 @@ main h1 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
     font-size: 2.25rem;
-    color: var(--flash-less-light);
+    color: var(--flash-light);
 }
 
 main h1 > .feather {
@@ -241,7 +363,7 @@ main h1 > .feather {
 }
 
 main h1 > a {
-    color: var(--flash-white);
+    color: var(--flash-h1-color);
     font-style: normal;
     font-size: 3rem;
 }
@@ -255,7 +377,7 @@ main h1::after {
     content: ' ';
     display: block;
     margin-top: .5rem;
-    border: .1rem solid var(--flash-less-light); 
+    border: .1rem solid var(--flash-border); 
 }
 
 main h2 {
