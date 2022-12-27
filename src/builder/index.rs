@@ -24,7 +24,7 @@ impl<'e> AnEntry<'e> for Index {
 }
 
 impl<'c, 'e> OutputEntry<'c, 'e> for Index {
-    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>) {
+    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>) {
         (
             &builder.config.templates.index,
             Vec::new(),

@@ -80,7 +80,7 @@ pub trait AnEntry<'e> {
 }
 
 pub trait OutputEntry<'c, 'e>: AnEntry<'e> {
-    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>);
+    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>);
 }
 
 pub struct Builder<'c, 'e> {
@@ -118,7 +118,7 @@ impl<'c, 'e> Builder<'c, 'e> {
         fmt.extend(HashMap::from([
             ("page_url".to_owned(), target_url.to_absolute(self.config).to_string()),
         ]));
-        fmt.extend(vars);
+        fmt.extend(vars.iter().map(|(k, v)| (k.to_string(), v.to_owned())).collect::<Vec<_>>());
     
         let content = strfmt(&template, &fmt)
             .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
@@ -223,6 +223,17 @@ pub fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
     }
     name.push(entity.get_name().unwrap_or("_anon".into()));
     name
+}
+
+pub fn get_ancestorage<'e>(entity: &Entity<'e>) -> Vec<Entity<'e>> {
+    let mut ancestors = Vec::new();
+    if let Some(parent) = entity.get_semantic_parent() {
+        if !matches!(parent.get_kind(), EntityKind::TranslationUnit) {
+            ancestors.extend(get_ancestorage(&parent));
+        }
+    }
+    ancestors.push(entity.clone());
+    ancestors
 }
 
 pub fn get_github_url(config: &Config, entity: &Entity) -> Option<String> {

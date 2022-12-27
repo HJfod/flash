@@ -20,6 +20,7 @@
     --flash-skin:           #EC897C;
     --flash-red:            #e23485;
     --flash-yellow:         #f5dd9f;
+    --flash-orange:         #f5c99f;
     --flash-border:         rgba(255, 255, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
     --flash-shadow:         rgba(0, 0, 0, .2);
@@ -53,6 +54,7 @@
     --flash-skin:           #EC897C;
     --flash-red:            #e23485;
     --flash-yellow:         #f5dd9f;
+    --flash-orange:         #f5c99f;
     --flash-border:         rgba(155, 155, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
     --flash-shadow:         rgba(0, 0, 0, .2);
@@ -86,6 +88,7 @@
     --flash-skin:           #EC897C;
     --flash-red:            #e23485;
     --flash-yellow:         #f5dd9f;
+    --flash-orange:         #f5c99f;
     --flash-border:         rgba(255, 225, 155, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
     --flash-shadow:         rgba(0, 0, 0, .2);
@@ -343,6 +346,8 @@ main {
     flex-direction: column;
     font-family: 'Open Sans', sans-serif;
     padding: 1rem;
+    height: calc(100% - 2rem);
+    overflow-y: auto;
 }
 
 main div {
@@ -444,4 +449,63 @@ code {
 
 .header-link .url {
     color: var(--flash-green);
+}
+
+/* Code thingies */
+
+.entity {
+    font-family: 'Source Code Pro', monospace;
+    color: var(--flash-light);
+    display: flex;
+    flex-direction: row;
+    margin-bottom: .5rem;
+}
+
+.entity .entity {
+    margin-bottom: 0;
+}
+
+.entity .keyword {
+    color: var(--flash-purple);
+}
+
+.entity .scope {
+    color: var(--flash-light);
+    opacity: 50%;
+}
+
+.entity .alias {
+    color: var(--flash-skin);
+}
+
+.entity.type {
+    color: var(--flash-light);
+}
+
+.entity.namespace > .name, .namespace {
+    color: var(--flash-orange);
+}
+
+.entity.class > .name, .class {
+    color: var(--flash-yellow);
+}
+
+.entity.struct > .name, .struct {
+    color: var(--flash-yellow);
+}
+
+.entity.type.pod {
+    color: var(--flash-purple);
+}
+
+.entity.fun > .name {
+    color: var(--flash-blue);
+}
+
+.entity.var > .name {
+    color: var(--flash-white);
+}
+
+.entity.fun > .name, .entity.var > .name {
+    margin-left: .5rem;
 }

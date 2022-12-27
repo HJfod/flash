@@ -28,19 +28,19 @@ impl<'b, 'e> AnEntry<'e> for File<'b> {
 }
 
 impl<'b, 'c, 'e> OutputEntry<'c, 'e> for File<'b> {
-    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(String, String)>) {
+    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>) {
         (
             &builder.config.templates.file,
             vec![
-                ("name".to_string(), self.name()),
-                ("description".into(), "<p>No Description Provided</p>".into()),
+                ("name", self.name()),
+                ("description", "<p>No Description Provided</p>".into()),
                 (
-                    "file_url".into(),
+                    "file_url",
                     builder.config.docs.tree.as_ref().map(|tree| 
                         tree.to_owned() + &self.def.path.join(&self.path).to_string()
                     ).unwrap_or("".into()),
                 ),
-                ("file_path".into(), self.prefix.join(&self.path).to_raw_string()),
+                ("file_path", self.prefix.join(&self.path).to_raw_string()),
             ]
         )
     }
