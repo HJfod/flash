@@ -1,8 +1,9 @@
 
 :root {
     --flash-gray:           #272727;
-    --flash-gray-darker:    #111;
     --flash-gray-dark:      #222;
+    --flash-gray-darker:    #1a1a1a;
+    --flash-gray-darkest:   #111;
     --flash-white:          #eee;
     --flash-light:          #aaa;
     --flash-less-light:     #888;
@@ -28,7 +29,7 @@ html {
 body {
     margin: 0;
     padding: 0;
-    height: calc(100% - 2rem);
+    height: 100%;
     background: var(--flash-gray);
     color: var(--flash-white);
     display: grid;
@@ -40,15 +41,19 @@ body {
 
 nav {
     background-color: var(--flash-gray-dark);
-    padding: 1rem;
     height: 100%;
     display: grid;
     grid-template-rows: min-content 1fr min-content;
 }
 
+nav > * {
+    padding: 1rem;
+}
+
 nav > .mode {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    padding-bottom: 0rem;
 }
 
 nav > .mode > button {
@@ -148,13 +153,27 @@ nav a:hover {
     cursor: pointer;
 }
 
+nav a .matched {
+    color: var(--flash-blue);
+    font-weight: bold;
+}
+
+nav a .scope {
+    opacity: 50%;
+}
+
+nav .nothing-found {
+    font-family: 'Open Sans', sans-serif;
+    color: var(--flash-light);
+    margin-left: 1rem;
+}
+
 .search {
-    border-top: .2rem solid var(--flash-border);
-    padding-top: .5rem;
+    background-color: var(--flash-gray-darker);
 }
 
 .input {
-    background: var(--flash-gray-darker);
+    background: var(--flash-gray-darkest);
     border-radius: .25rem;
     display: flex;
     flex-direction: row;
@@ -163,7 +182,7 @@ nav a:hover {
     align-items: stretch;
 }
 
-.input input {
+.input > input {
     padding: .5rem;
     display: block;
     background: none;
@@ -174,9 +193,24 @@ nav a:hover {
     flex-grow: 1;
 }
 
-.input .feather {
+.input > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: .5rem;
     align-self: center;
+    background-color: rgba(0, 0, 0, 0);
+    border-radius: .25rem;
+    border: none;
+    color: var(--flash-light);
+}
+
+.input > button:hover {
+    background-color: var(--flash-hover);
+}
+
+.input > button .feather {
+    margin: 0;
 }
 
 /* Content */
@@ -276,7 +310,7 @@ main .button.outlined:hover {
 
 code {
     padding: 1rem;
-    background-color: var(--flash-gray-darker);
+    background-color: var(--flash-gray-darkest);
     border-radius: .5rem;
 }
 
