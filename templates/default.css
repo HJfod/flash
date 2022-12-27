@@ -207,6 +207,7 @@ nav .nothing-found {
 
 .input > button:hover {
     background-color: var(--flash-hover);
+    cursor: pointer;
 }
 
 .input > button .feather {

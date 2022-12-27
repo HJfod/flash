@@ -45,6 +45,10 @@ function furryMatch(str, query) {
     // remove all whitespace from query since entities can't have that anyway
     // todo: maybe split query to words instead and only require some of those to match instead of whole query
     query = query.replace(/\s/g, '');
+
+    if (!query.length) {
+        return undefined;
+    }
     
     let score = 0;
     let matchedString = '';
