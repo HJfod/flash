@@ -63,11 +63,11 @@ pub fn fmt_param(param: &Entity) -> String {
 
 pub fn fmt_fun_decl(fun: &Entity) -> String {
     format!(
-        "<div class='entity fun'>{}<span class='name'>{}</span>({})</div>",
+        "<div class='entity fun'>{}<span class='name'>{}</span><span class='params'>({})</span></div>",
         fun.get_result_type().map(|t| fmt_type(&t)).unwrap_or(String::new()),
         fun.get_name().unwrap_or(String::from("_anon")),
         fun.get_arguments().map(|args|
-            args.iter().map(|arg| fmt_param(arg)).collect::<Vec<_>>().join(", ")
+            args.iter().map(|arg| fmt_param(arg)).collect::<Vec<_>>().join("<span class='comma'>,</span>")
         ).unwrap_or(String::new())
     )
 }
