@@ -4,7 +4,7 @@ use clang::{Accessibility, Entity, EntityKind};
 use super::{
     builder::{
         get_fully_qualified_name, get_github_url, get_header_path, AnEntry, Builder, NavItem,
-        OutputEntry,
+        OutputEntry, sanitize_html,
     },
     links::{fmt_field, fmt_fun_decl, fmt_section},
 };
@@ -15,7 +15,7 @@ pub struct Class<'e> {
 
 impl<'e> AnEntry<'e> for Class<'e> {
     fn name(&self) -> String {
-        self.entity.get_name().unwrap_or("`Anonymous class`".into())
+        self.entity.get_display_name().unwrap_or("`Anonymous class`".into())
     }
 
     fn url(&self) -> UrlPath {
@@ -35,14 +35,14 @@ impl<'c, 'e> OutputEntry<'c, 'e> for Class<'e> {
     fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>) {
         (
             &builder.config.templates.class,
-            output_classlike(&self.entity, builder),
+            output_classlike(self, &self.entity, builder),
         )
     }
 }
 
-pub fn output_classlike(entity: &Entity, builder: &Builder) -> Vec<(&'static str, String)> {
+pub fn output_classlike<'e, T: AnEntry<'e>>(entry: &T, entity: &Entity<'e>, builder: &Builder) -> Vec<(&'static str, String)> {
     vec![
-        ("name", entity.get_name().unwrap()),
+        ("name", sanitize_html(&entry.name())),
         (
             "description",
             entity

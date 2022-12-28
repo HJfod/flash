@@ -237,6 +237,7 @@ details.entity-desc > div > dl > dt {
     display: flex;
     flex-direction: row;
     margin-bottom: .5rem;
+    flex-wrap: wrap;
 }
 
 .entity .entity {
@@ -253,6 +254,10 @@ details.entity-desc > div > dl > dt {
 }
 
 .entity .alias {
+    color: var(--flash-skin);
+}
+
+.entity .template-param {
     color: var(--flash-skin);
 }
 

@@ -128,7 +128,7 @@ impl<'e> Namespace<'e> {
                     }
                 }
 
-                EntityKind::ClassDecl => {
+                EntityKind::ClassDecl | EntityKind::ClassTemplate => {
                     if child.is_definition() {
                         let entry = Class::new(child.clone());
                         self.entries.insert(entry.name(), CppItem::Class(entry));

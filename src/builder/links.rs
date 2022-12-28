@@ -1,14 +1,14 @@
 
 use clang::{Entity, EntityKind, Type, TypeKind};
-use crate::{url::UrlPath, config::{Config}};
-use super::builder::{get_ancestorage, get_fully_qualified_name};
+use crate::config::Config;
+use super::builder::{get_ancestorage, EntityMethods};
 
 fn fmt_type(entity: &Type, config: &Config) -> String {
     let base = entity.get_pointee_type().unwrap_or(entity.to_owned());
-    let link = base.get_declaration().map(|decl| {
-        UrlPath::new_with_path(get_fully_qualified_name(&decl)).to_absolute(config)
-    });
-    let name = base.get_declaration().map(|decl| {
+    let decl = base.get_declaration();
+    let link = decl.map(|decl| decl.docs_url(config));
+    let kind = decl.map(|decl| decl.get_kind()).unwrap_or(EntityKind::UnexposedDecl);
+    let name = decl.map(|decl| {
         get_ancestorage(&decl)
             .iter()
             .map(|e| format!(
@@ -16,6 +16,7 @@ fn fmt_type(entity: &Type, config: &Config) -> String {
                 match e.get_kind() {
                     EntityKind::Namespace => "namespace",
                     EntityKind::ClassDecl => "class",
+                    EntityKind::ClassTemplate => "class",
                     EntityKind::StructDecl => "struct",
                     EntityKind::FunctionDecl => "fun",
                     EntityKind::TypedefDecl => "alias",
@@ -24,27 +25,28 @@ fn fmt_type(entity: &Type, config: &Config) -> String {
                     EntityKind::EnumDecl => "enum",
                     _ => "type",
                 },
-                e.get_name().unwrap_or("_anon".into())
+                e.get_name().unwrap_or("_".into())
             ))
             .collect::<Vec<_>>()
             .join("<span class='scope'>::</span>")
     }).unwrap_or_else(||
         format!(
-            "<span class='keyword name'>{}</span>",
+            "<span class='{} name'>{}</span>",
+            if base.is_pod() { "keyword" } else { "template-param" },
             match base.get_kind() {
-                TypeKind::Void     => "void",
-                TypeKind::Bool     => "bool",
-                TypeKind::Long     => "long",
-                TypeKind::Auto     => "auto",
-                TypeKind::Int      => "int",
-                TypeKind::Short    => "short",
-                TypeKind::SChar | TypeKind::CharS => "char",
-                TypeKind::UChar | TypeKind::CharU => "uchar",
-                TypeKind::Float    => "float",
-                TypeKind::Double   => "double",
-                TypeKind::UInt     => "uint",
-                TypeKind::LongLong => "long long",
-                _                  => "_unk_builtin",
+                TypeKind::Void     => "void".into(),
+                TypeKind::Bool     => "bool".into(),
+                TypeKind::Long     => "long".into(),
+                TypeKind::Auto     => "auto".into(),
+                TypeKind::Int      => "int".into(),
+                TypeKind::Short    => "short".into(),
+                TypeKind::SChar | TypeKind::CharS => "char".into(),
+                TypeKind::UChar | TypeKind::CharU => "uchar".into(),
+                TypeKind::Float    => "float".into(),
+                TypeKind::Double   => "double".into(),
+                TypeKind::UInt     => "uint".into(),
+                TypeKind::LongLong => "long long".into(),
+                _                  => base.get_display_name(),
             }
         )
     );
@@ -63,16 +65,19 @@ fn fmt_type(entity: &Type, config: &Config) -> String {
             .map(|link| format!("href='{link}' onclick='return navigate(\"{link}\")'"))
             .unwrap_or(String::new()),
 
-        template = base.get_template_argument_types().map(|types| {
-            format!(
-                "&lt;{}&gt;",
-                types
-                    .iter()
-                    .map(|t| t.map(|t| fmt_type(&t, config)).unwrap_or(String::from("_unk")))
-                    .collect::<Vec<_>>()
-                    .join("<span class='comma space-after'>,</span>")
-            )
-        }).unwrap_or(String::new()),
+        template = match kind {
+            EntityKind::TypeAliasDecl | EntityKind::TypedefDecl => String::new(),
+            _ => base.get_template_argument_types().map(|types| {
+                format!(
+                    "&lt;{}&gt;",
+                    types
+                        .iter()
+                        .map(|t| t.map(|t| fmt_type(&t, config)).unwrap_or(String::from("_unk")))
+                        .collect::<Vec<_>>()
+                        .join("<span class='comma space-after'>,</span>")
+                )
+            }).unwrap_or(String::new()),
+        },
 
         const = if base.is_const_qualified() {
             "<span class='keyword space-before'>const</span>"

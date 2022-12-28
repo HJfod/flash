@@ -7,6 +7,19 @@ use crate::{config::Config, url::UrlPath};
 
 use super::{files::Root, index::Index, namespace::Namespace};
 
+pub trait EntityMethods<'e> {
+    fn rel_url(&self) -> UrlPath;
+    fn docs_url(&self, config: &Config) -> UrlPath {
+        self.rel_url().to_absolute(config)
+    }
+}
+
+impl<'e> EntityMethods<'e> for Entity<'e> {
+    fn rel_url(&self) -> UrlPath {
+        UrlPath::new_with_path(get_fully_qualified_name(&self))
+    }
+}
+
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
     Dir(String, Vec<NavItem>, Option<(String, bool)>),
@@ -38,7 +51,7 @@ impl NavItem {
                         if i.1 { "variant" } else { "" }
                     ))
                     .unwrap_or(String::new()),
-                name
+                sanitize_html(name),
             ),
 
             NavItem::Dir(name, items, icon) => format!(
@@ -56,7 +69,7 @@ impl NavItem {
                         if i.1 { "variant" } else { "" }
                     ))
                     .unwrap_or(String::new()),
-                name,
+                sanitize_html(name),
                 items.iter().map(|i| i.to_html(config)).collect::<String>()
             ),
 
@@ -70,7 +83,7 @@ impl NavItem {
                         </summary>
                         <div>{}</div>
                     </details>",
-                        name,
+                        sanitize_html(name),
                         items.iter().map(|i| i.to_html(config)).collect::<String>()
                     )
                 } else {
@@ -309,6 +322,10 @@ pub fn get_header_path(config: &Config, entity: &Entity) -> Option<UrlPath> {
     }
 
     None
+}
+
+pub fn sanitize_html(html: &str) -> String {
+    html.replace("<", "&lt;").replace(">", "&gt;")
 }
 
 fn default_format(config: &Config) -> HashMap<String, String> {
