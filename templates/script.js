@@ -231,6 +231,7 @@ function navigate(url) {
                 // "title": 
             }, "", url);
             mainBody.innerHTML = content;
+            mainBody.scrollTo({ left: 0, top: 0 });
             feather.replace();
         })
         .catch(err => {

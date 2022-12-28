@@ -1,7 +1,7 @@
-use std::{fs, path::PathBuf};
+use flash_macros::decl_config;
 use glob::glob;
 use serde::{Deserialize, Deserializer};
-use flash_macros::decl_config;
+use std::{fs, path::PathBuf};
 
 use crate::url::UrlPath;
 
@@ -26,12 +26,20 @@ where
         .collect())
 }
 
-macro_rules! default_script {
-    ($name: literal) => {
+macro_rules! default_scripts {
+    () => {
+        Vec::new(),
+    };
+
+    (@ $name: literal) => {
         Script {
             name: $name.into(),
             content: include_str!(concat!("../templates/", $name)).into(),
         }
+    };
+
+    ($name: literal $(, $rest: literal)*) => {
+        vec![default_scripts!(@ $name), $(default_scripts!(@ $rest)),*]
     };
 }
 
@@ -79,16 +87,17 @@ decl_config! {
             infer_args_from: PathBuf,
         },
         templates {
-            class: String as parse_template = include_str!("../templates/class.html").to_string(),
-            index: String as parse_template = include_str!("../templates/index.html").to_string(),
-            head:  String as parse_template = include_str!("../templates/head.html").to_string(),
-            nav:   String as parse_template = include_str!("../templates/nav.html").to_string(),
-            file:  String as parse_template = include_str!("../templates/file.html").to_string(),
-            page:  String as parse_template = include_str!("../templates/page.html").to_string(),
+            class:   String as parse_template = include_str!("../templates/class.html").to_string(),
+            struct_: String as parse_template = include_str!("../templates/struct.html").to_string(),
+            index:   String as parse_template = include_str!("../templates/index.html").to_string(),
+            head:    String as parse_template = include_str!("../templates/head.html").to_string(),
+            nav:     String as parse_template = include_str!("../templates/nav.html").to_string(),
+            file:    String as parse_template = include_str!("../templates/file.html").to_string(),
+            page:    String as parse_template = include_str!("../templates/page.html").to_string(),
         },
         scripts {
-            css: Vec<Script> = vec![default_script!("default.css")],
-            js:  Vec<Script> = vec![default_script!("script.js")],
+            css: Vec<Script> = default_scripts!("default.css", "nav.css", "content.css", "themes.css"),
+            js:  Vec<Script> = default_scripts!("script.js"),
         },
         let input_dir: PathBuf,
         let output_dir: PathBuf,

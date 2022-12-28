@@ -1,15 +1,19 @@
-
 use std::collections::HashMap;
 
 use clang::{Entity, EntityKind};
 
 use crate::url::UrlPath;
 
-use super::{builder::{Builder, AnEntry, get_fully_qualified_name, NavItem}, class::Class};
+use super::{
+    builder::{get_fully_qualified_name, AnEntry, Builder, NavItem},
+    class::Class,
+    struct_::Struct,
+};
 
 pub enum CppItem<'e> {
     Namespace(Namespace<'e>),
     Class(Class<'e>),
+    Struct(Struct<'e>),
 }
 
 impl<'e> AnEntry<'e> for CppItem<'e> {
@@ -17,13 +21,15 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
         match self {
             CppItem::Namespace(ns) => ns.name(),
             CppItem::Class(cs) => cs.name(),
+            CppItem::Struct(st) => st.name(),
         }
     }
-    
+
     fn url(&self) -> UrlPath {
         match self {
             CppItem::Namespace(ns) => ns.url(),
             CppItem::Class(cs) => cs.url(),
+            CppItem::Struct(st) => st.url(),
         }
     }
 
@@ -31,6 +37,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
         match self {
             CppItem::Namespace(ns) => ns.build(builder),
             CppItem::Class(cs) => cs.build(builder),
+            CppItem::Struct(st) => st.build(builder),
         }
     }
 
@@ -38,6 +45,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
         match self {
             CppItem::Namespace(ns) => ns.nav(),
             CppItem::Class(cs) => cs.nav(),
+            CppItem::Struct(st) => st.nav(),
         }
     }
 }
@@ -63,21 +71,19 @@ impl<'e> AnEntry<'e> for Namespace<'e> {
 
         if self.entity.get_kind() == EntityKind::TranslationUnit {
             NavItem::new_root(None, entries.iter().map(|e| e.1.nav()).collect())
-        }
-        else {
+        } else {
             NavItem::new_dir(
                 &self.name(),
-                entries
-                    .iter()
-                    .map(|e| e.1.nav())
-                    .collect(),
-                None
+                entries.iter().map(|e| e.1.nav()).collect(),
+                None,
             )
         }
     }
 
     fn name(&self) -> String {
-        self.entity.get_name().unwrap_or("<Anonymous namespace>".into())
+        self.entity
+            .get_name()
+            .unwrap_or("<Anonymous namespace>".into())
     }
 
     fn url(&self) -> UrlPath {
@@ -113,14 +119,21 @@ impl<'e> Namespace<'e> {
                     else {
                         self.entries.insert(entry.name(), CppItem::Namespace(entry));
                     }
-                },
+                }
 
-                EntityKind::StructDecl | EntityKind::ClassDecl => {
+                EntityKind::StructDecl => {
+                    if child.is_definition() {
+                        let entry = Struct::new(child.clone());
+                        self.entries.insert(entry.name(), CppItem::Struct(entry));
+                    }
+                }
+
+                EntityKind::ClassDecl => {
                     if child.is_definition() {
                         let entry = Class::new(child.clone());
                         self.entries.insert(entry.name(), CppItem::Class(entry));
                     }
-                },
+                }
 
                 _ => continue,
             }

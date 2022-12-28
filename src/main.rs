@@ -1,12 +1,12 @@
+use crate::{analyze::create_docs, url::UrlPath};
 use clap::Parser;
 use config::Config;
 use std::{fs, path::PathBuf, process::exit};
-use crate::{analyze::create_docs, url::UrlPath};
 
+mod analyze;
 mod builder;
 mod cmake;
 mod config;
-mod analyze;
 mod url;
 
 #[derive(Parser, Debug)]

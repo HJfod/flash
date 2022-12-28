@@ -1,0 +1,306 @@
+
+main {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Open Sans', sans-serif;
+    padding: 1rem;
+    height: calc(100% - 2rem);
+    overflow-y: auto;
+}
+
+main div {
+    margin-bottom: 1rem;
+}
+
+main h1 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 2.25rem;
+    color: var(--flash-light);
+}
+
+main h1 > .feather {
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-right: .5rem;
+}
+
+main h1 > a {
+    color: var(--flash-h1-color);
+    font-style: normal;
+    font-size: 3rem;
+}
+
+main h1 > a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+main h1::after {
+    content: ' ';
+    display: block;
+    margin-top: .5rem;
+    border: .1rem solid var(--flash-border); 
+}
+
+main h2 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 1.75rem;
+}
+
+main a {
+    text-decoration: none;
+}
+
+main a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+main .button {
+    display: inline-grid;
+    border-radius: 9999px;
+    color: var(--flash-white);
+    background-color: var(--flash-dark);
+    padding: .5rem;
+    padding-left: 3rem;
+    padding-right: 3rem;
+    text-align: center;
+    text-decoration: none;
+    transition: color, border, background;
+}
+
+main .button:hover {
+    background-color: var(--flash-cyan-darker);
+    color: var(--flash-cyan-light);
+}
+
+main .button.outlined {
+    background-color: rgba(0, 0, 0, 0);
+    border: .15rem solid var(--flash-white); 
+}
+
+main .button.outlined:hover {
+    background-color: rgba(0, 0, 0, 0);
+    border-color: var(--flash-cyan);
+}
+
+.icon.feather-box {
+    color: var(--flash-red);
+}
+
+.icon.feather-box.variant {
+    color: var(--flash-green);
+}
+
+.icon.feather-file {
+    color: var(--flash-light);
+}
+
+code {
+    padding: 1rem;
+    background-color: var(--flash-gray-darkest);
+    border-radius: .5rem;
+}
+
+.header-link {
+    font-size: 1.1rem;
+    color: var(--flash-purple);
+}
+
+.header-link .url {
+    color: var(--flash-green);
+}
+
+a.disabled:hover {
+    text-decoration: none;
+}
+
+.section > summary {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 1.75rem;
+    display: block;
+    margin-bottom: .5rem;
+    user-select: none;
+}
+
+.section > summary span {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.section > summary .feather {
+    margin-right: .5rem;
+    margin-left: .5rem;
+}
+
+.section[open] > summary .feather-chevron-right {
+    transform: rotate(90deg);
+}
+
+.section > summary:hover {
+    cursor: pointer;
+}
+
+.section > summary::after {
+    content: ' ';
+    display: block;
+    margin-top: .5rem;
+    border: .1rem solid var(--flash-border);
+}
+
+.section > div {
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+.section > summary .badge {
+    margin-left: .5rem;
+}
+
+.badge {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1rem;
+    background-color: var(--flash-dark);
+    color: var(--flash-light);
+    padding: .15rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-radius: 9999px;
+}
+
+/* Code thingies */
+
+details.entity-desc[open] {
+    background-color: var(--flash-darker);
+    border-radius: .5rem;
+}
+
+details.entity-desc > * {
+    padding: .5rem;
+    border-radius: .5rem;
+}
+
+details.entity-desc > div {
+    padding: 1.5rem;
+}
+
+details.entity-desc > summary {
+    user-select: none;
+    margin-bottom: 0;
+}
+
+details.entity-desc > summary:hover {
+    cursor: pointer;
+    background-color: var(--flash-hover);
+}
+
+details.entity-desc > summary .feather-chevron-right {
+    height: 1.15rem;
+    align-self: center;
+    opacity: 50%;
+}
+
+details.entity-desc[open] > summary .feather-chevron-right {
+    transform: rotate(90deg);
+    opacity: 100%;
+}
+
+details.entity-desc > div > dl {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    gap: .5rem;
+    align-items: center;
+}
+
+details.entity-desc > div > .result-discussion > .para-returns {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    gap: .5rem;
+}
+
+details.entity-desc > div > .result-discussion .word-returns {
+    font-weight: bold;
+    color: var(--flash-highlight);
+}
+
+details.entity-desc > div > dl > dt {
+    font-weight: bold;
+}
+
+.entity {
+    font-family: 'Source Code Pro', monospace;
+    color: var(--flash-light);
+    display: flex;
+    flex-direction: row;
+    margin-bottom: .5rem;
+}
+
+.entity .entity {
+    margin-bottom: 0;
+}
+
+.entity .keyword {
+    color: var(--flash-purple);
+}
+
+.entity .scope {
+    color: var(--flash-light);
+    opacity: 50%;
+}
+
+.entity .alias {
+    color: var(--flash-skin);
+}
+
+.entity .literal {
+    color: var(--flash-white);
+}
+
+.entity .enum {
+    color: var(--flash-red);
+}
+
+.entity.type {
+    color: var(--flash-light);
+}
+
+.entity.namespace > .name, .namespace {
+    color: var(--flash-orange);
+}
+
+.entity.class > .name, .class {
+    color: var(--flash-yellow);
+}
+
+.entity.struct > .name, .struct {
+    color: var(--flash-yellow);
+}
+
+.entity.type.pod {
+    color: var(--flash-purple);
+}
+
+.entity.fun > .name {
+    color: var(--flash-blue);
+}
+
+.entity.var > .name {
+    color: var(--flash-white);
+}
+
+.entity.fun .params {
+    display: flex;
+    flex-direction: row;
+}
+
+.entity .space-before {
+    margin-left: .5rem;
+}
+
+.entity .space-after {
+    margin-right: .5rem;
+}

@@ -1,7 +1,6 @@
-
-use std::{path::PathBuf, fmt::Display};
-use serde::{Deserialize, de::Visitor};
 use crate::config::Config;
+use serde::{de::Visitor, Deserialize};
+use std::{fmt::Display, path::PathBuf};
 
 // The URL crate doesn't support paths like /some/file, it needs the protocol and hostname
 // (which is undesirable for Flash as docs links are /docs/namespace/entity)
@@ -13,19 +12,17 @@ pub struct UrlPath {
 
 impl UrlPath {
     pub fn new() -> Self {
-        Self {
-            parts: Vec::new()
-        }
+        Self { parts: Vec::new() }
     }
 
     pub fn new_with_path(parts: Vec<String>) -> Self {
-        Self {
-            parts
-        }.clean()
+        Self { parts }.clean()
     }
 
     pub fn parse(url: &str) -> Result<Self, String> {
-        Ok(UrlPath::new_with_path(url.split("/").map(|s| s.to_owned()).collect()))
+        Ok(UrlPath::new_with_path(
+            url.split("/").map(|s| s.to_owned()).collect(),
+        ))
     }
 
     fn clean(mut self) -> Self {
@@ -34,10 +31,12 @@ impl UrlPath {
         self.parts
             .iter()
             .filter_map(|p| (!p.is_empty() || p != ".").then_some(p.to_owned()))
-            .for_each(|p| if p == ".." {
-                filtered.pop();
-            } else {
-                filtered.push(p);
+            .for_each(|p| {
+                if p == ".." {
+                    filtered.pop();
+                } else {
+                    filtered.push(p);
+                }
             });
         self.parts = filtered;
         self
@@ -62,7 +61,11 @@ impl UrlPath {
     }
 
     pub fn to_absolute(&self, config: &Config) -> Self {
-        config.output_url.as_ref().unwrap_or(&UrlPath::new()).join(self)
+        config
+            .output_url
+            .as_ref()
+            .unwrap_or(&UrlPath::new())
+            .join(self)
     }
 }
 
@@ -76,15 +79,15 @@ impl<'de> Visitor<'de> for UrlVisitor {
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error
+    where
+        E: serde::de::Error,
     {
         UrlPath::try_from(v).map_err(|e| serde::de::Error::custom(e))
     }
 
     fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
+    where
+        E: serde::de::Error,
     {
         UrlPath::try_from(v).map_err(|e| serde::de::Error::custom(e))
     }
@@ -92,8 +95,8 @@ impl<'de> Visitor<'de> for UrlVisitor {
 
 impl<'de> Deserialize<'de> for UrlPath {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::Deserializer<'de>
+    where
+        D: serde::Deserializer<'de>,
     {
         deserializer.deserialize_string(UrlVisitor)
     }
@@ -114,12 +117,13 @@ impl TryFrom<&PathBuf> for UrlPath {
         Ok(UrlPath::new_with_path(
             value
                 .components()
-                .map(|p| p
-                    .as_os_str()
-                    .to_str()
-                    .map(|s| s.to_string()).ok_or("Expected UTF-8".to_owned())
-                )
-                .collect::<Result<_, _>>()?
+                .map(|p| {
+                    p.as_os_str()
+                        .to_str()
+                        .map(|s| s.to_string())
+                        .ok_or("Expected UTF-8".to_owned())
+                })
+                .collect::<Result<_, _>>()?,
         ))
     }
 }

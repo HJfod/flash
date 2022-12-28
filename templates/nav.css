@@ -1,0 +1,179 @@
+
+nav {
+    background-color: var(--flash-gray-dark);
+    height: 100%;
+    display: grid;
+    grid-template-rows: min-content 1fr min-content;
+}
+
+nav > * {
+    padding: 1rem;
+}
+
+nav > .mode {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-bottom: 0rem;
+}
+
+nav > .mode > button {
+    font-family: 'Open Sans', sans-serif;
+    color: var(--flash-white);
+    padding: .5rem;
+    background-color: rgba(0, 0, 0, 0);
+    border: none;
+    transition: background;
+}
+
+nav > .mode > button.selected {
+    border-bottom: .2rem solid var(--flash-tab-selected-bg);
+    border-top: .2rem solid rgba(0, 0, 0, 0);
+}
+
+nav > .mode > button:not(.selected) {
+    border-bottom: .2rem solid var(--flash-border);
+    border-top: .2rem solid rgba(0, 0, 0, 0);
+}
+
+nav > .mode > button:hover {
+    background-color: var(--flash-hover);
+}
+
+nav > .content {
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    padding: .25rem;
+}
+
+nav > .content details:not(.root) > div {
+    padding-left: 1.25rem;
+}
+
+nav > .content summary {
+    font-family: 'Source Code Pro', monospace;
+    color: var(--flash-light);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: .25rem;
+    user-select: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 5rem;
+}
+
+nav > .content details.root > summary {
+    color: var(--flash-light);
+}
+
+nav > .content details.root:not(:last-child) {
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: .1rem solid var(--flash-hover);
+}
+
+nav > .content summary:hover {
+    background-color: var(--flash-hover);
+    color: var(--flash-white);
+    cursor: pointer;
+}
+
+nav .feather {
+    height: 1.2rem;
+}
+
+nav .feather-chevron-right {
+    opacity: 50%;
+    color: var(--flash-nav-arrow);
+}
+
+nav .feather:not(.feather-chevron-right) {
+    margin-right: .25rem;
+}
+
+nav > .content details[open] > summary > .feather-chevron-right {
+    transform: rotate(90deg);
+}
+
+nav > .content a {
+    color: var(--flash-light);
+    text-decoration: none;
+    font-family: 'Source Code Pro', monospace;
+    display: flex;
+    flex-direction: row;
+    padding: .25rem;
+    user-select: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 5rem;
+}
+
+nav a:hover {
+    background-color: var(--flash-hover);
+    color: var(--flash-white);
+    cursor: pointer;
+}
+
+nav a .matched {
+    color: var(--flash-search-match);
+    font-weight: bold;
+}
+
+nav a .scope {
+    opacity: 50%;
+}
+
+nav .nothing-found {
+    font-family: 'Open Sans', sans-serif;
+    color: var(--flash-light);
+    margin-left: 1rem;
+}
+
+.search {
+    background-color: var(--flash-gray-darker);
+}
+
+.input {
+    background: var(--flash-gray-darkest);
+    border-radius: .25rem;
+    display: flex;
+    flex-direction: row;
+    padding-left: .5rem;
+    justify-content: stretch;
+    align-items: stretch;
+}
+
+.input > input {
+    padding: .5rem;
+    display: block;
+    background: none;
+    border: none;
+    width: 100%;
+    color: var(--flash-white);
+    outline: none;
+    flex-grow: 1;
+}
+
+.input > button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: .5rem;
+    align-self: center;
+    background-color: rgba(0, 0, 0, 0);
+    border-radius: .25rem;
+    border: none;
+    color: var(--flash-light);
+}
+
+.input > button:hover {
+    background-color: var(--flash-hover);
+    cursor: pointer;
+}
+
+.input > button .feather {
+    margin: 0;
+}

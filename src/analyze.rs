@@ -1,7 +1,6 @@
-
+use crate::{builder::builder::Builder, cmake, config::Config};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{fs, path::PathBuf, process::Command, time::Duration};
-use crate::{cmake, config::Config, builder::builder::Builder};
 
 fn run_command(cmd: &String) -> Result<(), String> {
     let args =
@@ -59,7 +58,7 @@ fn analyze_with_clang(config: &Config, args: &Vec<String>) -> Result<(), String>
     // Build the navbar first
     pbar.set_message("Setting up");
     let mut builder = Builder::new(config, unit.get_entity());
-    
+
     // Build the doc files
     pbar.set_message("Building docs");
     builder.build(Some(&pbar))?;

@@ -5,21 +5,21 @@ use strfmt::strfmt;
 
 use crate::{config::Config, url::UrlPath};
 
-use super::{namespace::Namespace, files::Root, index::Index};
+use super::{files::Root, index::Index, namespace::Namespace};
 
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
-    Dir(String, Vec<NavItem>, Option<String>),
-    Link(String, UrlPath, Option<String>),
+    Dir(String, Vec<NavItem>, Option<(String, bool)>),
+    Link(String, UrlPath, Option<(String, bool)>),
 }
 
 impl NavItem {
-    pub fn new_link(name: &str, url: UrlPath, icon: Option<&str>) -> NavItem {
-        NavItem::Link(name.into(), url, icon.map(|s| s.into()))
+    pub fn new_link(name: &str, url: UrlPath, icon: Option<(&str, bool)>) -> NavItem {
+        NavItem::Link(name.into(), url, icon.map(|s| (s.0.into(), s.1)))
     }
 
-    pub fn new_dir(name: &str, items: Vec<NavItem>, icon: Option<&str>) -> NavItem {
-        NavItem::Dir(name.into(), items, icon.map(|s| s.into()))
+    pub fn new_dir(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>) -> NavItem {
+        NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)))
     }
 
     pub fn new_root(name: Option<&str>, items: Vec<NavItem>) -> NavItem {
@@ -31,9 +31,12 @@ impl NavItem {
             NavItem::Link(name, url, icon) => format!(
                 "<a onclick='return navigate(\"{0}\")' href='{0}'>{1}{2}</a>",
                 url.to_absolute(config),
-                icon
-                    .as_ref()
-                    .map(|i| format!("<i data-feather='{}' class='icon'></i>", i))
+                icon.as_ref()
+                    .map(|i| format!(
+                        "<i data-feather='{}' class='icon {}'></i>",
+                        i.0,
+                        if i.1 { "variant" } else { "" }
+                    ))
                     .unwrap_or(String::new()),
                 name
             ),
@@ -46,27 +49,33 @@ impl NavItem {
                     </summary>
                     <div>{}</div>
                 </details>",
-                icon
-                    .as_ref()
-                    .map(|i| format!("<i data-feather='{}' class='icon'></i>", i))
+                icon.as_ref()
+                    .map(|i| format!(
+                        "<i data-feather='{}' class='icon {}'></i>",
+                        i.0,
+                        if i.1 { "variant" } else { "" }
+                    ))
                     .unwrap_or(String::new()),
                 name,
                 items.iter().map(|i| i.to_html(config)).collect::<String>()
             ),
 
-            NavItem::Root(name, items) => if let Some(name) = name {
-                format!(
-                    "<details open class='root'>
+            NavItem::Root(name, items) => {
+                if let Some(name) = name {
+                    format!(
+                        "<details open class='root'>
                         <summary>
                             <i data-feather='chevron-right'></i>
                             {}
                         </summary>
                         <div>{}</div>
                     </details>",
-                    name, items.iter().map(|i| i.to_html(config)).collect::<String>()
-                )
-            } else {
-                items.iter().map(|i| i.to_html(config)).collect::<String>()
+                        name,
+                        items.iter().map(|i| i.to_html(config)).collect::<String>()
+                    )
+                } else {
+                    items.iter().map(|i| i.to_html(config)).collect::<String>()
+                }
             }
         }
     }
@@ -97,15 +106,19 @@ impl<'c, 'e> Builder<'c, 'e> {
             root: Namespace::new(root),
             file_roots: Root::from_config(config),
             nav_cache: None,
-        }.setup()
+        }
+        .setup()
     }
 
     fn setup(self) -> Self {
-        for script in self.config.scripts.css.iter().chain(&self.config.scripts.js) {
-            fs::write(
-                self.config.output_dir.join(&script.name),
-                &script.content
-            ).unwrap();
+        for script in self
+            .config
+            .scripts
+            .css
+            .iter()
+            .chain(&self.config.scripts.js)
+        {
+            fs::write(self.config.output_dir.join(&script.name), &script.content).unwrap();
         }
         self
     }
@@ -113,49 +126,67 @@ impl<'c, 'e> Builder<'c, 'e> {
     pub fn create_output_for<E: OutputEntry<'c, 'e>>(&self, entry: &E) -> Result<(), String> {
         let (template, vars) = entry.output(self);
         let target_url = &entry.url();
-        
+
         let mut fmt = default_format(self.config);
-        fmt.extend(HashMap::from([
-            ("page_url".to_owned(), target_url.to_absolute(self.config).to_string()),
-        ]));
-        fmt.extend(vars.iter().map(|(k, v)| (k.to_string(), v.to_owned())).collect::<Vec<_>>());
-    
-        let content = strfmt(&template, &fmt)
-            .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
-        
+        fmt.extend(HashMap::from([(
+            "page_url".to_owned(),
+            target_url.to_absolute(self.config).to_string(),
+        )]));
+        fmt.extend(
+            vars.iter()
+                .map(|(k, v)| (k.to_string(), v.to_owned()))
+                .collect::<Vec<_>>(),
+        );
+
+        let content =
+            strfmt(&template, &fmt).map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+
         let page = strfmt(
             &self.config.templates.page,
             &HashMap::from([
                 (
-                    "head_content".to_owned(), 
-                    strfmt(
-                        &self.config.templates.head,
-                        &default_format(self.config)
-                    ).map_err(|e| format!("Unable to format head for {target_url}: {e}"))?
+                    "head_content".to_owned(),
+                    strfmt(&self.config.templates.head, &default_format(self.config))
+                        .map_err(|e| format!("Unable to format head for {target_url}: {e}"))?,
                 ),
                 ("navbar_content".to_owned(), self.build_nav()?),
                 ("main_content".to_owned(), content.clone()),
-            ])
+            ]),
         )
-            .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+        .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
         // Make sure output directory exists
         fs::create_dir_all(self.config.output_dir.join(target_url.to_pathbuf()))
             .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
 
         // Write the plain content output
-        fs::write(&self.config.output_dir.join(target_url.to_pathbuf()).join("content.html"), content)
-            .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
+        fs::write(
+            &self
+                .config
+                .output_dir
+                .join(target_url.to_pathbuf())
+                .join("content.html"),
+            content,
+        )
+        .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
 
         // Write the full page
-        fs::write(&self.config.output_dir.join(target_url.to_pathbuf()).join("index.html"), page)
-            .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
-    
+        fs::write(
+            &self
+                .config
+                .output_dir
+                .join(target_url.to_pathbuf())
+                .join("index.html"),
+            page,
+        )
+        .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
+
         Ok(())
     }
 
     fn all_entries(&self) -> Vec<&dyn AnEntry<'e>> {
-        self.root.entries
+        self.root
+            .entries
             .iter()
             .map(|p| p.1 as &dyn AnEntry<'e>)
             .chain(self.file_roots.iter().map(|p| p as &dyn AnEntry<'e>))
@@ -182,7 +213,7 @@ impl<'c, 'e> Builder<'c, 'e> {
 
         // Create root index.html
         self.create_output_for(&Index {})?;
-    
+
         Ok(())
     }
 
@@ -192,20 +223,21 @@ impl<'c, 'e> Builder<'c, 'e> {
         }
         let mut fmt = default_format(self.config);
         fmt.extend([
-            ("entity_content".into(), self.root.nav().to_html(self.config)),
+            (
+                "entity_content".into(),
+                self.root.nav().to_html(self.config),
+            ),
             (
                 "file_content".into(),
                 self.file_roots
                     .iter()
                     .map(|root| root.nav().to_html(self.config))
                     .collect::<Vec<_>>()
-                    .join("\n")
+                    .join("\n"),
             ),
         ]);
-        Ok(
-            strfmt(&self.config.templates.nav, &fmt)
-                .map_err(|e| format!("Unable to format navbar: {e}"))?
-        )
+        Ok(strfmt(&self.config.templates.nav, &fmt)
+            .map_err(|e| format!("Unable to format navbar: {e}"))?)
     }
 
     fn prebuild_nav(&mut self) -> Result<(), String> {
@@ -245,13 +277,15 @@ pub fn get_github_url(config: &Config, entity: &Entity) -> Option<String> {
         .get_path();
 
     Some(
-        config.docs.tree.clone()? + 
-            &UrlPath::try_from(
+        config.docs.tree.clone()?
+            + &UrlPath::try_from(
                 &path
                     .strip_prefix(&config.input_dir)
                     .unwrap_or(&path)
-                    .to_path_buf()
-            ).ok()?.to_string(),
+                    .to_path_buf(),
+            )
+            .ok()?
+            .to_string(),
     )
 }
 
@@ -262,13 +296,14 @@ pub fn get_header_path(config: &Config, entity: &Entity) -> Option<UrlPath> {
         .get_file_location()
         .file?
         .get_path();
-    
+
     let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
-    
+
     for root in &config.browser.roots {
         if let Ok(stripped) = rel_path.strip_prefix(root.path.to_pathbuf()) {
             return Some(
-                root.include_prefix.join(UrlPath::try_from(&stripped.to_path_buf()).ok()?)
+                root.include_prefix
+                    .join(UrlPath::try_from(&stripped.to_path_buf()).ok()?),
             );
         }
     }
@@ -280,6 +315,13 @@ fn default_format(config: &Config) -> HashMap<String, String> {
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),
-        ("output_url".into(), config.output_url.as_ref().unwrap_or(&UrlPath::new()).to_string()),
+        (
+            "output_url".into(),
+            config
+                .output_url
+                .as_ref()
+                .unwrap_or(&UrlPath::new())
+                .to_string(),
+        ),
     ])
 }
