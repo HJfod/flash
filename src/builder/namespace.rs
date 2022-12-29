@@ -7,13 +7,14 @@ use crate::url::UrlPath;
 use super::{
     builder::{get_fully_qualified_name, AnEntry, Builder, NavItem, BuildResult},
     class::Class,
-    struct_::Struct,
+    struct_::Struct, function::Function,
 };
 
 pub enum CppItem<'e> {
     Namespace(Namespace<'e>),
     Class(Class<'e>),
     Struct(Struct<'e>),
+    Function(Function<'e>),
 }
 
 impl<'e> AnEntry<'e> for CppItem<'e> {
@@ -22,6 +23,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
             CppItem::Namespace(ns) => ns.name(),
             CppItem::Class(cs) => cs.name(),
             CppItem::Struct(st) => st.name(),
+            CppItem::Function(st) => st.name(),
         }
     }
 
@@ -30,6 +32,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
             CppItem::Namespace(ns) => ns.url(),
             CppItem::Class(cs) => cs.url(),
             CppItem::Struct(st) => st.url(),
+            CppItem::Function(st) => st.url(),
         }
     }
 
@@ -38,6 +41,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
             CppItem::Namespace(ns) => ns.build(builder),
             CppItem::Class(cs) => cs.build(builder),
             CppItem::Struct(st) => st.build(builder),
+            CppItem::Function(st) => st.build(builder),
         }
     }
 
@@ -46,6 +50,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
             CppItem::Namespace(ns) => ns.nav(),
             CppItem::Class(cs) => cs.nav(),
             CppItem::Struct(st) => st.nav(),
+            CppItem::Function(st) => st.nav(),
         }
     }
 }
@@ -120,21 +125,26 @@ impl<'e> Namespace<'e> {
                     else {
                         self.entries.insert(entry.name(), CppItem::Namespace(entry));
                     }
-                }
+                },
 
                 EntityKind::StructDecl => {
                     if child.is_definition() {
                         let entry = Struct::new(child.clone());
                         self.entries.insert(entry.name(), CppItem::Struct(entry));
                     }
-                }
+                },
 
                 EntityKind::ClassDecl | EntityKind::ClassTemplate => {
                     if child.is_definition() {
                         let entry = Class::new(child.clone());
                         self.entries.insert(entry.name(), CppItem::Class(entry));
                     }
-                }
+                },
+
+                EntityKind::FunctionDecl => {
+                    let entry = Function::new(child.clone());
+                    self.entries.insert(entry.name(), CppItem::Function(entry));
+                },
 
                 _ => continue,
             }

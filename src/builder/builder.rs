@@ -240,8 +240,12 @@ impl<'e> Builder<'e> {
             handles.extend(entry.build(self)?);
         }
 
-        futures::future::join_all(handles).await;
-            
+        futures::future::join_all(handles)
+            .await
+            .into_iter()
+            .collect::<Result<Result<Vec<_>, _>, _>>()
+            .map_err(|e| format!("Unable to join {e}"))??;
+        
         // Create root index.html
         self.create_output_for(&Index {})?;
 

@@ -18,3 +18,4 @@ toml = "0.5.10"
 flash-macros = { path = "macros" }
 tokio = { version = "1.23.0", features = ["full"] }
 futures = "0.3.25"
+percent-encoding = "2.2.0"

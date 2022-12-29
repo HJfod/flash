@@ -98,6 +98,10 @@ main .button.outlined:hover {
     color: var(--flash-light);
 }
 
+.icon.feather-code {
+    color: var(--flash-purple);
+}
+
 code {
     padding: 1rem;
     background-color: var(--flash-gray-darkest);

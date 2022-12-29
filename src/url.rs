@@ -1,4 +1,5 @@
 use crate::config::Config;
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use serde::{de::Visitor, Deserialize};
 use std::{fmt::Display, path::PathBuf, sync::Arc};
 
@@ -48,8 +49,15 @@ impl UrlPath {
         buf.clean()
     }
 
-    pub fn file_name(&self) -> Option<&String> {
-        self.parts.last()
+    pub fn url_safe_parts(&self) -> Vec<String> {
+        self.parts
+            .iter()
+            .map(|p| utf8_percent_encode(p, NON_ALPHANUMERIC).to_string())
+            .collect()
+    }
+
+    pub fn file_name(&self) -> Option<String> {
+        self.url_safe_parts().last().map(|s| s.to_owned())
     }
 
     pub fn to_raw_string(&self) -> String {
@@ -57,7 +65,7 @@ impl UrlPath {
     }
 
     pub fn to_pathbuf(&self) -> PathBuf {
-        PathBuf::from_iter(&self.parts)
+        PathBuf::from_iter(&self.url_safe_parts())
     }
 
     pub fn to_absolute(&self, config: Arc<Config>) -> Self {
@@ -154,6 +162,6 @@ impl TryFrom<&String> for UrlPath {
 
 impl Display for UrlPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("/{}", &self.parts.join("/")))
+        f.write_fmt(format_args!("/{}", &self.url_safe_parts().join("/")))
     }
 }
