@@ -278,21 +278,22 @@ impl<'e> Builder<'e> {
 }
 
 pub fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
-    let mut name = Vec::new();
-    if let Some(parent) = entity.get_semantic_parent() {
-        if !matches!(parent.get_kind(), EntityKind::TranslationUnit) {
-            name.extend(get_fully_qualified_name(&parent));
-        }
-    }
-    name.push(entity.get_name().unwrap_or("_anon".into()));
-    name
+    get_ancestorage(entity)
+        .iter()
+        .map(|a| a.get_name().unwrap_or("_anon".into()))
+        .collect()
 }
 
 pub fn get_ancestorage<'e>(entity: &Entity<'e>) -> Vec<Entity<'e>> {
     let mut ancestors = Vec::new();
     if let Some(parent) = entity.get_semantic_parent() {
-        if !matches!(parent.get_kind(), EntityKind::TranslationUnit) {
-            ancestors.extend(get_ancestorage(&parent));
+        match parent.get_kind() {
+            EntityKind::TranslationUnit | 
+            EntityKind::UnexposedDecl |
+            EntityKind::UnexposedAttr |
+            EntityKind::UnexposedExpr |
+            EntityKind::UnexposedStmt => {},
+            _ => ancestors.extend(get_ancestorage(&parent))
         }
     }
     ancestors.push(entity.clone());
