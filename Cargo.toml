@@ -10,9 +10,11 @@ clang = "1.0.2"
 clap = { version = "4.0.29", features = ["derive"] }
 glob = "0.3.0"
 indicatif = "0.17.2"
-serde = { version = "1.0.151", features = ["derive"] }
+serde = { version = "1.0.151", features = ["derive", "rc"] }
 serde_json = "1.0.91"
 shlex = "1.1.0"
 strfmt = "0.2.2"
 toml = "0.5.10"
 flash-macros = { path = "macros" }
+tokio = { version = "1.23.0", features = ["full"] }
+futures = "0.3.25"

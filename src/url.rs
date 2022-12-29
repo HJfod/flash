@@ -1,6 +1,6 @@
 use crate::config::Config;
 use serde::{de::Visitor, Deserialize};
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, path::PathBuf, sync::Arc};
 
 // The URL crate doesn't support paths like /some/file, it needs the protocol and hostname
 // (which is undesirable for Flash as docs links are /docs/namespace/entity)
@@ -60,7 +60,7 @@ impl UrlPath {
         PathBuf::from_iter(&self.parts)
     }
 
-    pub fn to_absolute(&self, config: &Config) -> Self {
+    pub fn to_absolute(&self, config: Arc<Config>) -> Self {
         config
             .output_url
             .as_ref()

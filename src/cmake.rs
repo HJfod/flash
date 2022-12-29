@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{fs, path::PathBuf, process::Command};
+use std::{fs, path::PathBuf, process::Command, sync::Arc};
 
 use crate::config::Config;
 
@@ -11,7 +11,7 @@ pub struct CompileCommand {
 }
 
 impl CompileCommand {
-    pub fn get_command_list(&self, config: &Config) -> Vec<String> {
+    pub fn get_command_list(&self, config: Arc<Config>) -> Vec<String> {
         // Not using shlex because that screws up -DFMT_CONSTEVAL=\"\"
         let mut list: Vec<String> = self.command.split(" ")
             // Skip clang.exe
@@ -78,7 +78,7 @@ pub fn cmake_build(args: &Vec<String>) -> Result<(), String> {
         .ok_or("CMake build failed".into())
 }
 
-pub fn cmake_compile_commands(config: &Config) -> Result<CompileCommands, String> {
+pub fn cmake_compile_commands(config: Arc<Config>) -> Result<CompileCommands, String> {
     serde_json::from_str(
         &fs::read_to_string(config.input_dir.join("build").join("compile_commands.json"))
             .map_err(|e| format!("Unable to read compile_commands.json: {e}"))?,
@@ -86,9 +86,9 @@ pub fn cmake_compile_commands(config: &Config) -> Result<CompileCommands, String
     .map_err(|e| format!("Unable to parse compile_commands.json: {e}"))
 }
 
-pub fn cmake_compile_args_for(config: &Config) -> Option<Vec<String>> {
+pub fn cmake_compile_args_for(config: Arc<Config>) -> Option<Vec<String>> {
     let ref from = config.cmake.as_ref()?.infer_args_from;
-    for cmd in cmake_compile_commands(config).ok()? {
+    for cmd in cmake_compile_commands(config.clone()).ok()? {
         if cmd.file == config.input_dir.join(from) {
             return Some(cmd.get_command_list(config));
         }

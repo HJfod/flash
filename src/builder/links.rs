@@ -1,12 +1,14 @@
 
+use std::sync::Arc;
+
 use clang::{Entity, EntityKind, Type, TypeKind};
 use crate::config::Config;
 use super::builder::{get_ancestorage, EntityMethods};
 
-fn fmt_type(entity: &Type, config: &Config) -> String {
+fn fmt_type(entity: &Type, config: Arc<Config>) -> String {
     let base = entity.get_pointee_type().unwrap_or(entity.to_owned());
     let decl = base.get_declaration();
-    let link = decl.map(|decl| decl.docs_url(config));
+    let link = decl.map(|decl| decl.docs_url(config.clone()));
     let kind = decl.map(|decl| decl.get_kind()).unwrap_or(EntityKind::UnexposedDecl);
     let name = decl.map(|decl| {
         get_ancestorage(&decl)
@@ -72,7 +74,7 @@ fn fmt_type(entity: &Type, config: &Config) -> String {
                     "&lt;{}&gt;",
                     types
                         .iter()
-                        .map(|t| t.map(|t| fmt_type(&t, config)).unwrap_or(String::from("_unk")))
+                        .map(|t| t.map(|t| fmt_type(&t, config.clone())).unwrap_or(String::from("_unk")))
                         .collect::<Vec<_>>()
                         .join("<span class='comma space-after'>,</span>")
                 )
@@ -94,7 +96,7 @@ fn fmt_type(entity: &Type, config: &Config) -> String {
     )
 }
 
-fn fmt_param(param: &Entity, config: &Config) -> String {
+fn fmt_param(param: &Entity, config: Arc<Config>) -> String {
     format!(
         "<div class='entity var'>{}{}</div>",
         param
@@ -108,11 +110,11 @@ fn fmt_param(param: &Entity, config: &Config) -> String {
     )
 }
 
-pub fn fmt_field(field: &Entity, config: &Config) -> String {
+pub fn fmt_field(field: &Entity, config: Arc<Config>) -> String {
     format!("<div class='entity var'>{};</div>", fmt_param(field, config))
 }
 
-pub fn fmt_fun_decl(fun: &Entity, config: &Config) -> String {
+pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> String {
     format!(
         "<details class='entity-desc'>
             <summary class='entity fun'>
@@ -133,14 +135,14 @@ pub fn fmt_fun_decl(fun: &Entity, config: &Config) -> String {
             "<span class='keyword space-after'>virtual</span>"
         } else { "" },
 
-        return = fun.get_result_type().map(|t| fmt_type(&t, config)).unwrap_or(String::new()),
+        return = fun.get_result_type().map(|t| fmt_type(&t, config.clone())).unwrap_or(String::new()),
 
         name = fun.get_name().unwrap_or(String::from("_anon")),
 
         params = fun.get_arguments().map(|args|
             args
                 .iter()
-                .map(|arg| fmt_param(arg, config))
+                .map(|arg| fmt_param(arg, config.clone()))
                 .collect::<Vec<_>>()
                 .join("<span class='comma space-after'>,</span>")
         ).unwrap_or(String::new()),

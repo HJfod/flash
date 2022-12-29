@@ -1,6 +1,6 @@
 use clang::{Entity, EntityKind};
-use indicatif::ProgressBar;
-use std::{collections::HashMap, fs};
+use tokio::task::JoinHandle;
+use std::{collections::HashMap, fs, sync::Arc};
 use strfmt::strfmt;
 
 use crate::{config::Config, url::UrlPath};
@@ -9,7 +9,7 @@ use super::{files::Root, index::Index, namespace::Namespace};
 
 pub trait EntityMethods<'e> {
     fn rel_url(&self) -> UrlPath;
-    fn docs_url(&self, config: &Config) -> UrlPath {
+    fn docs_url(&self, config: Arc<Config>) -> UrlPath {
         self.rel_url().to_absolute(config)
     }
 }
@@ -39,7 +39,7 @@ impl NavItem {
         NavItem::Root(name.map(|s| s.into()), items)
     }
 
-    pub fn to_html(&self, config: &Config) -> String {
+    pub fn to_html(&self, config: Arc<Config>) -> String {
         match self {
             NavItem::Link(name, url, icon) => format!(
                 "<a onclick='return navigate(\"{0}\")' href='{0}'>{1}{2}</a>",
@@ -70,7 +70,7 @@ impl NavItem {
                     ))
                     .unwrap_or(String::new()),
                 sanitize_html(name),
-                items.iter().map(|i| i.to_html(config)).collect::<String>()
+                items.iter().map(|i| i.to_html(config.clone())).collect::<String>()
             ),
 
             NavItem::Root(name, items) => {
@@ -84,46 +84,50 @@ impl NavItem {
                         <div>{}</div>
                     </details>",
                         sanitize_html(name),
-                        items.iter().map(|i| i.to_html(config)).collect::<String>()
+                        items.iter().map(|i| i.to_html(config.clone())).collect::<String>()
                     )
                 } else {
-                    items.iter().map(|i| i.to_html(config)).collect::<String>()
+                    items.iter().map(|i| i.to_html(config.clone())).collect::<String>()
                 }
             }
         }
     }
 }
 
+pub type BuildResult = Result<Vec<JoinHandle<Result<(), String>>>, String>;
+
 pub trait AnEntry<'e> {
     fn name(&self) -> String;
     fn url(&self) -> UrlPath;
-    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String>;
+    fn build(&self, builder: &Builder<'e>) -> BuildResult;
     fn nav(&self) -> NavItem;
 }
 
-pub trait OutputEntry<'c, 'e>: AnEntry<'e> {
-    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>);
+pub trait OutputEntry<'e>: AnEntry<'e> {
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>);
 }
 
-pub struct Builder<'c, 'e> {
-    pub config: &'c Config,
+pub struct Builder<'e> {
+    pub config: Arc<Config>,
     root: Namespace<'e>,
-    file_roots: Vec<Root<'c>>,
+    file_roots: Vec<Root>,
     nav_cache: Option<String>,
 }
 
-impl<'c, 'e> Builder<'c, 'e> {
-    pub fn new(config: &'c Config, root: Entity<'e>) -> Self {
-        Self {
-            config,
-            root: Namespace::new(root),
-            file_roots: Root::from_config(config),
-            nav_cache: None,
-        }
-        .setup()
+impl<'e> Builder<'e> {
+    pub fn new(config: Arc<Config>, root: Entity<'e>) -> Result<Self, String> {
+        Ok(
+            Self {
+                config: config.clone(),
+                root: Namespace::new(root),
+                file_roots: Root::from_config(config),
+                nav_cache: None,
+            }
+            .setup()?
+        )
     }
 
-    fn setup(self) -> Self {
+    fn setup(mut self) -> Result<Self, String> {
         for script in self
             .config
             .scripts
@@ -131,70 +135,85 @@ impl<'c, 'e> Builder<'c, 'e> {
             .iter()
             .chain(&self.config.scripts.js)
         {
-            fs::write(self.config.output_dir.join(&script.name), &script.content).unwrap();
+            fs::write(self.config.output_dir.join(&script.name), script.content.as_ref())
+                .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
-        self
+        self.prebuild()?;
+        Ok(self)
     }
 
-    pub fn create_output_for<E: OutputEntry<'c, 'e>>(&self, entry: &E) -> Result<(), String> {
+    pub fn create_output_for<E: OutputEntry<'e>>(&self, entry: &E) -> BuildResult {
         let (template, vars) = entry.output(self);
-        let target_url = &entry.url();
+        Ok(vec![Self::create_output_in_thread(
+            self.config.clone(),
+            self.build_nav()?,
+            entry.url(),
+            template,
+            vars
+        )])
+    }
 
-        let mut fmt = default_format(self.config);
-        fmt.extend(HashMap::from([(
-            "page_url".to_owned(),
-            target_url.to_absolute(self.config).to_string(),
-        )]));
-        fmt.extend(
-            vars.iter()
-                .map(|(k, v)| (k.to_string(), v.to_owned()))
-                .collect::<Vec<_>>(),
-        );
+    fn create_output_in_thread(
+        config: Arc<Config>,
+        nav: String,
+        target_url: UrlPath,
+        template: Arc<String>,
+        vars: Vec<(&'static str, String)>
+    ) -> JoinHandle<Result<(), String>> {
+        tokio::spawn(async move {
+            let mut fmt = default_format(config.clone());
+            fmt.extend(HashMap::from([(
+                "page_url".to_owned(),
+                target_url.to_absolute(config.clone()).to_string(),
+            )]));
+            fmt.extend(
+                vars.iter()
+                    .map(|(k, v)| (k.to_string(), v.to_owned()))
+                    .collect::<Vec<_>>(),
+            );
 
-        let content =
-            strfmt(&template, &fmt).map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+            let content = strfmt(&template, &fmt)
+                .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
-        let page = strfmt(
-            &self.config.templates.page,
-            &HashMap::from([
-                (
-                    "head_content".to_owned(),
-                    strfmt(&self.config.templates.head, &default_format(self.config))
-                        .map_err(|e| format!("Unable to format head for {target_url}: {e}"))?,
-                ),
-                ("navbar_content".to_owned(), self.build_nav()?),
-                ("main_content".to_owned(), content.clone()),
-            ]),
-        )
-        .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+            let page = strfmt(
+                &config.templates.page,
+                &HashMap::from([
+                    (
+                        "head_content".to_owned(),
+                        strfmt(&config.templates.head, &default_format(config.clone()))
+                            .map_err(|e| format!("Unable to format head for {target_url}: {e}"))?,
+                    ),
+                    ("navbar_content".to_owned(), nav),
+                    ("main_content".to_owned(), content.clone()),
+                ]),
+            )
+            .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
-        // Make sure output directory exists
-        fs::create_dir_all(self.config.output_dir.join(target_url.to_pathbuf()))
-            .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
+            // Make sure output directory exists
+            fs::create_dir_all(config.output_dir.join(target_url.to_pathbuf()))
+                .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
 
-        // Write the plain content output
-        fs::write(
-            &self
-                .config
-                .output_dir
-                .join(target_url.to_pathbuf())
-                .join("content.html"),
-            content,
-        )
-        .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
+            // Write the plain content output
+            fs::write(
+                &config
+                    .output_dir
+                    .join(target_url.to_pathbuf())
+                    .join("content.html"),
+                content,
+            )
+            .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
 
-        // Write the full page
-        fs::write(
-            &self
-                .config
-                .output_dir
-                .join(target_url.to_pathbuf())
-                .join("index.html"),
-            page,
-        )
-        .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
-
-        Ok(())
+            // Write the full page
+            fs::write(
+                &config
+                    .output_dir
+                    .join(target_url.to_pathbuf())
+                    .join("index.html"),
+                page,
+            )
+            .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
+            Ok(())
+        })
     }
 
     fn all_entries(&self) -> Vec<&dyn AnEntry<'e>> {
@@ -206,24 +225,23 @@ impl<'c, 'e> Builder<'c, 'e> {
             .collect()
     }
 
-    pub fn build(&mut self, pbar: Option<&ProgressBar>) -> Result<(), String> {
-        // For tracking progress
-        let entries_len = self.root.entries.len();
-        let total_len = (entries_len + self.file_roots.len()) as f64;
-
-        // Prebuild cached navbars for much faster docs builds
+    fn prebuild(&mut self) -> Result<(), String> {
+// Prebuild cached navbars for much faster docs builds
         self.prebuild_nav()?;
 
-        // Create docs for all entries
-        let mut i = 0f64;
+        Ok(())
+    }
+
+    pub async fn build(&self) -> Result<(), String> {
+        let mut handles = Vec::new();
+
+        // Spawn threads for creating docs for all entries
         for entry in self.all_entries() {
-            if let Some(pbar) = pbar {
-                pbar.set_position((i / total_len * pbar.length().unwrap_or(1) as f64) as u64);
-            }
-            i += 1f64;
-            entry.build(self)?;
+            handles.extend(entry.build(self)?);
         }
 
+        futures::future::join_all(handles).await;
+            
         // Create root index.html
         self.create_output_for(&Index {})?;
 
@@ -234,17 +252,17 @@ impl<'c, 'e> Builder<'c, 'e> {
         if let Some(ref cached) = self.nav_cache {
             return Ok(cached.to_owned());
         }
-        let mut fmt = default_format(self.config);
+        let mut fmt = default_format(self.config.clone());
         fmt.extend([
             (
                 "entity_content".into(),
-                self.root.nav().to_html(self.config),
+                self.root.nav().to_html(self.config.clone()),
             ),
             (
                 "file_content".into(),
                 self.file_roots
                     .iter()
-                    .map(|root| root.nav().to_html(self.config))
+                    .map(|root| root.nav().to_html(self.config.clone()))
                     .collect::<Vec<_>>()
                     .join("\n"),
             ),
@@ -281,7 +299,7 @@ pub fn get_ancestorage<'e>(entity: &Entity<'e>) -> Vec<Entity<'e>> {
     ancestors
 }
 
-pub fn get_github_url(config: &Config, entity: &Entity) -> Option<String> {
+pub fn get_github_url(config: Arc<Config>, entity: &Entity) -> Option<String> {
     let path = entity
         .get_definition()?
         .get_location()?
@@ -302,7 +320,7 @@ pub fn get_github_url(config: &Config, entity: &Entity) -> Option<String> {
     )
 }
 
-pub fn get_header_path(config: &Config, entity: &Entity) -> Option<UrlPath> {
+pub fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> {
     let path = entity
         .get_definition()?
         .get_location()?
@@ -328,7 +346,7 @@ pub fn sanitize_html(html: &str) -> String {
     html.replace("<", "&lt;").replace(">", "&gt;")
 }
 
-fn default_format(config: &Config) -> HashMap<String, String> {
+fn default_format(config: Arc<Config>) -> HashMap<String, String> {
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),

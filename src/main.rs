@@ -24,7 +24,8 @@ struct Args {
     overwrite: bool,
 }
 
-fn main() -> Result<(), String> {
+#[tokio::main]
+async fn main() -> Result<(), String> {
     let args = Args::parse();
 
     // Check output dir
@@ -74,7 +75,7 @@ fn main() -> Result<(), String> {
         "Building docs for {} ({})",
         conf.project.name, conf.project.version
     );
-    create_docs(&conf)?;
+    create_docs(conf.clone()).await?;
     println!("Docs built for {}", conf.project.name);
 
     Ok(())

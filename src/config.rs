@@ -1,15 +1,18 @@
 use flash_macros::decl_config;
 use glob::glob;
 use serde::{Deserialize, Deserializer};
-use std::{fs, path::PathBuf};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use crate::url::UrlPath;
 
-fn parse_template<'de, D>(deserializer: D) -> Result<String, D::Error>
+fn parse_template<'de, D>(deserializer: D) -> Result<Arc<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    fs::read_to_string(PathBuf::deserialize(deserializer)?).map_err(serde::de::Error::custom)
+    Ok(Arc::from(
+        fs::read_to_string(PathBuf::deserialize(deserializer)?)
+        .map_err(serde::de::Error::custom)?
+    ))
 }
 
 fn parse_glob<'de, D>(deserializer: D) -> Result<Vec<PathBuf>, D::Error>
@@ -26,19 +29,25 @@ where
         .collect())
 }
 
+macro_rules! default_template {
+    ($name: expr) => {
+        Arc::from(include_str!($name).to_string())
+    };
+}
+
 macro_rules! default_scripts {
     () => {
         Vec::new(),
     };
 
-    (@ $name: literal) => {
+    (@ $name: expr) => {
         Script {
             name: $name.into(),
-            content: include_str!(concat!("../templates/", $name)).into(),
+            content: default_template!(concat!("../templates/", $name)),
         }
     };
 
-    ($name: literal $(, $rest: literal)*) => {
+    ($name: expr $(, $rest: expr)*) => {
         vec![default_scripts!(@ $name), $(default_scripts!(@ $rest)),*]
     };
 }
@@ -48,7 +57,7 @@ macro_rules! default_scripts {
 pub struct Script {
     pub name: String,
     #[serde(deserialize_with = "parse_template")]
-    pub content: String,
+    pub content: Arc<String>,
 }
 
 #[derive(Deserialize)]
@@ -72,7 +81,7 @@ decl_config! {
             tree?: String,
         },
         browser {
-            roots: Vec<BrowserRoot> = Vec::new(),
+            roots: Vec<Arc<BrowserRoot>> = Vec::new(),
         },
         run? {
             prebuild?: Vec<String>,
@@ -87,13 +96,13 @@ decl_config! {
             infer_args_from: PathBuf,
         },
         templates {
-            class:   String as parse_template = include_str!("../templates/class.html").to_string(),
-            struct_: String as parse_template = include_str!("../templates/struct.html").to_string(),
-            index:   String as parse_template = include_str!("../templates/index.html").to_string(),
-            head:    String as parse_template = include_str!("../templates/head.html").to_string(),
-            nav:     String as parse_template = include_str!("../templates/nav.html").to_string(),
-            file:    String as parse_template = include_str!("../templates/file.html").to_string(),
-            page:    String as parse_template = include_str!("../templates/page.html").to_string(),
+            class:   Arc<String> as parse_template = default_template!("../templates/class.html"),
+            struct_: Arc<String> as parse_template = default_template!("../templates/struct.html"),
+            index:   Arc<String> as parse_template = default_template!("../templates/index.html"),
+            head:    Arc<String> as parse_template = default_template!("../templates/head.html"),
+            nav:     Arc<String> as parse_template = default_template!("../templates/nav.html"),
+            file:    Arc<String> as parse_template = default_template!("../templates/file.html"),
+            page:    Arc<String> as parse_template = default_template!("../templates/page.html"),
         },
         scripts {
             css: Vec<Script> = default_scripts!("default.css", "nav.css", "content.css", "themes.css"),
@@ -110,7 +119,7 @@ impl Config {
         input_dir: PathBuf,
         output_dir: PathBuf,
         output_url: Option<UrlPath>,
-    ) -> Result<Config, String> {
+    ) -> Result<Arc<Config>, String> {
         let mut config: Config = toml::from_str(
             &fs::read_to_string(input_dir.join("flash.toml"))
                 .map_err(|e| format!("Unable to read flash.toml: {e}"))?,
@@ -120,7 +129,7 @@ impl Config {
         config.input_dir = input_dir;
         config.output_dir = output_dir;
         config.output_url = output_url;
-        Ok(config)
+        Ok(Arc::from(config))
     }
 
     pub fn filtered_includes(&self) -> Vec<&PathBuf> {

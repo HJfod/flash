@@ -1,6 +1,6 @@
 use crate::{builder::builder::Builder, cmake, config::Config};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{fs, path::PathBuf, process::Command, time::Duration};
+use std::{fs, path::PathBuf, process::Command, time::Duration, sync::Arc};
 
 fn run_command(cmd: &String) -> Result<(), String> {
     let args =
@@ -18,7 +18,7 @@ fn run_command(cmd: &String) -> Result<(), String> {
     }
 }
 
-fn create_analyzable_file(config: &Config) -> Result<PathBuf, String> {
+fn create_analyzable_file(config: Arc<Config>) -> Result<PathBuf, String> {
     let out_path = config.output_dir.join("_analyze.cpp");
 
     let mut data = String::from(
@@ -34,34 +34,31 @@ fn create_analyzable_file(config: &Config) -> Result<PathBuf, String> {
     Ok(out_path)
 }
 
-fn analyze_with_clang(config: &Config, args: &Vec<String>) -> Result<(), String> {
+async fn analyze_with_clang(config: Arc<Config>, args: &Vec<String>) -> Result<(), String> {
     // Initialize clang
     let clang = clang::Clang::new()?;
     let index = clang::Index::new(&clang, false, true);
 
     // Create a single source file that includes all headers
-    let target_src = create_analyzable_file(config)?;
+    let target_src = create_analyzable_file(config.clone())?;
 
-    let pbar = ProgressBar::new_spinner();
+    let pbar = Arc::from(ProgressBar::new_spinner());
     pbar.set_style(
-        ProgressStyle::with_template("{msg:>15} {spinner} [{elapsed_precise}] [{bar}]").unwrap(),
+        ProgressStyle::with_template("{msg:>15} {spinner} [{elapsed_precise}]").unwrap(),
     );
     pbar.set_message("Analyzing");
-    pbar.enable_steady_tick(Duration::from_millis(200));
+    pbar.enable_steady_tick(Duration::from_millis(150));
 
     // Create parser
     let unit = index.parser(&target_src).arguments(args).parse()?;
 
-    pbar.set_length(20);
-    pbar.tick();
-
     // Build the navbar first
     pbar.set_message("Setting up");
-    let mut builder = Builder::new(config, unit.get_entity());
+    let builder = Builder::new(config, unit.get_entity())?;
 
     // Build the doc files
     pbar.set_message("Building docs");
-    builder.build(Some(&pbar))?;
+    builder.build().await?;
 
     pbar.set_message("Cleaning up files");
 
@@ -73,7 +70,7 @@ fn analyze_with_clang(config: &Config, args: &Vec<String>) -> Result<(), String>
     Ok(())
 }
 
-fn analyze_with_cmake(config: &Config) -> Result<(), String> {
+async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
     // Configure the cmake project
     cmake::cmake_configure(
         config
@@ -99,14 +96,14 @@ fn analyze_with_cmake(config: &Config) -> Result<(), String> {
     }
 
     analyze_with_clang(
-        config,
+        config.clone(),
         &cmake::cmake_compile_args_for(config).expect("Unable to infer CMake compile args"),
-    )?;
+    ).await?;
 
     Ok(())
 }
 
-pub fn create_docs(config: &Config) -> Result<(), String> {
+pub async fn create_docs(config: Arc<Config>) -> Result<(), String> {
     // Execute prebuild commands
     if let Some(cmds) = config.run.as_ref().and_then(|c| c.prebuild.as_ref()) {
         for cmd in cmds {
@@ -116,10 +113,10 @@ pub fn create_docs(config: &Config) -> Result<(), String> {
 
     // Build based on mode
     if config.cmake.is_some() {
-        analyze_with_cmake(config)
+        analyze_with_cmake(config).await
     }
     // Build with extra compile args only
     else {
-        analyze_with_clang(config, &config.analysis.compile_args)
+        analyze_with_clang(config.clone(), &config.analysis.compile_args).await
     }
 }

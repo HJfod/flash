@@ -5,7 +5,7 @@ use clang::{Entity, EntityKind};
 use crate::url::UrlPath;
 
 use super::{
-    builder::{get_fully_qualified_name, AnEntry, Builder, NavItem},
+    builder::{get_fully_qualified_name, AnEntry, Builder, NavItem, BuildResult},
     class::Class,
     struct_::Struct,
 };
@@ -33,7 +33,7 @@ impl<'e> AnEntry<'e> for CppItem<'e> {
         }
     }
 
-    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+    fn build(&self, builder: &Builder<'e>) -> BuildResult {
         match self {
             CppItem::Namespace(ns) => ns.build(builder),
             CppItem::Class(cs) => cs.build(builder),
@@ -56,11 +56,12 @@ pub struct Namespace<'e> {
 }
 
 impl<'e> AnEntry<'e> for Namespace<'e> {
-    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+    fn build(&self, builder: &Builder<'e>) -> BuildResult {
+        let mut handles = Vec::new();
         for (_, entry) in &self.entries {
-            entry.build(builder)?;
+            handles.extend(entry.build(builder)?);
         }
-        Ok(())
+        Ok(handles)
     }
 
     fn nav(&self) -> NavItem {

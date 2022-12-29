@@ -1,6 +1,6 @@
+use std::sync::Arc;
 use crate::url::UrlPath;
-
-use super::builder::{AnEntry, Builder, NavItem, OutputEntry};
+use super::builder::{AnEntry, Builder, NavItem, OutputEntry, BuildResult};
 
 pub struct Index {}
 
@@ -13,7 +13,7 @@ impl<'e> AnEntry<'e> for Index {
         UrlPath::new()
     }
 
-    fn build(&self, builder: &super::builder::Builder<'_, 'e>) -> Result<(), String> {
+    fn build(&self, builder: &super::builder::Builder<'e>) -> BuildResult {
         builder.create_output_for(self)
     }
 
@@ -22,8 +22,8 @@ impl<'e> AnEntry<'e> for Index {
     }
 }
 
-impl<'c, 'e> OutputEntry<'c, 'e> for Index {
-    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>) {
-        (&builder.config.templates.index, Vec::new())
+impl<'e> OutputEntry<'e> for Index {
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
+        (builder.config.templates.index.clone(), Vec::new())
     }
 }

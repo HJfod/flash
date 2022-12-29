@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use crate::url::UrlPath;
 use clang::Entity;
 
 use super::{
-    builder::{AnEntry, Builder, NavItem, OutputEntry, EntityMethods},
+    builder::{AnEntry, Builder, NavItem, OutputEntry, EntityMethods, BuildResult},
     class::output_classlike,
 };
 
@@ -21,7 +23,7 @@ impl<'e> AnEntry<'e> for Struct<'e> {
         self.entity.rel_url()
     }
 
-    fn build(&self, builder: &Builder<'_, 'e>) -> Result<(), String> {
+    fn build(&self, builder: &Builder<'e>) -> BuildResult {
         builder.create_output_for(self)
     }
 
@@ -30,10 +32,10 @@ impl<'e> AnEntry<'e> for Struct<'e> {
     }
 }
 
-impl<'c, 'e> OutputEntry<'c, 'e> for Struct<'e> {
-    fn output(&self, builder: &Builder<'c, 'e>) -> (&'c String, Vec<(&str, String)>) {
+impl<'e> OutputEntry<'e> for Struct<'e> {
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
         (
-            &builder.config.templates.struct_,
+            builder.config.templates.struct_.clone(),
             output_classlike(self, &self.entity, builder),
         )
     }
