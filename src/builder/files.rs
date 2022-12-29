@@ -13,7 +13,7 @@ pub struct File {
 
 impl<'e> AnEntry<'e> for File {
     fn name(&self) -> String {
-        self.path.file_name().unwrap().clone()
+        self.path.raw_file_name().unwrap().clone()
     }
 
     fn url(&self) -> UrlPath {
@@ -68,7 +68,7 @@ pub struct Dir {
 
 impl<'b, 'e> AnEntry<'e> for Dir {
     fn name(&self) -> String {
-        self.path.file_name().unwrap().to_owned()
+        self.path.raw_file_name().unwrap().to_owned()
     }
 
     fn url(&self) -> UrlPath {

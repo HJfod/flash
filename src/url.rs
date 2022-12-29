@@ -60,6 +60,10 @@ impl UrlPath {
         self.url_safe_parts().last().map(|s| s.to_owned())
     }
 
+    pub fn raw_file_name(&self) -> Option<String> {
+        self.parts.last().map(|s| s.to_owned())
+    }
+
     pub fn to_raw_string(&self) -> String {
         self.parts.join("/")
     }
