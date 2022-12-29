@@ -102,13 +102,12 @@ nav > .content a {
     color: var(--flash-light);
     text-decoration: none;
     font-family: 'Source Code Pro', monospace;
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: min-content minmax(0, 1fr);
     padding: .25rem;
     user-select: none;
-    text-overflow: ellipsis;
     white-space: nowrap;
-    min-width: 5rem;
+    text-overflow: clip;
 }
 
 nav a:hover {
