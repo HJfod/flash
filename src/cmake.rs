@@ -51,10 +51,10 @@ impl CompileCommand {
 
 type CompileCommands = Vec<CompileCommand>;
 
-pub fn cmake_configure(args: &Vec<String>) -> Result<(), String> {
+pub fn cmake_configure(build_dir: &str, args: &Vec<String>) -> Result<(), String> {
     Command::new("cmake")
         .arg(".")
-        .args(&["-B", "build"])
+        .args(&["-B", build_dir])
         .args(args)
         .spawn()
         .map_err(|e| format!("Error configuring CMake: {e}"))?
@@ -65,9 +65,9 @@ pub fn cmake_configure(args: &Vec<String>) -> Result<(), String> {
         .ok_or("CMake configure failed".into())
 }
 
-pub fn cmake_build(args: &Vec<String>) -> Result<(), String> {
+pub fn cmake_build(build_dir: &str, args: &Vec<String>) -> Result<(), String> {
     Command::new("cmake")
-        .args(["--build", "build"])
+        .args(["--build", build_dir])
         .args(args)
         .spawn()
         .map_err(|e| format!("Error building CMake: {e}"))?
@@ -80,7 +80,11 @@ pub fn cmake_build(args: &Vec<String>) -> Result<(), String> {
 
 pub fn cmake_compile_commands(config: Arc<Config>) -> Result<CompileCommands, String> {
     serde_json::from_str(
-        &fs::read_to_string(config.input_dir.join("build").join("compile_commands.json"))
+        &fs::read_to_string(
+            config.input_dir
+                .join(&config.cmake.as_ref().unwrap().build_dir)
+                .join("compile_commands.json")
+        )
             .map_err(|e| format!("Unable to read compile_commands.json: {e}"))?,
     )
     .map_err(|e| format!("Unable to parse compile_commands.json: {e}"))

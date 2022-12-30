@@ -93,6 +93,7 @@ decl_config! {
             config_args?: Vec<String>,
             build_args?: Vec<String>,
             build: bool = false,
+            build_dir: String = String::from("build"),
             infer_args_from: PathBuf,
         },
         templates {
