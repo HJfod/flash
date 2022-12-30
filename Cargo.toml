@@ -2,6 +2,12 @@
 name = "flash"
 version = "0.1.0"
 edition = "2021"
+authors = ["HJfod"]
+description = "Documentation generator for C++"
+readme = "README.md"
+repository = "https://github.com/hjfod/flash"
+license-file = "LICENSE"
+keywords = ["documentation"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

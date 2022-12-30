@@ -1,6 +1,9 @@
 [package]
 name = "flash-macros"
 version = "0.1.0"
+authors = ["HJfod"]
+description = "Macros for the Flash documentation generator"
+license-file = "LICENSE"
 
 [lib]
 proc-macro = true
