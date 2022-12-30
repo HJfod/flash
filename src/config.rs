@@ -11,7 +11,7 @@ where
 {
     Ok(Arc::from(
         fs::read_to_string(PathBuf::deserialize(deserializer)?)
-        .map_err(serde::de::Error::custom)?
+            .map_err(serde::de::Error::custom)?,
     ))
 }
 

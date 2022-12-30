@@ -1,8 +1,8 @@
 use clang::{Entity, EntityKind};
 use indicatif::ProgressBar;
-use tokio::task::JoinHandle;
 use std::{collections::HashMap, fs, sync::Arc};
 use strfmt::strfmt;
+use tokio::task::JoinHandle;
 
 use crate::{config::Config, url::UrlPath};
 
@@ -71,7 +71,10 @@ impl NavItem {
                     ))
                     .unwrap_or(String::new()),
                 sanitize_html(name),
-                items.iter().map(|i| i.to_html(config.clone())).collect::<String>()
+                items
+                    .iter()
+                    .map(|i| i.to_html(config.clone()))
+                    .collect::<String>()
             ),
 
             NavItem::Root(name, items) => {
@@ -85,10 +88,16 @@ impl NavItem {
                         <div>{}</div>
                     </details>",
                         sanitize_html(name),
-                        items.iter().map(|i| i.to_html(config.clone())).collect::<String>()
+                        items
+                            .iter()
+                            .map(|i| i.to_html(config.clone()))
+                            .collect::<String>()
                     )
                 } else {
-                    items.iter().map(|i| i.to_html(config.clone())).collect::<String>()
+                    items
+                        .iter()
+                        .map(|i| i.to_html(config.clone()))
+                        .collect::<String>()
                 }
             }
         }
@@ -97,15 +106,19 @@ impl NavItem {
 
 pub type BuildResult = Result<Vec<JoinHandle<Result<UrlPath, String>>>, String>;
 
-pub trait AnEntry<'e> {
+pub trait Entry<'e> {
     fn name(&self) -> String;
     fn url(&self) -> UrlPath;
     fn build(&self, builder: &Builder<'e>) -> BuildResult;
     fn nav(&self) -> NavItem;
 }
 
-pub trait OutputEntry<'e>: AnEntry<'e> {
+pub trait OutputEntry<'e>: Entry<'e> {
     fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>);
+}
+
+pub trait ASTEntry<'e>: Entry<'e> {
+    fn entity(&self) -> &Entity<'e>;
 }
 
 pub struct Builder<'e> {
@@ -117,15 +130,13 @@ pub struct Builder<'e> {
 
 impl<'e> Builder<'e> {
     pub fn new(config: Arc<Config>, root: Entity<'e>) -> Result<Self, String> {
-        Ok(
-            Self {
-                config: config.clone(),
-                root: Namespace::new(root),
-                file_roots: Root::from_config(config),
-                nav_cache: None,
-            }
-            .setup()?
-        )
+        Ok(Self {
+            config: config.clone(),
+            root: Namespace::new(root),
+            file_roots: Root::from_config(config),
+            nav_cache: None,
+        }
+        .setup()?)
     }
 
     fn setup(mut self) -> Result<Self, String> {
@@ -136,8 +147,11 @@ impl<'e> Builder<'e> {
             .iter()
             .chain(&self.config.scripts.js)
         {
-            fs::write(self.config.output_dir.join(&script.name), script.content.as_ref())
-                .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
+            fs::write(
+                self.config.output_dir.join(&script.name),
+                script.content.as_ref(),
+            )
+            .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
         self.prebuild()?;
         Ok(self)
@@ -150,7 +164,7 @@ impl<'e> Builder<'e> {
             self.build_nav()?,
             entry.url(),
             template,
-            vars
+            vars,
         )])
     }
 
@@ -159,7 +173,7 @@ impl<'e> Builder<'e> {
         nav: String,
         target_url: UrlPath,
         template: Arc<String>,
-        vars: Vec<(&'static str, String)>
+        vars: Vec<(&'static str, String)>,
     ) -> JoinHandle<Result<UrlPath, String>> {
         tokio::spawn(async move {
             let mut fmt = default_format(config.clone());
@@ -218,17 +232,17 @@ impl<'e> Builder<'e> {
         })
     }
 
-    fn all_entries(&self) -> Vec<&dyn AnEntry<'e>> {
+    fn all_entries(&self) -> Vec<&dyn Entry<'e>> {
         self.root
             .entries
             .iter()
-            .map(|p| p.1 as &dyn AnEntry<'e>)
-            .chain(self.file_roots.iter().map(|p| p as &dyn AnEntry<'e>))
+            .map(|p| p.1 as &dyn Entry<'e>)
+            .chain(self.file_roots.iter().map(|p| p as &dyn Entry<'e>))
             .collect()
     }
 
     fn prebuild(&mut self) -> Result<(), String> {
-// Prebuild cached navbars for much faster docs builds
+        // Prebuild cached navbars for much faster docs builds
         self.prebuild_nav()?;
 
         Ok(())
@@ -246,23 +260,21 @@ impl<'e> Builder<'e> {
             pbar.set_message(format!("Generating output"));
         }
 
-        futures::future::join_all(
-            handles.into_iter().map(|handle| {
-                let pbar = pbar.clone();
-                tokio::spawn(async move {
-                    let res = handle.await.map_err(|e| format!("Unable to join {e}"))??;
-                    if let Some(pbar) = pbar {
-                        pbar.set_message(format!("Built {res}"));
-                    }
-                    Result::<(), String>::Ok(())
-                })
+        futures::future::join_all(handles.into_iter().map(|handle| {
+            let pbar = pbar.clone();
+            tokio::spawn(async move {
+                let res = handle.await.map_err(|e| format!("Unable to join {e}"))??;
+                if let Some(pbar) = pbar {
+                    pbar.set_message(format!("Built {res}"));
+                }
+                Result::<(), String>::Ok(())
             })
-        )
-            .await
-            .into_iter()
-            .collect::<Result<Result<Vec<_>, _>, _>>()
-            .map_err(|e| format!("Unable to join {e}"))??;
-        
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<Result<Vec<_>, _>, _>>()
+        .map_err(|e| format!("Unable to join {e}"))??;
+
         // Create root index.html
         self.create_output_for(&Index {})?;
 
@@ -309,12 +321,12 @@ pub fn get_ancestorage<'e>(entity: &Entity<'e>) -> Vec<Entity<'e>> {
     let mut ancestors = Vec::new();
     if let Some(parent) = entity.get_semantic_parent() {
         match parent.get_kind() {
-            EntityKind::TranslationUnit | 
-            EntityKind::UnexposedDecl |
-            EntityKind::UnexposedAttr |
-            EntityKind::UnexposedExpr |
-            EntityKind::UnexposedStmt => {},
-            _ => ancestors.extend(get_ancestorage(&parent))
+            EntityKind::TranslationUnit
+            | EntityKind::UnexposedDecl
+            | EntityKind::UnexposedAttr
+            | EntityKind::UnexposedExpr
+            | EntityKind::UnexposedStmt => {}
+            _ => ancestors.extend(get_ancestorage(&parent)),
         }
     }
     ancestors.push(entity.clone());

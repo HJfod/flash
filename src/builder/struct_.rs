@@ -4,15 +4,15 @@ use crate::url::UrlPath;
 use clang::Entity;
 
 use super::{
-    builder::{AnEntry, Builder, NavItem, OutputEntry, EntityMethods, BuildResult},
-    class::output_classlike,
+    builder::{ASTEntry, BuildResult, Builder, EntityMethods, Entry, NavItem, OutputEntry},
+    shared::output_classlike,
 };
 
 pub struct Struct<'e> {
     entity: Entity<'e>,
 }
 
-impl<'e> AnEntry<'e> for Struct<'e> {
+impl<'e> Entry<'e> for Struct<'e> {
     fn name(&self) -> String {
         self.entity
             .get_display_name()
@@ -32,11 +32,17 @@ impl<'e> AnEntry<'e> for Struct<'e> {
     }
 }
 
+impl<'e> ASTEntry<'e> for Struct<'e> {
+    fn entity(&self) -> &Entity<'e> {
+        &self.entity
+    }
+}
+
 impl<'e> OutputEntry<'e> for Struct<'e> {
     fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
         (
             builder.config.templates.struct_.clone(),
-            output_classlike(self, &self.entity, builder),
+            output_classlike(self, builder),
         )
     }
 }

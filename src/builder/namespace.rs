@@ -5,9 +5,10 @@ use clang::{Entity, EntityKind};
 use crate::url::UrlPath;
 
 use super::{
-    builder::{get_fully_qualified_name, AnEntry, Builder, NavItem, BuildResult},
+    builder::{get_fully_qualified_name, BuildResult, Builder, Entry, NavItem},
     class::Class,
-    struct_::Struct, function::Function,
+    function::Function,
+    struct_::Struct,
 };
 
 pub enum CppItem<'e> {
@@ -17,7 +18,7 @@ pub enum CppItem<'e> {
     Function(Function<'e>),
 }
 
-impl<'e> AnEntry<'e> for CppItem<'e> {
+impl<'e> Entry<'e> for CppItem<'e> {
     fn name(&self) -> String {
         match self {
             CppItem::Namespace(ns) => ns.name(),
@@ -60,7 +61,7 @@ pub struct Namespace<'e> {
     pub entries: HashMap<String, CppItem<'e>>,
 }
 
-impl<'e> AnEntry<'e> for Namespace<'e> {
+impl<'e> Entry<'e> for Namespace<'e> {
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
         let mut handles = Vec::new();
         for (_, entry) in &self.entries {
@@ -125,26 +126,26 @@ impl<'e> Namespace<'e> {
                     else {
                         self.entries.insert(entry.name(), CppItem::Namespace(entry));
                     }
-                },
+                }
 
                 EntityKind::StructDecl => {
                     if child.is_definition() {
                         let entry = Struct::new(child.clone());
                         self.entries.insert(entry.name(), CppItem::Struct(entry));
                     }
-                },
+                }
 
                 EntityKind::ClassDecl | EntityKind::ClassTemplate => {
                     if child.is_definition() {
                         let entry = Class::new(child.clone());
                         self.entries.insert(entry.name(), CppItem::Class(entry));
                     }
-                },
+                }
 
                 EntityKind::FunctionDecl => {
                     let entry = Function::new(child.clone());
                     self.entries.insert(entry.name(), CppItem::Function(entry));
-                },
+                }
 
                 _ => continue,
             }

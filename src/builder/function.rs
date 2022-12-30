@@ -4,14 +4,15 @@ use crate::url::UrlPath;
 use clang::Entity;
 
 use super::{
-    builder::{AnEntry, Builder, NavItem, OutputEntry, EntityMethods, BuildResult, get_github_url, get_header_path},
+    builder::{ASTEntry, BuildResult, Builder, EntityMethods, Entry, NavItem, OutputEntry},
+    shared::output_entity,
 };
 
 pub struct Function<'e> {
     entity: Entity<'e>,
 }
 
-impl<'e> AnEntry<'e> for Function<'e> {
+impl<'e> Entry<'e> for Function<'e> {
     fn name(&self) -> String {
         self.entity
             .get_name()
@@ -19,7 +20,9 @@ impl<'e> AnEntry<'e> for Function<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::parse("functions").unwrap().join(self.entity.rel_url())
+        UrlPath::parse("functions")
+            .unwrap()
+            .join(self.entity.rel_url())
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
@@ -31,31 +34,17 @@ impl<'e> AnEntry<'e> for Function<'e> {
     }
 }
 
+impl<'e> ASTEntry<'e> for Function<'e> {
+    fn entity(&self) -> &Entity<'e> {
+        &self.entity
+    }
+}
+
 impl<'e> OutputEntry<'e> for Function<'e> {
     fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
         (
             builder.config.templates.function.clone(),
-            vec![
-                // todo: extract these to some entity output thing
-                ("name", self.name()),
-                (
-                    "description",
-                    self.entity
-                        .get_parsed_comment()
-                        .map(|c| c.as_html())
-                        .unwrap_or("<p>No Description Provided</p>".into()),
-                ),
-                (
-                    "header_url",
-                    get_github_url(builder.config.clone(), &self.entity).unwrap_or(String::new()),
-                ),
-                (
-                    "header_path",
-                    get_header_path(builder.config.clone(), &self.entity)
-                        .unwrap_or(UrlPath::new())
-                        .to_raw_string(),
-                ),
-            ]
+            output_entity(self, builder),
         )
     }
 }

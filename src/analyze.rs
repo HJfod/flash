@@ -1,6 +1,6 @@
 use crate::{builder::builder::Builder, cmake, config::Config};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::{fs, path::PathBuf, process::Command, time::Duration, sync::Arc};
+use std::{fs, path::PathBuf, process::Command, sync::Arc, time::Duration};
 
 fn run_command(cmd: &String) -> Result<(), String> {
     let args =
@@ -98,7 +98,8 @@ async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
     analyze_with_clang(
         config.clone(),
         &cmake::cmake_compile_args_for(config).expect("Unable to infer CMake compile args"),
-    ).await?;
+    )
+    .await?;
 
     Ok(())
 }

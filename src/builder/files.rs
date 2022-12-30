@@ -1,4 +1,4 @@
-use super::builder::{AnEntry, Builder, NavItem, OutputEntry, BuildResult};
+use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
 use crate::{
     config::{BrowserRoot, Config},
     url::UrlPath,
@@ -11,7 +11,7 @@ pub struct File {
     prefix: UrlPath,
 }
 
-impl<'e> AnEntry<'e> for File {
+impl<'e> Entry<'e> for File {
     fn name(&self) -> String {
         self.path.raw_file_name().unwrap().clone()
     }
@@ -66,7 +66,7 @@ pub struct Dir {
     pub files: HashMap<String, File>,
 }
 
-impl<'b, 'e> AnEntry<'e> for Dir {
+impl<'b, 'e> Entry<'e> for Dir {
     fn name(&self) -> String {
         self.path.raw_file_name().unwrap().to_owned()
     }
@@ -116,7 +116,7 @@ pub struct Root {
     pub dir: Dir,
 }
 
-impl<'b, 'e> AnEntry<'e> for Root {
+impl<'b, 'e> Entry<'e> for Root {
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
         self.dir.build(builder)
     }

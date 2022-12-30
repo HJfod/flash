@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
 use crate::url::UrlPath;
-use super::builder::{AnEntry, Builder, NavItem, OutputEntry, BuildResult};
+use std::sync::Arc;
 
 pub struct Index {}
 
-impl<'e> AnEntry<'e> for Index {
+impl<'e> Entry<'e> for Index {
     fn name(&self) -> String {
         "Home".into()
     }
