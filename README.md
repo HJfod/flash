@@ -1,16 +1,16 @@
-# Flash
+# :zap: Flash
 
 A simple tool for generating beautiful documentation for C++.
 
 Built for projects that use CMake and host their docs on GitHub Pages.
 
-## Why?
+## :question: Why?
 
 Because I tried Doxygen for five seconds and found its output way too bloated and way too ugly.
 
 The goals of this project is to generate documentation that looks beautiful and is super easy to navigate. I also wanted to make just browsing the docs intuitive and simple to encourage learning about what tools are available before you find an usecase for them.
 
-## Usage
+## :point_right: Usage
 
 Flash can be compiled using `cargo build` as usual for Rust projects.
 
@@ -20,7 +20,7 @@ Running Flash requires the following command line arguments: `flash -i <input_di
 
 > :warning: `output_dir` should be a relative path, or bad things may happen with the links on the docs page.
 
-> :waring: The output directory should be the same relative root path as where the docs will eventually live, so for example doing `-o docs` means that the docs root URL on the website should be `site.com/docs`.
+> :warning: The output directory should be the same relative root path as where the docs will eventually live, so for example doing `-o docs` means that the docs root URL on the website should be `site.com/docs`.
 
 Configuring Flash happens through a `flash.toml` file at the root of the project.
 
