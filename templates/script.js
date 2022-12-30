@@ -12,6 +12,11 @@ const searchInput = document.getElementById('nav-search');
 const searchGlass = document.getElementById('nav-clear-glass');
 const searchX = document.getElementById('nav-clear-x');
 
+// mfw enum
+
+const NAV_FILES = 0;
+const NAV_ENTITIES = 1;
+
 let searchNav = undefined;
 let searchQuery = '';
 
@@ -136,6 +141,14 @@ function furryMatchMany(list, query, separator) {
 }
 
 function currentNav() {
+    switch (currentNavTab()) {
+        case NAV_FILES: return fileNav;
+        case NAV_ENTITIES: return entNav;
+    }
+    return undefined;
+}
+
+function currentNavTab() {
     if (fileTab.classList.contains('selected')) {
         return fileNav;
     } else {
@@ -161,7 +174,7 @@ function updateNav() {
         currentNav().querySelectorAll('a').forEach(a => {
             const match = furryMatchMany(
                 getFullName(a), searchQuery,
-                fileTab.classList.contains('selected') ? '/' : '::'
+                currentNavTab() == NAV_FILES ? '/' : '::'
             );
             if (match) {
                 const clone = a.cloneNode(false);
@@ -179,6 +192,7 @@ function updateNav() {
             searchResults.appendChild(clone);
         });
 
+        // No results found
         if (!results.length) {
             const info = document.createElement('p');
             info.classList.add('nothing-found');
@@ -199,12 +213,14 @@ function updateNav() {
         searchGlass.style.display = null;
         searchX.style.display = 'none';
 
-        if (fileTab.classList.contains('selected')) {
-            fileNav.style.display = null;
-            entNav.style.display = 'none';
-        } else {
-            fileNav.style.display = 'none';
-            entNav.style.display = null;
+        // hide all navs
+        fileNav.style.display = 'none';
+        entNav.style.display = 'none';
+
+        // show the currently selected one
+        switch (currentNavTab()) {
+            case NAV_FILES: fileNav.style.display = null; break;
+            case NAV_ENTITIES: entNav.style.display = null; break;
         }
     }
 }
