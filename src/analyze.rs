@@ -58,7 +58,7 @@ async fn analyze_with_clang(config: Arc<Config>, args: &Vec<String>) -> Result<(
 
     // Build the doc files
     pbar.set_message("Building docs");
-    builder.build().await?;
+    builder.build(Some(pbar.clone())).await?;
 
     pbar.set_message("Cleaning up files");
 

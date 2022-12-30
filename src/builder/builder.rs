@@ -1,4 +1,5 @@
 use clang::{Entity, EntityKind};
+use indicatif::ProgressBar;
 use tokio::task::JoinHandle;
 use std::{collections::HashMap, fs, sync::Arc};
 use strfmt::strfmt;
@@ -94,7 +95,7 @@ impl NavItem {
     }
 }
 
-pub type BuildResult = Result<Vec<JoinHandle<Result<(), String>>>, String>;
+pub type BuildResult = Result<Vec<JoinHandle<Result<UrlPath, String>>>, String>;
 
 pub trait AnEntry<'e> {
     fn name(&self) -> String;
@@ -159,7 +160,7 @@ impl<'e> Builder<'e> {
         target_url: UrlPath,
         template: Arc<String>,
         vars: Vec<(&'static str, String)>
-    ) -> JoinHandle<Result<(), String>> {
+    ) -> JoinHandle<Result<UrlPath, String>> {
         tokio::spawn(async move {
             let mut fmt = default_format(config.clone());
             fmt.extend(HashMap::from([(
@@ -212,7 +213,8 @@ impl<'e> Builder<'e> {
                 page,
             )
             .map_err(|e| format!("Unable to save {target_url}: {e}"))?;
-            Ok(())
+
+            Ok(target_url)
         })
     }
 
@@ -232,7 +234,7 @@ impl<'e> Builder<'e> {
         Ok(())
     }
 
-    pub async fn build(&self) -> Result<(), String> {
+    pub async fn build(&self, pbar: Option<Arc<ProgressBar>>) -> Result<(), String> {
         let mut handles = Vec::new();
 
         // Spawn threads for creating docs for all entries
@@ -240,7 +242,22 @@ impl<'e> Builder<'e> {
             handles.extend(entry.build(self)?);
         }
 
-        futures::future::join_all(handles)
+        if let Some(pbar) = pbar.clone() {
+            pbar.set_message(format!("Generating output"));
+        }
+
+        futures::future::join_all(
+            handles.into_iter().map(|handle| {
+                let pbar = pbar.clone();
+                tokio::spawn(async move {
+                    let res = handle.await.map_err(|e| format!("Unable to join {e}"))??;
+                    if let Some(pbar) = pbar {
+                        pbar.set_message(format!("Built {res}"));
+                    }
+                    Result::<(), String>::Ok(())
+                })
+            })
+        )
             .await
             .into_iter()
             .collect::<Result<Result<Vec<_>, _>, _>>()
