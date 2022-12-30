@@ -24,6 +24,7 @@
     --flash-orange:         #f5c99f;
     --flash-border:         rgba(255, 255, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
+    --flash-shade:          rgba(0, 0, 0, .25);
     --flash-shadow:         rgba(0, 0, 0, .2);
 
     --flash-body-bg:            var(--flash-gray);
@@ -60,6 +61,7 @@
     --flash-orange:         #f5c99f;
     --flash-border:         rgba(155, 155, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
+    --flash-shade:          rgba(0, 0, 0, .25);
     --flash-shadow:         rgba(0, 0, 0, .2);
 
     --flash-body-bg:            var(--flash-gray);
@@ -96,6 +98,7 @@
     --flash-orange:         #f5c99f;
     --flash-border:         rgba(255, 225, 155, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
+    --flash-shade:          rgba(0, 0, 0, .25);
     --flash-shadow:         rgba(0, 0, 0, .2);
 
     --flash-body-bg:            var(--flash-gray);

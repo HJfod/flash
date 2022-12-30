@@ -150,9 +150,9 @@ function currentNav() {
 
 function currentNavTab() {
     if (fileTab.classList.contains('selected')) {
-        return fileNav;
+        return NAV_FILES;
     } else {
-        return entNav;
+        return NAV_ENTITIES;
     }
 }
 

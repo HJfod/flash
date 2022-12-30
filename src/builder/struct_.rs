@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::url::UrlPath;
+use crate::{url::UrlPath, html::html::Html};
 use clang::Entity;
 
 use super::{
@@ -39,7 +39,7 @@ impl<'e> ASTEntry<'e> for Struct<'e> {
 }
 
 impl<'e> OutputEntry<'e> for Struct<'e> {
-    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
         (
             builder.config.templates.struct_.clone(),
             output_classlike(self, builder),

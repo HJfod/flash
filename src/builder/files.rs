@@ -1,7 +1,7 @@
 use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
 use crate::{
     config::{BrowserRoot, Config},
-    url::UrlPath,
+    url::UrlPath, html::html::{Html, HtmlText},
 };
 use std::{collections::HashMap, path::Path, sync::Arc};
 
@@ -30,23 +30,26 @@ impl<'e> Entry<'e> for File {
 }
 
 impl<'e> OutputEntry<'e> for File {
-    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
         (
             builder.config.templates.file.clone(),
             vec![
-                ("name", self.name()),
-                ("description", "<p>No Description Provided</p>".into()),
+                ("name", HtmlText::new(self.name()).into()),
+                ("description", Html::p("No Description Provided")),
                 (
                     "file_url",
-                    builder
+                    HtmlText::new(
+                        builder
                         .config
                         .docs
                         .tree
                         .as_ref()
                         .map(|tree| tree.to_owned() + &self.def.path.join(&self.path).to_string())
-                        .unwrap_or("".into()),
+                        .unwrap_or("".into())
+                    )
+                    .into(),
                 ),
-                ("file_path", self.prefix.join(&self.path).to_raw_string()),
+                ("file_path", HtmlText::new(self.prefix.join(&self.path).to_raw_string()).into()),
             ],
         )
     }

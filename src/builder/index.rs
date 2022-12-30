@@ -1,5 +1,5 @@
 use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
-use crate::url::UrlPath;
+use crate::{url::UrlPath, html::html::Html};
 use std::sync::Arc;
 
 pub struct Index {}
@@ -23,7 +23,7 @@ impl<'e> Entry<'e> for Index {
 }
 
 impl<'e> OutputEntry<'e> for Index {
-    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>) {
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
         (builder.config.templates.index.clone(), Vec::new())
     }
 }

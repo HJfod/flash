@@ -102,12 +102,17 @@ nav > .content a {
     color: var(--flash-light);
     text-decoration: none;
     font-family: 'Source Code Pro', monospace;
-    display: grid;
-    grid-template-columns: min-content minmax(0, 1fr);
+    display: flex;
+    flex-direction: row;
     padding: .25rem;
     user-select: none;
     white-space: nowrap;
     text-overflow: clip;
+    max-width: 100%;
+}
+
+nav > .content a .feather {
+    min-width: max-content;
 }
 
 nav a:hover {

@@ -1,222 +1,386 @@
-use clang::{Accessibility, EntityKind, Entity, Type, TypeKind};
-use crate::url::UrlPath;
+use clang::{Accessibility, EntityKind, Entity, Type, TypeKind, documentation::{Comment, CommentChild, InlineCommandStyle}};
+use crate::{url::UrlPath, html::html::{Html, HtmlList, HtmlElement, HtmlText}};
 use super::{
-    builder::{get_github_url, get_header_path, sanitize_html, ASTEntry, Builder},
+    builder::{get_github_url, get_header_path, ASTEntry, Builder},
 };
 use std::sync::Arc;
 use super::builder::{get_ancestorage, EntityMethods};
 use crate::config::Config;
 
-fn fmt_type(entity: &Type, config: Arc<Config>) -> String {
+trait Surround<T> {
+    fn surround(self, start: T, end: T) -> Self;
+}
+
+impl<T> Surround<T> for Vec<T> {
+    fn surround(mut self, start: T, end: T) -> Self {
+        self.insert(0, start);
+        self.push(end);
+        self
+    }
+}
+
+trait InsertBetween<T, Sep: Fn() -> T> {
+    fn insert_between(self, separator: Sep) -> Self;
+}
+
+impl<T, Sep: Fn() -> T> InsertBetween<T, Sep> for Vec<T> {
+    fn insert_between(self, separator: Sep) -> Self {
+        let mut res = Vec::new();
+        let mut first = true;
+        for item in self.into_iter() {
+            if !first {
+                res.push(separator());
+            }
+            first = false;
+            res.push(item);
+        }
+        res
+    }
+}
+
+fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Html {
+    let mut stack = vec![parent];
+
+    // Collect all parameter commands to one parent section
+    let mut params = HtmlElement::new("section")
+        .with_class("params");
+    let mut template_params = HtmlElement::new("section")
+        .with_classes(&["params", "template"]);
+
+    for child in children {
+        match child {
+            CommentChild::Text(text) => {
+                stack.last_mut().unwrap().add_child(HtmlText::new(text));
+            },
+
+            CommentChild::Paragraph(children) => {
+                stack.last_mut().unwrap().add_child(
+                    fmt_comment_children(HtmlElement::new("p"), children)
+                );
+            },
+
+            CommentChild::HtmlStartTag(tag) => {
+                // Add self-closing tags to the top-most stack member as normal
+                if tag.closing {
+                    stack.last_mut().unwrap().add_child(
+                        HtmlElement::new(&tag.name)
+                        .with_attrs(&tag.attributes)
+                    );
+                }
+                // Otherwise add tag as the topmost member in stack
+                else {
+                    stack.push(
+                        HtmlElement::new(&tag.name)
+                        .with_attrs(&tag.attributes)
+                    );
+                }
+            },
+
+            CommentChild::HtmlEndTag(_) => {
+                // Pop the topmost member in stack
+                // We assume that all doc comments are valid HTML; as in, all 
+                // HTML tags have a valid closing tag, and that there are no 
+                // closing tags without a matching opening tag.
+                let pop = stack.pop().unwrap();
+                stack.last_mut().unwrap().add_child(pop);
+            },
+
+            CommentChild::ParamCommand(cmd) => {
+                params.add_child(Html::p(cmd.parameter));
+                params.add_child(
+                    fmt_comment_children(
+                        HtmlElement::new("div").with_class("description"),
+                        cmd.children
+                    )
+                );
+            },
+
+            CommentChild::TParamCommand(cmd) => {
+                template_params.add_child(Html::p(cmd.parameter));
+                template_params.add_child(
+                    fmt_comment_children(
+                        HtmlElement::new("div").with_class("description"),
+                        cmd.children
+                    )
+                );
+            },
+
+            CommentChild::BlockCommand(cmd) => {
+                match cmd.command.as_str() {
+                    "return" | "returns" => stack.last_mut().unwrap().add_child(
+                        HtmlElement::new("section")
+                            .with_child(Html::p("Returns"))
+                            .with_child(fmt_comment_children(
+                                HtmlElement::new("div")
+                                .with_class("description"),
+                                cmd.children
+                            ))
+                    ),
+
+                    _ => println!("Warning: Unknown command {}", cmd.command),
+                }
+            },
+
+            CommentChild::InlineCommand(cmd) => {
+                match cmd.command.as_str() {
+                    "return" | "returns" => stack.last_mut().unwrap().add_child(
+                        HtmlElement::new("section")
+                            .with_class_opt(cmd.style.map(|style| match style {
+                                InlineCommandStyle::Bold => "bold",
+                                InlineCommandStyle::Emphasized => "em",
+                                InlineCommandStyle::Monospace => "mono",
+                            }))
+                            .with_child(Html::p("Returns"))
+                            .with_child(Html::p(cmd.arguments.join(" ")))
+                    ),
+
+                    _ => println!("Warning: Unknown command {}", cmd.command),
+                }
+            },
+
+            _ => {
+                println!("Unsupported comment option {:?}", child);
+            },
+        }
+    }
+
+    // Get first element (parent) back from stack
+    let mut res = stack.into_iter().nth(0).unwrap();
+    
+    // Add params if this comment had any
+    if params.has_children() {
+        res.add_child(params);
+    }
+    if template_params.has_children() {
+        res.add_child(template_params);
+    }
+
+    res.into()
+}
+
+fn fmt_comment(comment: Comment) -> Html {
+    fmt_comment_children(
+        HtmlElement::new("div").with_class("description"),
+        comment.get_children()
+    )
+}
+
+fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
     let base = entity.get_pointee_type().unwrap_or(entity.to_owned());
     let decl = base.get_declaration();
     let link = decl.map(|decl| decl.docs_url(config.clone()));
     let kind = decl
         .map(|decl| decl.get_kind())
         .unwrap_or(EntityKind::UnexposedDecl);
-    let name = decl
+    
+    let name: Html = decl
         .map(|decl| {
-            get_ancestorage(&decl)
-                .iter()
-                .map(|e| {
-                    format!(
-                        "<span class='{} name'>{}</span>",
-                        match e.get_kind() {
-                            EntityKind::Namespace => "namespace",
-                            EntityKind::ClassDecl => "class",
-                            EntityKind::ClassTemplate => "class",
-                            EntityKind::StructDecl => "struct",
-                            EntityKind::FunctionDecl => "fun",
-                            EntityKind::TypedefDecl => "alias",
-                            EntityKind::UsingDeclaration => "alias",
-                            EntityKind::TypeAliasDecl => "alias",
-                            EntityKind::EnumDecl => "enum",
-                            _ => "type",
-                        },
-                        e.get_name().unwrap_or("_".into())
+            HtmlList::new(
+                get_ancestorage(&decl)
+                    .iter()
+                    .map(|e|
+                        HtmlElement::new("span")
+                            .with_class(match e.get_kind() {
+                                EntityKind::Namespace => "namespace",
+                                EntityKind::ClassDecl => "class",
+                                EntityKind::ClassTemplate => "class",
+                                EntityKind::StructDecl => "struct",
+                                EntityKind::FunctionDecl => "fun",
+                                EntityKind::TypedefDecl => "alias",
+                                EntityKind::UsingDeclaration => "alias",
+                                EntityKind::TypeAliasDecl => "alias",
+                                EntityKind::EnumDecl => "enum",
+                                _ => "type",
+                            })
+                            .with_class("name")
+                            .with_child(HtmlText::new(e.get_name().unwrap_or("_".into())))
+                            .into()
                     )
-                })
-                .collect::<Vec<_>>()
-                .join("<span class='scope'>::</span>")
+                    .collect::<Vec<_>>()
+                    .insert_between(|| Html::span(&["scope"], "::"))
+            )
+            .into()
         })
         .unwrap_or_else(|| {
-            format!(
-                "<span class='{} name'>{}</span>",
-                if base.is_pod() {
+            HtmlElement::new("span")
+                .with_class(if base.is_pod() {
                     "keyword"
                 } else {
                     "template-param"
-                },
-                match base.get_kind() {
-                    TypeKind::Void => "void".into(),
-                    TypeKind::Bool => "bool".into(),
-                    TypeKind::Long => "long".into(),
-                    TypeKind::Auto => "auto".into(),
-                    TypeKind::Int => "int".into(),
-                    TypeKind::Short => "short".into(),
-                    TypeKind::SChar | TypeKind::CharS => "char".into(),
-                    TypeKind::UChar | TypeKind::CharU => "uchar".into(),
-                    TypeKind::Float => "float".into(),
-                    TypeKind::Double => "double".into(),
-                    TypeKind::UInt => "uint".into(),
-                    TypeKind::LongLong => "long long".into(),
-                    _ => base.get_display_name(),
-                }
-            )
+                })
+                .with_class("name")
+                .with_child(HtmlText::new(
+                    match base.get_kind() {
+                        TypeKind::Void => "void".into(),
+                        TypeKind::Bool => "bool".into(),
+                        TypeKind::Long => "long".into(),
+                        TypeKind::Auto => "auto".into(),
+                        TypeKind::Int => "int".into(),
+                        TypeKind::Short => "short".into(),
+                        TypeKind::SChar | TypeKind::CharS => "char".into(),
+                        TypeKind::UChar | TypeKind::CharU => "uchar".into(),
+                        TypeKind::Float => "float".into(),
+                        TypeKind::Double => "double".into(),
+                        TypeKind::UInt => "uint".into(),
+                        TypeKind::LongLong => "long long".into(),
+                        _ => base.get_display_name(),
+                    }
+                ))
+                .into()
         });
-
-    format!(
-        "<a class='entity type {css}' {link}>
-            {name}{template}{const}{ref}
-        </a>",
-        css = format!(
-            "{} {}",
-            if entity.is_pod() { "keyword" } else { "" },
-            if link.is_none() { "disabled" } else { "" },
-        ),
-
-        link = link
-            .map(|link| format!("href='{link}' onclick='return navigate(\"{link}\")'"))
-            .unwrap_or(String::new()),
-
-        template = match kind {
-            EntityKind::TypeAliasDecl | EntityKind::TypedefDecl => String::new(),
+    
+    HtmlElement::new("a")
+        .with_class("entity")
+        .with_class("type")
+        .with_class_opt(entity.is_pod().then_some("keyword"))
+        .with_class_opt(link.is_none().then_some("disabled"))
+        .with_attr_opt("href", link.clone())
+        .with_attr_opt("onclick", link.map(|link| format!("return navigate('{link}'")))
+        .with_child(name)
+        .with_child_opt(match kind {
+            EntityKind::TypeAliasDecl | EntityKind::TypedefDecl => None,
             _ => base.get_template_argument_types().map(|types| {
-                format!(
-                    "&lt;{}&gt;",
-                    types
-                        .iter()
-                        .map(|t| t.map(|t| fmt_type(&t, config.clone())).unwrap_or(String::from("_unk")))
-                        .collect::<Vec<_>>()
-                        .join("<span class='comma space-after'>,</span>")
+                HtmlList::new(types
+                    .iter()
+                    .map(|t| t
+                        .map(|t| fmt_type(&t, config.clone()))
+                        .unwrap_or(HtmlText::new("_unk").into())
+                    )
+                    .collect::<Vec<_>>()
+                    .insert_between(||
+                        HtmlElement::new("span")
+                            .with_class("comma")
+                            .with_class("space-after")
+                            .with_child(HtmlText::new(",")).into()
+                    )
+                    .surround(
+                        HtmlText::new("<").into(),
+                        HtmlText::new(">").into(),
+                    ),
                 )
-            }).unwrap_or(String::new()),
-        },
-
-        const = if base.is_const_qualified() {
-            "<span class='keyword space-before'>const</span>"
-        } else {
-            ""
-        },
-
-        ref = match entity.get_kind() {
-            TypeKind::LValueReference => "&",
-            TypeKind::RValueReference => "&&",
-            TypeKind::Pointer => "*",
-            _ => "",
-        },
-    )
+            })
+        })
+        .with_child_opt(base.is_const_qualified().then_some(
+            Html::span(&["keyword", "space-before"], "const")
+        ))
+        .with_child_opt(match entity.get_kind() {
+            TypeKind::LValueReference => Some::<Html>(HtmlText::new("&").into()),
+            TypeKind::RValueReference => Some(HtmlText::new("&&").into()),
+            TypeKind::Pointer => Some(HtmlText::new("*").into()),
+            _ => None,
+        })
+        .into()
 }
 
-fn fmt_param(param: &Entity, config: Arc<Config>) -> String {
-    format!(
-        "<div class='entity var'>{}{}</div>",
-        param
-            .get_type()
-            .map(|t| fmt_type(&t, config))
-            .unwrap_or(String::new()),
-        param
-            .get_display_name()
-            .map(|n| format!("<span class='name space-before'>{}</span>", n))
-            .unwrap_or(String::new())
-    )
+fn fmt_param(param: &Entity, config: Arc<Config>) -> Html {
+    HtmlElement::new("div")
+        .with_classes(&["entity", "var"])
+        .with_child_opt(param.get_type().map(|t| fmt_type(&t, config)))
+        .with_child_opt(param.get_display_name().map(|name|
+            Html::span(&["name", "space-before"], &name)
+        ))
+        .into()
 }
 
-pub fn fmt_field(field: &Entity, config: Arc<Config>) -> String {
-    format!(
-        "<div class='entity var'>{};</div>",
-        fmt_param(field, config)
-    )
+pub fn fmt_field(field: &Entity, config: Arc<Config>) -> Html {
+    HtmlElement::new("div")
+        .with_classes(&["entity", "var"])
+        .with_child(fmt_param(field, config))
+        .with_child(HtmlText::new(";"))
+        .into()
 }
 
-pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> String {
-    format!(
-        "<details class='entity-desc'>
-            <summary class='entity fun'>
-                {static}{virtual}{return}
-                <span class='name space-before'>{name}</span>
-                <span class='params'>({params})</span>{const}{pure};
-            </summary>
-            <div>
-                {description}
-            </div>
-        </details>",
-
-        static = if fun.is_static_method() {
-            "<span class='keyword space-after'>static</span>"
-        } else { "" },
-
-        virtual = if fun.is_virtual_method() {
-            "<span class='keyword space-after'>virtual</span>"
-        } else { "" },
-
-        return = fun.get_result_type().map(|t| fmt_type(&t, config.clone())).unwrap_or(String::new()),
-
-        name = fun.get_name().unwrap_or(String::from("_anon")),
-
-        params = fun.get_arguments().map(|args|
-            args
-                .iter()
-                .map(|arg| fmt_param(arg, config.clone()))
-                .collect::<Vec<_>>()
-                .join("<span class='comma space-after'>,</span>")
-        ).unwrap_or(String::new()),
-
-        const = if fun.is_const_method() {
-            "<span class='keyword space-before'>const</span>"
-        } else { "" },
-
-        pure = if fun.is_pure_virtual_method() {
-            "<span class='space-before'>=</span>
-            <span class='literal space-before'>0</span>"
-        } else { "" },
-
-        description = fun.get_parsed_comment().map(|p| p.as_html()).unwrap_or(String::from("<p>No description provided.</p>"))
-    )
+pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
+    HtmlElement::new("details")
+        .with_class("entity-desc")
+        .with_child(HtmlElement::new("summary")
+            .with_classes(&["entity", "fun"])
+            .with_child_opt(fun.is_static_method().then_some(
+                Html::span(&["keyword", "space-after"], "static")
+            ))
+            .with_child_opt(fun.is_virtual_method().then_some(
+                Html::span(&["keyword", "space-after"], "virtual")
+            ))
+            .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, config.clone())))
+            .with_child(Html::span(&["name", "space-before"], &fun.get_name().unwrap_or("_anon".into())))
+            .with_child(HtmlElement::new("span")
+                .with_class("params")
+                .with_children(
+                    fun.get_arguments().map(|args|
+                        args
+                            .iter()
+                            .map(|arg| fmt_param(arg, config.clone()))
+                            .collect::<Vec<_>>()
+                    ).unwrap_or(Vec::new())
+                        .insert_between(|| Html::span(&["comma", "space-after"], ","))
+                        .surround(HtmlText::new("(").into(), HtmlText::new(")").into())
+                )
+            )
+            .with_child_opt(fun.is_const_method().then_some(
+                Html::span(&["keyword", "space-before"], "const")
+            ))
+            .with_child_opt(fun.is_pure_virtual_method().then_some::<Html>(
+                HtmlList::new(vec![
+                    Html::span(&["space-before"], "="),
+                    Html::span(&["space-before", "literal"], "0"),
+                ]).into()
+            ))
+        )
+        .with_child(HtmlElement::new("div")
+            .with_child(fun
+                .get_parsed_comment()
+                .map(|p| fmt_comment(p))
+                .unwrap_or(Html::p("No description provided"))
+            )
+        )
+        .into()
 }
 
-pub fn fmt_section(title: &str, data: Vec<String>) -> String {
-    format!(
-        "<details open class='section'>
-            <summary>
-                <span>
-                    <i data-feather='chevron-right'></i>
-                    {title}
-                    <span class='badge'>{}</span>
-                </span>
-            </summary>
-            <div>
-                {}
-            </div>
-        </details>",
-        data.len(),
-        data.join("\n")
-    )
+pub fn fmt_section(title: &str, data: Vec<Html>) -> Html {
+    HtmlElement::new("details")
+        .with_attr("open", "")
+        .with_class("section")
+        .with_child(HtmlElement::new("summary")
+            .with_child(HtmlElement::new("span")
+                .with_child(Html::feather("chevron-right"))
+                .with_child(HtmlText::new(title))
+                .with_child(Html::span(&["badge"], &data.len().to_string()))
+            )
+        )
+        .with_child(HtmlElement::new("div")
+            .with_child(HtmlList::new(data))
+        )
+        .into()
 }
 
 pub fn output_entity<'e, T: ASTEntry<'e>>(
     entry: &T,
     builder: &Builder,
-) -> Vec<(&'static str, String)> {
+) -> Vec<(&'static str, Html)> {
     vec![
-        ("name", sanitize_html(&entry.name())),
+        ("name", HtmlText::new(&entry.name()).into()),
         (
             "description",
             entry
                 .entity()
                 .get_parsed_comment()
-                .map(|c| c.as_html())
-                .unwrap_or("<p>No Description Provided</p>".into()),
+                .map(|c| fmt_comment(c))
+                .unwrap_or(Html::p("No Description Provided"))
+                .into(),
         ),
         (
             "header_url",
-            get_github_url(builder.config.clone(), entry.entity()).unwrap_or(String::new()),
+            HtmlText::new(
+                get_github_url(builder.config.clone(), entry.entity()).unwrap_or(String::new())
+            ).into(),
         ),
         (
             "header_path",
-            get_header_path(builder.config.clone(), entry.entity())
-                .unwrap_or(UrlPath::new())
-                .to_raw_string(),
+            HtmlText::new(
+                get_header_path(builder.config.clone(), entry.entity())
+                    .unwrap_or(UrlPath::new())
+                    .to_raw_string()
+            ).into(),
         ),
     ]
 }
@@ -224,7 +388,7 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
 pub fn output_classlike<'e, T: ASTEntry<'e>>(
     entry: &T,
     builder: &Builder,
-) -> Vec<(&'static str, String)> {
+) -> Vec<(&'static str, Html)> {
     let mut ent = output_entity(entry, builder);
     ent.extend(vec![
         (

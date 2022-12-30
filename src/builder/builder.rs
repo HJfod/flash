@@ -4,7 +4,7 @@ use std::{collections::HashMap, fs, sync::Arc};
 use strfmt::strfmt;
 use tokio::task::JoinHandle;
 
-use crate::{config::Config, url::UrlPath};
+use crate::{config::Config, url::UrlPath, html::html::{Html, GenHtml, HtmlElement, HtmlText, HtmlList}};
 
 use super::{files::Root, index::Index, namespace::Namespace};
 
@@ -40,64 +40,57 @@ impl NavItem {
         NavItem::Root(name.map(|s| s.into()), items)
     }
 
-    pub fn to_html(&self, config: Arc<Config>) -> String {
+    pub fn to_html(&self, config: Arc<Config>) -> Html {
         match self {
-            NavItem::Link(name, url, icon) => format!(
-                "<a onclick='return navigate(\"{0}\")' href='{0}'>{1}{2}</a>",
-                url.to_absolute(config),
-                icon.as_ref()
-                    .map(|i| format!(
-                        "<i data-feather='{}' class='icon {}'></i>",
-                        i.0,
-                        if i.1 { "variant" } else { "" }
+            NavItem::Link(name, url, icon) =>
+                HtmlElement::new("a")
+                    .with_attr("onclick", &format!("return navigate('{}')", url.to_absolute(config.clone())))
+                    .with_attr("href", url.to_absolute(config))
+                    .with_child_opt(icon.as_ref().map(|i|
+                        HtmlElement::new("i")
+                            .with_attr("data-feather", &i.0)
+                            .with_class("icon")
+                            .with_class_opt(i.1.then_some("variant"))
                     ))
-                    .unwrap_or(String::new()),
-                sanitize_html(name),
-            ),
+                    .with_child(HtmlText::new(name))
+                    .into(),
 
-            NavItem::Dir(name, items, icon) => format!(
-                "<details>
-                    <summary>
-                        <i data-feather='chevron-right'></i>
-                        {}{}
-                    </summary>
-                    <div>{}</div>
-                </details>",
-                icon.as_ref()
-                    .map(|i| format!(
-                        "<i data-feather='{}' class='icon {}'></i>",
-                        i.0,
-                        if i.1 { "variant" } else { "" }
-                    ))
-                    .unwrap_or(String::new()),
-                sanitize_html(name),
-                items
-                    .iter()
-                    .map(|i| i.to_html(config.clone()))
-                    .collect::<String>()
-            ),
+            NavItem::Dir(name, items, icon) =>
+                HtmlElement::new("details")
+                    .with_child(HtmlElement::new("summary")
+                        .with_child(HtmlElement::new("i")
+                            .with_attr("data-feather", "chevron-right")
+                        )
+                        .with_child_opt(icon.as_ref().map(|i|
+                            HtmlElement::new("i")
+                                .with_attr("data-feather", &i.0)
+                                .with_class("icon")
+                                .with_class_opt(i.1.then_some("variant"))
+                        ))
+                        .with_child(HtmlText::new(name))
+                    )
+                    .with_child(HtmlElement::new("div")
+                        .with_children(items.iter().map(|i| i.to_html(config.clone())).collect())
+                    )
+                    .into(),
 
             NavItem::Root(name, items) => {
                 if let Some(name) = name {
-                    format!(
-                        "<details open class='root'>
-                        <summary>
-                            <i data-feather='chevron-right'></i>
-                            {}
-                        </summary>
-                        <div>{}</div>
-                    </details>",
-                        sanitize_html(name),
-                        items
-                            .iter()
-                            .map(|i| i.to_html(config.clone()))
-                            .collect::<String>()
-                    )
+                    HtmlElement::new("details")
+                        .with_attr("open", "")
+                        .with_attr("class", "root")
+                        .with_child(HtmlElement::new("summary")
+                            .with_child(HtmlElement::new("i")
+                                .with_attr("data-feather", "chevron-right")
+                            )
+                            .with_child(HtmlText::new(name))
+                        )
+                        .with_child(HtmlElement::new("div")
+                            .with_children(items.iter().map(|i| i.to_html(config.clone())).collect())
+                        )
+                        .into()
                 } else {
-                    items
-                        .iter()
-                        .map(|i| i.to_html(config.clone()))
-                        .collect::<String>()
+                    HtmlList::new(items.iter().map(|i| i.to_html(config.clone())).collect()).into()
                 }
             }
         }
@@ -114,7 +107,7 @@ pub trait Entry<'e> {
 }
 
 pub trait OutputEntry<'e>: Entry<'e> {
-    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, String)>);
+    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>);
 }
 
 pub trait ASTEntry<'e>: Entry<'e> {
@@ -173,7 +166,7 @@ impl<'e> Builder<'e> {
         nav: String,
         target_url: UrlPath,
         template: Arc<String>,
-        vars: Vec<(&'static str, String)>,
+        vars: Vec<(&'static str, Html)>,
     ) -> JoinHandle<Result<UrlPath, String>> {
         tokio::spawn(async move {
             let mut fmt = default_format(config.clone());
@@ -182,8 +175,8 @@ impl<'e> Builder<'e> {
                 target_url.to_absolute(config.clone()).to_string(),
             )]));
             fmt.extend(
-                vars.iter()
-                    .map(|(k, v)| (k.to_string(), v.to_owned()))
+                vars.into_iter()
+                    .map(|(k, v)| (k.to_string(), v.gen_html()))
                     .collect::<Vec<_>>(),
             );
 
@@ -195,7 +188,7 @@ impl<'e> Builder<'e> {
                 &HashMap::from([
                     (
                         "head_content".to_owned(),
-                        strfmt(&config.templates.head, &default_format(config.clone()))
+                        strfmt(&config.templates.head, &fmt)
                             .map_err(|e| format!("Unable to format head for {target_url}: {e}"))?,
                     ),
                     ("navbar_content".to_owned(), nav),
@@ -289,13 +282,13 @@ impl<'e> Builder<'e> {
         fmt.extend([
             (
                 "entity_content".into(),
-                self.root.nav().to_html(self.config.clone()),
+                self.root.nav().to_html(self.config.clone()).gen_html(),
             ),
             (
                 "file_content".into(),
                 self.file_roots
                     .iter()
-                    .map(|root| root.nav().to_html(self.config.clone()))
+                    .map(|root| root.nav().to_html(self.config.clone()).gen_html())
                     .collect::<Vec<_>>()
                     .join("\n"),
             ),
@@ -374,10 +367,6 @@ pub fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> 
     }
 
     None
-}
-
-pub fn sanitize_html(html: &str) -> String {
-    html.replace("<", "&lt;").replace(">", "&gt;")
 }
 
 fn default_format(config: Arc<Config>) -> HashMap<String, String> {

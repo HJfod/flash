@@ -213,26 +213,32 @@ details.entity-desc[open] > summary .feather-chevron-right {
     opacity: 100%;
 }
 
-details.entity-desc > div > dl {
+.description > section {
+    padding: 1rem;
+    border-radius: .5rem;
+    background-color: var(--flash-shade);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.description > section {
     display: grid;
     grid-template-columns: min-content 1fr;
-    gap: .5rem;
     align-items: center;
+    margin: 0;
 }
 
-details.entity-desc > div > .result-discussion > .para-returns {
-    display: grid;
-    grid-template-columns: min-content 1fr;
-    gap: .5rem;
+.description > section > * {
+    padding: 0;
+    margin: 0;
 }
 
-details.entity-desc > div > .result-discussion .word-returns {
+.description > section > p {
     font-weight: bold;
     color: var(--flash-highlight);
-}
-
-details.entity-desc > div > dl > dt {
-    font-weight: bold;
+    min-width: 5rem;
+    margin-right: 1rem;
 }
 
 .entity {
