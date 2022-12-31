@@ -241,6 +241,10 @@ details.entity-desc[open] > summary .feather-chevron-right {
     margin-right: 1rem;
 }
 
+.entity .params {
+    flex-wrap: wrap;
+}
+
 .entity {
     font-family: 'Source Code Pro', monospace;
     color: var(--flash-light);
