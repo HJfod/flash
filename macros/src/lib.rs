@@ -333,9 +333,39 @@ impl Parse for ConfigDecl {
     }
 }
 
+struct MultiConfigDecl {
+    configs: Vec<ConfigDecl>,
+}
+
+impl Gen for MultiConfigDecl {
+    fn gen(&self) -> syn::Result<TokenStream2> {
+        let mut stream = TokenStream2::new();
+        for config in &self.configs {
+            stream.extend(config.gen()?);
+        }
+        Ok(stream)
+    }
+
+    fn pregen(&self) -> syn::Result<TokenStream2> {
+        unreachable!()
+    }
+}
+
+impl Parse for MultiConfigDecl {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut configs = vec![];
+        while let Ok(i) = input.parse() {
+            configs.push(i);
+        }
+        Ok(Self {
+            configs
+        })
+    }
+}
+
 #[proc_macro]
 pub fn decl_config(input: TokenStream) -> TokenStream {
-    match parse_macro_input!(input as ConfigDecl).gen() {
+    match parse_macro_input!(input as MultiConfigDecl).gen() {
         Ok(s) => s.into(),
         Err(e) => TokenStream::from(e.to_compile_error()),
     }

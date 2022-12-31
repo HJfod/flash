@@ -1,14 +1,13 @@
 use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
 use crate::{
-    config::{BrowserRoot, Config},
+    config::{Config, Source},
     url::UrlPath, html::html::{Html, HtmlText},
 };
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 pub struct File {
-    def: Arc<BrowserRoot>,
+    def: Arc<Source>,
     path: UrlPath,
-    prefix: UrlPath,
 }
 
 impl<'e> Entry<'e> for File {
@@ -41,30 +40,34 @@ impl<'e> OutputEntry<'e> for File {
                     HtmlText::new(
                         builder
                         .config
-                        .docs
+                        .project
                         .tree
                         .as_ref()
-                        .map(|tree| tree.to_owned() + &self.def.path.join(&self.path).to_string())
+                        .map(|tree| tree.to_owned() + &self.def.dir.join(&self.path).to_string())
                         .unwrap_or("".into())
                     )
                     .into(),
                 ),
-                ("file_path", HtmlText::new(self.prefix.join(&self.path).to_raw_string()).into()),
+                ("file_path", HtmlText::new(
+                    self.def.dir
+                        .join(&self.path)
+                        .strip_prefix(self.def.include_prefix())
+                        .to_raw_string()
+                ).into()),
             ],
         )
     }
 }
 
 impl File {
-    pub fn new(def: Arc<BrowserRoot>, path: UrlPath, prefix: UrlPath) -> Self {
-        Self { def, path, prefix }
+    pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
+        Self { def, path }
     }
 }
 
 pub struct Dir {
-    def: Arc<BrowserRoot>,
+    def: Arc<Source>,
     path: UrlPath,
-    prefix: UrlPath,
     pub dirs: HashMap<String, Dir>,
     pub files: HashMap<String, File>,
 }
@@ -103,11 +106,10 @@ impl<'b, 'e> Entry<'e> for Dir {
 }
 
 impl Dir {
-    pub fn new(def: Arc<BrowserRoot>, path: UrlPath, prefix: UrlPath) -> Self {
+    pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
         Self {
             def,
             path,
-            prefix,
             dirs: HashMap::new(),
             files: HashMap::new(),
         }
@@ -115,7 +117,7 @@ impl Dir {
 }
 
 pub struct Root {
-    pub def: Arc<BrowserRoot>,
+    pub def: Arc<Source>,
     pub dir: Dir,
 }
 
@@ -148,23 +150,20 @@ impl<'b, 'e> Entry<'e> for Root {
 impl Root {
     pub fn from_config(config: Arc<Config>) -> Vec<Self> {
         let mut roots = config
-            .browser
-            .roots
+            .sources
             .iter()
             .map(|root| Root {
                 def: root.clone(),
                 dir: Dir::new(
                     root.clone(),
                     root.name.clone().try_into().unwrap(),
-                    root.include_prefix.clone(),
                 ),
             })
             .collect::<Vec<_>>();
 
-        for file in config.filtered_includes() {
-            // Figure out which root(s) this file belongs to (if any), and add to it
-            for root in &mut roots {
-                let Ok(cut_path) = file.strip_prefix(root.def.path.to_pathbuf()) else {
+        for root in &mut roots {
+            for file in root.def.include.clone() {
+                let Ok(cut_path) = file.strip_prefix(root.def.dir.to_pathbuf()) else {
                     continue;
                 };
 
@@ -173,12 +172,11 @@ impl Root {
                     root.add_dirs(cut_path);
                 } else {
                     // Add to parent if one exists, or to root if one doesn't
-                    let prefix = root.def.include_prefix.clone();
                     let url = UrlPath::try_from(&cut_path.to_path_buf()).unwrap();
                     let def = root.def.clone();
                     root.try_add_dirs(cut_path.parent()).files.insert(
                         url.file_name().unwrap().to_owned(),
-                        File::new(def, url, prefix.clone()),
+                        File::new(def, url),
                     );
                 }
             }
@@ -195,7 +193,6 @@ impl Root {
             target = target.dirs.entry(part_name.clone()).or_insert(Dir::new(
                 self.def.clone(),
                 url.join(UrlPath::try_from(&part_name).unwrap()),
-                self.def.include_prefix.clone(),
             ));
         }
         target

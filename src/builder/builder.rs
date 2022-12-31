@@ -335,7 +335,7 @@ pub fn get_github_url(config: Arc<Config>, entity: &Entity) -> Option<String> {
         .get_path();
 
     Some(
-        config.docs.tree.clone()?
+        config.project.tree.clone()?
             + &UrlPath::try_from(
                 &path
                     .strip_prefix(&config.input_dir)
@@ -357,12 +357,18 @@ pub fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> 
 
     let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
 
-    for root in &config.browser.roots {
-        if let Ok(stripped) = rel_path.strip_prefix(root.path.to_pathbuf()) {
-            return Some(
-                root.include_prefix
-                    .join(UrlPath::try_from(&stripped.to_path_buf()).ok()?),
-            );
+    for src in &config.sources {
+        if rel_path.starts_with(src.dir.to_pathbuf()) {
+            if let Some(ref prefix) = src.strip_include_prefix {
+                return Some(
+                    UrlPath::try_from(
+                        &rel_path.strip_prefix(prefix).ok()?.to_path_buf()
+                    ).ok()?
+                );
+            }
+            else {
+                return Some(UrlPath::try_from(&rel_path.to_path_buf()).ok()?);
+            }
         }
     }
 

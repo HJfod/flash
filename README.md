@@ -4,6 +4,12 @@ A simple tool for generating beautiful documentation for C++.
 
 Built for projects that use CMake and host their docs on GitHub Pages.
 
+:rocket: Decently fast (~20s to build docs for [Geode](https://github.com/geode-sdk/geode))
+
+:rocket: Beautiful, easily legible output
+
+:rocket: Opinionated with minimal configuration required (no 400-line Doxyfiles required)
+
 ## :question: Why?
 
 Because I tried Doxygen for five seconds and found its output way too bloated and way too ugly.

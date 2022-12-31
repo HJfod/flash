@@ -1,10 +1,21 @@
 use crate::config::Config;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC, CONTROLS, AsciiSet};
 use serde::{de::Visitor, Deserialize};
 use std::{fmt::Display, path::PathBuf, sync::Arc};
 
 // The URL crate doesn't support paths like /some/file, it needs the protocol and hostname
 // (which is undesirable for Flash as docs links are /docs/namespace/entity)
+
+pub const URL_RESERVED: &AsciiSet = &CONTROLS
+    // reserved characters
+    .add(b'!').add(b'#').add(b'$').add(b'&')
+    .add(b'\'').add(b'(').add(b')').add(b'*')
+    .add(b'+').add(b',').add(b'/').add(b':')
+    .add(b';').add(b'=').add(b'?').add(b'@')
+    .add(b'[').add(b']')
+    // non-reserved ascii characters that should be escaped
+    .add(b'<').add(b'>').add(b' ').add(b'{')
+    .add(b'}').add(b'\\').add(b'|').add(b'"');
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UrlPath {
@@ -49,10 +60,21 @@ impl UrlPath {
         buf.clean()
     }
 
+    /// Strip prefix. If prefix is not a prefix of this URL, nothing happens
+    pub fn strip_prefix<T: AsRef<UrlPath>>(&self, prefix: T) -> Self {
+        // Make sure prefix is shorter or as long as path
+        if self.parts.len() >= prefix.as_ref().parts.len() {
+            if self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts {
+                return UrlPath::new_with_path(self.parts[prefix.as_ref().parts.len()..].into());
+            }
+        }
+        self.clone()
+    }
+
     pub fn url_safe_parts(&self) -> Vec<String> {
         self.parts
             .iter()
-            .map(|p| utf8_percent_encode(p, NON_ALPHANUMERIC).to_string())
+            .map(|p| utf8_percent_encode(p, URL_RESERVED).to_string())
             .collect()
     }
 

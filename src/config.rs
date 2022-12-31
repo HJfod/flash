@@ -1,3 +1,4 @@
+
 use flash_macros::decl_config;
 use glob::glob;
 use serde::{Deserialize, Deserializer};
@@ -15,18 +16,15 @@ where
     ))
 }
 
-fn parse_glob<'de, D>(deserializer: D) -> Result<Vec<PathBuf>, D::Error>
+fn parse_sources<'de, D>(deserializer: D) -> Result<Vec<Arc<Source>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(Vec::<PathBuf>::deserialize(deserializer)?
-        .iter()
-        .flat_map(|src| {
-            glob(src.to_str().unwrap())
-                .unwrap_or_else(|_| panic!("Invalid glob pattern {}", src.to_str().unwrap()))
-                .map(|g| g.unwrap())
-        })
-        .collect())
+    Ok(Vec::<RawSource>::deserialize(deserializer)?
+        .into_iter()
+        .map(|src| Arc::from(Source::from_raw(src).unwrap()))
+        .collect()
+    )
 }
 
 macro_rules! default_template {
@@ -52,37 +50,73 @@ macro_rules! default_scripts {
     };
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct Script {
+pub struct Source {
     pub name: String,
-    #[serde(deserialize_with = "parse_template")]
-    pub content: Arc<String>,
+    pub dir: UrlPath,
+    pub include: Vec<PathBuf>,
+    pub strip_include_prefix: Option<PathBuf>,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub struct BrowserRoot {
-    pub path: UrlPath,
-    pub include_prefix: UrlPath,
-    pub name: String,
+impl Source {
+    pub fn from_raw(src: RawSource) -> Result<Source, String> {
+        let exclude = src.exclude
+            .into_iter()
+            .map(|p| src.dir.to_pathbuf().join(p))
+            .flat_map(|src| {
+                glob(src.to_str().unwrap())
+                    .unwrap_or_else(|_| panic!("Invalid glob pattern {}", src.to_str().unwrap()))
+                    .map(|g| g.unwrap())
+            })
+            .collect::<Vec<_>>();
+
+        let include = src.include
+            .into_iter()
+            .map(|p| src.dir.to_pathbuf().join(p))
+            .flat_map(|src| {
+                glob(src.to_str().unwrap())
+                    .unwrap_or_else(|_| panic!("Invalid glob pattern {}", src.to_str().unwrap()))
+                    .map(|g| g.unwrap())
+            })
+            .filter(|p| !exclude.contains(p))
+            .collect::<Vec<_>>();
+        
+        Ok(Self {
+            name: src.name,
+            dir: src.dir,
+            strip_include_prefix: src.strip_include_prefix,
+            include,
+        })
+    }
+
+    pub fn include_prefix(&self) -> UrlPath {
+        UrlPath::try_from(
+            self.strip_include_prefix.as_ref().unwrap_or(&PathBuf::new())
+        ).unwrap_or(UrlPath::new())
+    }
 }
 
 decl_config! {
+    struct Script {
+        name: String,
+        content: Arc<String> as parse_template,
+    }
+
+    struct RawSource {
+        name: String,
+        dir: UrlPath,
+        include: Vec<PathBuf>,
+        exclude: Vec<PathBuf> = Vec::new(),
+        strip_include_prefix?: PathBuf,
+    }
+
     struct Config {
         project {
             name: String,
             version: String,
             repository?: String,
-        },
-        docs {
-            include: Vec<PathBuf> as parse_glob,
-            exclude: Vec<PathBuf> as parse_glob = Vec::new(),
             tree?: String,
         },
-        browser {
-            roots: Vec<Arc<BrowserRoot>> = Vec::new(),
-        },
+        sources: Vec<Arc<Source>> as parse_sources,
         run? {
             prebuild?: Vec<String>,
         },
@@ -134,11 +168,7 @@ impl Config {
         Ok(Arc::from(config))
     }
 
-    pub fn filtered_includes(&self) -> Vec<&PathBuf> {
-        self.docs
-            .include
-            .iter()
-            .filter(|p| !self.docs.exclude.contains(p))
-            .collect()
+    pub fn all_includes(&self) -> Vec<PathBuf> {
+        self.sources.iter().flat_map(|src| src.include.clone()).collect()
     }
 }
