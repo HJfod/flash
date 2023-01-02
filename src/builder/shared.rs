@@ -1,10 +1,10 @@
 use clang::{Accessibility, EntityKind, Entity, Type, TypeKind, documentation::{Comment, CommentChild, InlineCommandStyle}};
 use crate::{url::UrlPath, html::html::{Html, HtmlList, HtmlElement, HtmlText}};
 use super::{
-    builder::{get_github_url, get_header_path, ASTEntry, Builder},
+    builder::{ASTEntry, Builder},
 };
 use std::sync::Arc;
-use super::builder::{get_ancestorage, EntityMethods};
+use super::builder::EntityMethods;
 use crate::config::Config;
 
 trait Surround<T> {
@@ -176,7 +176,7 @@ fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
     let name: Html = decl
         .map(|decl| {
             HtmlList::new(
-                get_ancestorage(&decl)
+                decl.get_ancestorage()
                     .iter()
                     .map(|e|
                         HtmlElement::new("span")
@@ -351,6 +351,55 @@ pub fn fmt_section(title: &str, data: Vec<Html>) -> Html {
             .with_child(HtmlList::new(data))
         )
         .into()
+}
+
+fn get_github_url(config: Arc<Config>, entity: &Entity) -> Option<String> {
+    let path = entity
+        .get_definition()?
+        .get_location()?
+        .get_file_location()
+        .file?
+        .get_path();
+
+    Some(
+        config.project.tree.clone()?
+            + &UrlPath::try_from(
+                &path
+                    .strip_prefix(&config.input_dir)
+                    .unwrap_or(&path)
+                    .to_path_buf(),
+            )
+            .ok()?
+            .to_string(),
+    )
+}
+
+fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> {
+    let path = entity
+        .get_definition()?
+        .get_location()?
+        .get_file_location()
+        .file?
+        .get_path();
+
+    let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
+
+    for src in &config.sources {
+        if rel_path.starts_with(src.dir.to_pathbuf()) {
+            if let Some(ref prefix) = src.strip_include_prefix {
+                return Some(
+                    UrlPath::try_from(
+                        &rel_path.strip_prefix(prefix).ok()?.to_path_buf()
+                    ).ok()?
+                );
+            }
+            else {
+                return Some(UrlPath::try_from(&rel_path.to_path_buf()).ok()?);
+            }
+        }
+    }
+
+    None
 }
 
 pub fn output_entity<'e, T: ASTEntry<'e>>(

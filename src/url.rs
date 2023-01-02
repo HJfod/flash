@@ -1,5 +1,5 @@
 use crate::config::Config;
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC, CONTROLS, AsciiSet};
+use percent_encoding::{utf8_percent_encode, CONTROLS, AsciiSet};
 use serde::{de::Visitor, Deserialize};
 use std::{fmt::Display, path::PathBuf, sync::Arc};
 

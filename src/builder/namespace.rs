@@ -5,7 +5,7 @@ use clang::{Entity, EntityKind};
 use crate::url::UrlPath;
 
 use super::{
-    builder::{get_fully_qualified_name, BuildResult, Builder, Entry, NavItem},
+    builder::{BuildResult, Builder, Entry, NavItem, EntityMethods},
     class::Class,
     function::Function,
     struct_::Struct,
@@ -94,7 +94,7 @@ impl<'e> Entry<'e> for Namespace<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::new_with_path(get_fully_qualified_name(&self.entity))
+        UrlPath::new_with_path(self.entity.get_fully_qualified_name())
     }
 }
 

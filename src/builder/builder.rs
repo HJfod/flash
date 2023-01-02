@@ -9,15 +9,38 @@ use crate::{config::Config, url::UrlPath, html::html::{Html, GenHtml, HtmlElemen
 use super::{files::Root, index::Index, namespace::Namespace};
 
 pub trait EntityMethods<'e> {
-    fn rel_url(&self) -> UrlPath;
+    fn rel_url(&self) -> UrlPath {
+        UrlPath::new_with_path(self.get_fully_qualified_name())
+    }
     fn docs_url(&self, config: Arc<Config>) -> UrlPath {
         self.rel_url().to_absolute(config)
     }
+    fn get_fully_qualified_name(&self) -> Vec<String>;
+    fn get_ancestorage(&self) -> Vec<Entity<'e>>;
 }
 
 impl<'e> EntityMethods<'e> for Entity<'e> {
-    fn rel_url(&self) -> UrlPath {
-        UrlPath::new_with_path(get_fully_qualified_name(&self))
+    fn get_fully_qualified_name(&self) -> Vec<String> {
+        self.get_ancestorage()
+            .iter()
+            .map(|a| a.get_name().unwrap_or("_anon".into()))
+            .collect()
+    }
+
+    fn get_ancestorage(&self) -> Vec<Entity<'e>> {
+        let mut ancestors = Vec::new();
+        if let Some(parent) = self.get_semantic_parent() {
+            match parent.get_kind() {
+                EntityKind::TranslationUnit
+                | EntityKind::UnexposedDecl
+                | EntityKind::UnexposedAttr
+                | EntityKind::UnexposedExpr
+                | EntityKind::UnexposedStmt => {}
+                _ => ancestors.extend(parent.get_ancestorage()),
+            }
+        }
+        ancestors.push(self.clone());
+        ancestors
     }
 }
 
@@ -301,78 +324,6 @@ impl<'e> Builder<'e> {
         self.nav_cache = Some(self.build_nav()?);
         Ok(())
     }
-}
-
-pub fn get_fully_qualified_name(entity: &Entity) -> Vec<String> {
-    get_ancestorage(entity)
-        .iter()
-        .map(|a| a.get_name().unwrap_or("_anon".into()))
-        .collect()
-}
-
-pub fn get_ancestorage<'e>(entity: &Entity<'e>) -> Vec<Entity<'e>> {
-    let mut ancestors = Vec::new();
-    if let Some(parent) = entity.get_semantic_parent() {
-        match parent.get_kind() {
-            EntityKind::TranslationUnit
-            | EntityKind::UnexposedDecl
-            | EntityKind::UnexposedAttr
-            | EntityKind::UnexposedExpr
-            | EntityKind::UnexposedStmt => {}
-            _ => ancestors.extend(get_ancestorage(&parent)),
-        }
-    }
-    ancestors.push(entity.clone());
-    ancestors
-}
-
-pub fn get_github_url(config: Arc<Config>, entity: &Entity) -> Option<String> {
-    let path = entity
-        .get_definition()?
-        .get_location()?
-        .get_file_location()
-        .file?
-        .get_path();
-
-    Some(
-        config.project.tree.clone()?
-            + &UrlPath::try_from(
-                &path
-                    .strip_prefix(&config.input_dir)
-                    .unwrap_or(&path)
-                    .to_path_buf(),
-            )
-            .ok()?
-            .to_string(),
-    )
-}
-
-pub fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> {
-    let path = entity
-        .get_definition()?
-        .get_location()?
-        .get_file_location()
-        .file?
-        .get_path();
-
-    let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
-
-    for src in &config.sources {
-        if rel_path.starts_with(src.dir.to_pathbuf()) {
-            if let Some(ref prefix) = src.strip_include_prefix {
-                return Some(
-                    UrlPath::try_from(
-                        &rel_path.strip_prefix(prefix).ok()?.to_path_buf()
-                    ).ok()?
-                );
-            }
-            else {
-                return Some(UrlPath::try_from(&rel_path.to_path_buf()).ok()?);
-            }
-        }
-    }
-
-    None
 }
 
 fn default_format(config: Arc<Config>) -> HashMap<String, String> {

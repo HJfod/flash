@@ -5,7 +5,7 @@ use clang::Entity;
 
 use super::{
     builder::{
-        get_fully_qualified_name, ASTEntry, BuildResult, Builder, Entry, NavItem, OutputEntry,
+        ASTEntry, BuildResult, Builder, Entry, NavItem, OutputEntry, EntityMethods,
     },
     shared::output_classlike,
 };
@@ -22,7 +22,7 @@ impl<'e> Entry<'e> for Class<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::new_with_path(get_fully_qualified_name(&self.entity))
+        UrlPath::new_with_path(self.entity.get_fully_qualified_name())
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
