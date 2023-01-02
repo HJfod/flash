@@ -222,7 +222,7 @@ impl GenHtml for HtmlList {
             .into_iter()
             .map(|i| i.gen_html())
             .collect::<Vec<_>>()
-            .join("\n")
+            .join("")
     }
 }
 
