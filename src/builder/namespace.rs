@@ -64,7 +64,7 @@ pub struct Namespace<'e> {
 impl<'e> Entry<'e> for Namespace<'e> {
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
         let mut handles = Vec::new();
-        for (_, entry) in &self.entries {
+        for entry in self.entries.values() {
             handles.extend(entry.build(builder)?);
         }
         Ok(handles)
@@ -115,7 +115,7 @@ impl<'e> Namespace<'e> {
             }
             match child.get_kind() {
                 EntityKind::Namespace => {
-                    let entry = Namespace::new(child.clone());
+                    let entry = Namespace::new(*child);
                     // Merge existing entries of namespace
                     if let Some(key) = self.entries.get_mut(&entry.name()) {
                         if let CppItem::Namespace(ns) = key {
@@ -130,20 +130,20 @@ impl<'e> Namespace<'e> {
 
                 EntityKind::StructDecl => {
                     if child.is_definition() {
-                        let entry = Struct::new(child.clone());
+                        let entry = Struct::new(*child);
                         self.entries.insert(entry.name(), CppItem::Struct(entry));
                     }
                 }
 
                 EntityKind::ClassDecl | EntityKind::ClassTemplate => {
                     if child.is_definition() {
-                        let entry = Class::new(child.clone());
+                        let entry = Class::new(*child);
                         self.entries.insert(entry.name(), CppItem::Class(entry));
                     }
                 }
 
                 EntityKind::FunctionDecl => {
-                    let entry = Function::new(child.clone());
+                    let entry = Function::new(*child);
                     self.entries.insert(entry.name(), CppItem::Function(entry));
                 }
 

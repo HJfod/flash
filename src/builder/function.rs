@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{html::html::Html, url::UrlPath};
+use crate::{html::Html, url::UrlPath};
 use clang::Entity;
 
 use super::{

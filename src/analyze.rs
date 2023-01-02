@@ -34,7 +34,7 @@ fn create_analyzable_file(config: Arc<Config>) -> Result<PathBuf, String> {
     Ok(out_path)
 }
 
-async fn analyze_with_clang(config: Arc<Config>, args: &Vec<String>) -> Result<(), String> {
+async fn analyze_with_clang(config: Arc<Config>, args: &[String]) -> Result<(), String> {
     // Initialize clang
     let clang = clang::Clang::new()?;
     let index = clang::Index::new(&clang, false, true);

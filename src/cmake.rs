@@ -13,7 +13,7 @@ pub struct CompileCommand {
 impl CompileCommand {
     pub fn get_command_list(&self, config: Arc<Config>) -> Vec<String> {
         // Not using shlex because that screws up -DFMT_CONSTEVAL=\"\"
-        let mut list: Vec<String> = self.command.split(" ")
+        let mut list: Vec<String> = self.command.split(' ')
             // Skip clang.exe
             .skip(1)
             .flat_map(|s|
@@ -22,9 +22,9 @@ impl CompileCommand {
                 // files so got to do this
                 if s.ends_with(".rsp") {
                     fs::read_to_string(
-                        self.directory.join(s.replace("@", ""))
+                        self.directory.join(s.replace('@', ""))
                     ).expect("Unable to read compiler .rsp includes file")
-                        .split(" ")
+                        .split(' ')
                         .map(|s| s.to_owned())
                         .collect()
                 } else {
@@ -54,7 +54,7 @@ type CompileCommands = Vec<CompileCommand>;
 pub fn cmake_configure(build_dir: &str, args: &Vec<String>) -> Result<(), String> {
     Command::new("cmake")
         .arg(".")
-        .args(&["-B", build_dir])
+        .args(["-B", build_dir])
         .args(args)
         .spawn()
         .map_err(|e| format!("Error configuring CMake: {e}"))?
@@ -92,7 +92,7 @@ pub fn cmake_compile_commands(config: Arc<Config>) -> Result<CompileCommands, St
 }
 
 pub fn cmake_compile_args_for(config: Arc<Config>) -> Option<Vec<String>> {
-    let ref from = config.cmake.as_ref()?.infer_args_from;
+    let from = &config.cmake.as_ref()?.infer_args_from;
     for cmd in cmake_compile_commands(config.clone()).ok()? {
         if cmd.file == config.input_dir.join(from) {
             return Some(cmd.get_command_list(config));

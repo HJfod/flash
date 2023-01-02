@@ -1,7 +1,7 @@
 use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
 use crate::{
     config::{Config, Source},
-    html::html::{Html, HtmlText},
+    html::{Html, HtmlText},
     url::UrlPath,
 };
 use std::{collections::HashMap, path::Path, sync::Arc};
@@ -13,7 +13,7 @@ pub struct File {
 
 impl<'e> Entry<'e> for File {
     fn name(&self) -> String {
-        self.path.raw_file_name().unwrap().clone()
+        self.path.raw_file_name().unwrap()
     }
 
     fn url(&self) -> UrlPath {
@@ -80,9 +80,9 @@ pub struct Dir {
     pub files: HashMap<String, File>,
 }
 
-impl<'b, 'e> Entry<'e> for Dir {
+impl<'e> Entry<'e> for Dir {
     fn name(&self) -> String {
-        self.path.raw_file_name().unwrap().to_owned()
+        self.path.raw_file_name().unwrap()
     }
 
     fn url(&self) -> UrlPath {
@@ -91,10 +91,10 @@ impl<'b, 'e> Entry<'e> for Dir {
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
         let mut handles = Vec::new();
-        for (_, dir) in &self.dirs {
+        for dir in self.dirs.values() {
             handles.extend(dir.build(builder)?);
         }
-        for (_, file) in &self.files {
+        for file in self.files.values() {
             handles.extend(file.build(builder)?);
         }
         Ok(handles)
@@ -129,7 +129,7 @@ pub struct Root {
     pub dir: Dir,
 }
 
-impl<'b, 'e> Entry<'e> for Root {
+impl<'e> Entry<'e> for Root {
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
         self.dir.build(builder)
     }

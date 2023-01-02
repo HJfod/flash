@@ -2,7 +2,7 @@ use super::builder::EntityMethods;
 use super::builder::{ASTEntry, Builder};
 use crate::config::Config;
 use crate::{
-    html::html::{Html, HtmlElement, HtmlList, HtmlText},
+    html::{Html, HtmlElement, HtmlList, HtmlText},
     url::UrlPath,
 };
 use clang::{
@@ -130,13 +130,13 @@ fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Htm
             },
 
             _ => {
-                println!("Unsupported comment option {:?}", child);
+                println!("Unsupported comment option {child:?}");
             }
         }
     }
 
     // Get first element (parent) back from stack
-    let mut res = stack.into_iter().nth(0).unwrap();
+    let mut res = stack.into_iter().next().unwrap();
 
     // Add params if this comment had any
     if params.has_children() {
@@ -333,7 +333,7 @@ pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
         .with_child(
             HtmlElement::new("div").with_child(
                 fun.get_parsed_comment()
-                    .map(|p| fmt_comment(p))
+                    .map(fmt_comment)
                     .unwrap_or(Html::p("No description provided")),
             ),
         )
@@ -390,11 +390,9 @@ fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> {
     for src in &config.sources {
         if rel_path.starts_with(src.dir.to_pathbuf()) {
             if let Some(ref prefix) = src.strip_include_prefix {
-                return Some(
-                    UrlPath::try_from(&rel_path.strip_prefix(prefix).ok()?.to_path_buf()).ok()?,
-                );
+                return UrlPath::try_from(&rel_path.strip_prefix(prefix).ok()?.to_path_buf()).ok();
             } else {
-                return Some(UrlPath::try_from(&rel_path.to_path_buf()).ok()?);
+                return UrlPath::try_from(&rel_path.to_path_buf()).ok();
             }
         }
     }
@@ -407,15 +405,14 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
     builder: &Builder,
 ) -> Vec<(&'static str, Html)> {
     vec![
-        ("name", HtmlText::new(&entry.name()).into()),
+        ("name", HtmlText::new(entry.name()).into()),
         (
             "description",
             entry
                 .entity()
                 .get_parsed_comment()
-                .map(|c| fmt_comment(c))
-                .unwrap_or(Html::p("No Description Provided"))
-                .into(),
+                .map(fmt_comment)
+                .unwrap_or(Html::p("No Description Provided")),
         ),
         (
             "header_url",

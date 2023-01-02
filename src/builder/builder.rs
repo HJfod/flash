@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     config::Config,
-    html::html::{GenHtml, Html, HtmlElement, HtmlList, HtmlText},
+    html::{GenHtml, Html, HtmlElement, HtmlList, HtmlText},
     url::UrlPath,
 };
 
@@ -43,7 +43,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
                 _ => ancestors.extend(parent.get_ancestorage()),
             }
         }
-        ancestors.push(self.clone());
+        ancestors.push(*self);
         ancestors
     }
 }
@@ -72,7 +72,7 @@ impl NavItem {
             NavItem::Link(name, url, icon) => HtmlElement::new("a")
                 .with_attr(
                     "onclick",
-                    &format!("return navigate('{}')", url.to_absolute(config.clone())),
+                    format!("return navigate('{}')", url.to_absolute(config.clone())),
                 )
                 .with_attr("href", url.to_absolute(config))
                 .with_child_opt(icon.as_ref().map(|i| {
@@ -155,13 +155,13 @@ pub struct Builder<'e> {
 
 impl<'e> Builder<'e> {
     pub fn new(config: Arc<Config>, root: Entity<'e>) -> Result<Self, String> {
-        Ok(Self {
+        Self {
             config: config.clone(),
             root: Namespace::new(root),
             file_roots: Root::from_config(config),
             nav_cache: None,
         }
-        .setup()?)
+        .setup()
     }
 
     fn setup(mut self) -> Result<Self, String> {
@@ -235,7 +235,7 @@ impl<'e> Builder<'e> {
 
             // Write the plain content output
             fs::write(
-                &config
+                config
                     .output_dir
                     .join(target_url.to_pathbuf())
                     .join("content.html"),
@@ -245,7 +245,7 @@ impl<'e> Builder<'e> {
 
             // Write the full page
             fs::write(
-                &config
+                config
                     .output_dir
                     .join(target_url.to_pathbuf())
                     .join("index.html"),
@@ -282,7 +282,7 @@ impl<'e> Builder<'e> {
         }
 
         if let Some(pbar) = pbar.clone() {
-            pbar.set_message(format!("Generating output"));
+            pbar.set_message("Generating output".to_string());
         }
 
         futures::future::join_all(handles.into_iter().map(|handle| {
@@ -325,8 +325,8 @@ impl<'e> Builder<'e> {
                     .join("\n"),
             ),
         ]);
-        Ok(strfmt(&self.config.templates.nav, &fmt)
-            .map_err(|e| format!("Unable to format navbar: {e}"))?)
+        strfmt(&self.config.templates.nav, &fmt)
+            .map_err(|e| format!("Unable to format navbar: {e}"))
     }
 
     fn prebuild_nav(&mut self) -> Result<(), String> {

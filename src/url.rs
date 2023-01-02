@@ -52,7 +52,7 @@ impl UrlPath {
 
     pub fn parse(url: &str) -> Result<Self, String> {
         Ok(UrlPath::new_with_path(
-            url.split("/").map(|s| s.to_owned()).collect(),
+            url.split('/').map(|s| s.to_owned()).collect(),
         ))
     }
 
@@ -82,10 +82,8 @@ impl UrlPath {
     /// Strip prefix. If prefix is not a prefix of this URL, nothing happens
     pub fn strip_prefix<T: AsRef<UrlPath>>(&self, prefix: T) -> Self {
         // Make sure prefix is shorter or as long as path
-        if self.parts.len() >= prefix.as_ref().parts.len() {
-            if self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts {
-                return UrlPath::new_with_path(self.parts[prefix.as_ref().parts.len()..].into());
-            }
+        if self.parts.len() >= prefix.as_ref().parts.len() && self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts {
+            return UrlPath::new_with_path(self.parts[prefix.as_ref().parts.len()..].into());
         }
         self.clone()
     }
@@ -201,7 +199,7 @@ impl TryFrom<&String> for UrlPath {
     type Error = String;
 
     fn try_from(value: &String) -> Result<Self, Self::Error> {
-        UrlPath::parse(&value)
+        UrlPath::parse(value)
     }
 }
 
