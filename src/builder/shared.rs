@@ -3,7 +3,6 @@ use super::builder::{ASTEntry, Builder};
 use crate::config::Config;
 use crate::{
     html::{Html, HtmlElement, HtmlList, HtmlText},
-    url::UrlPath,
 };
 use clang::{
     documentation::{Comment, CommentChild, InlineCommandStyle},
@@ -384,11 +383,13 @@ pub fn fmt_section(title: &str, data: Vec<Html>) -> Html {
 
 pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
     if let Some(link) = entity.github_url(config.clone()) &&
-        let Some(path) = entity.include_path(config)
+        let Some(path) = entity.include_path(config.clone())
     {
+        let disabled = !entity.config_source(config).unwrap().exists_online;
         HtmlElement::new("a")
-            .with_attr("href", link)
+            .with_attr_opt("href", (!disabled).then_some(link))
             .with_class("header-link")
+            .with_class_opt(disabled.then_some("disabled"))
             .with_child(HtmlElement::new("code")
                 .with_children(vec![
                     HtmlText::new("#include ").into(),

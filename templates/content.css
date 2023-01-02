@@ -119,6 +119,7 @@ code {
 
 a.disabled:hover {
     text-decoration: none;
+    cursor: default;
 }
 
 .section > summary {
