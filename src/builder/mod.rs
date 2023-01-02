@@ -6,3 +6,4 @@ pub mod index;
 pub mod namespace;
 pub mod shared;
 pub mod struct_;
+pub mod comment;

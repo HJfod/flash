@@ -20,6 +20,10 @@ impl Html {
         HtmlElement::new("p").with_text(text).into()
     }
 
+    pub fn div<T: AsRef<str>>(text: T) -> Html {
+        HtmlElement::new("div").with_text(text).into()
+    }
+
     pub fn span(classes: &[&str], text: &str) -> Html {
         HtmlElement::new("span")
             .with_classes(classes)

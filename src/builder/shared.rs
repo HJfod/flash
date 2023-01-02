@@ -1,11 +1,11 @@
 use super::builder::EntityMethods;
 use super::builder::{ASTEntry, Builder};
+use super::comment::JSDocComment;
 use crate::config::Config;
 use crate::{
     html::{Html, HtmlElement, HtmlList, HtmlText},
 };
 use clang::{
-    documentation::{Comment, CommentChild, InlineCommandStyle},
     Accessibility, Entity, EntityKind, Type, TypeKind,
 };
 use std::sync::Arc;
@@ -39,146 +39,6 @@ impl<T, Sep: Fn() -> T> InsertBetween<T, Sep> for Vec<T> {
         }
         res
     }
-}
-
-fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Html {
-    let mut stack = vec![parent];
-
-    // Collect all parameter commands to one parent section
-    let mut params = HtmlElement::new("section").with_class("params");
-    let mut template_params = HtmlElement::new("section").with_classes(&["params", "template"]);
-    let mut returns = None;
-    let mut since = None;
-    let mut brief = None;
-
-    for child in children {
-        match child {
-            CommentChild::Text(text) => {
-                stack.last_mut().unwrap().add_child(HtmlText::new(text));
-            }
-
-            CommentChild::Paragraph(children) => {
-                stack
-                    .last_mut()
-                    .unwrap()
-                    .add_child(fmt_comment_children(HtmlElement::new("p"), children));
-            }
-
-            CommentChild::HtmlStartTag(tag) => {
-                // Add self-closing tags to the top-most stack member as normal
-                if tag.closing {
-                    stack
-                        .last_mut()
-                        .unwrap()
-                        .add_child(HtmlElement::new(&tag.name).with_attrs(&tag.attributes));
-                }
-                // Otherwise add tag as the topmost member in stack
-                else {
-                    stack.push(HtmlElement::new(&tag.name).with_attrs(&tag.attributes));
-                }
-            }
-
-            CommentChild::HtmlEndTag(_) => {
-                // Pop the topmost member in stack
-                // We assume that all doc comments are valid HTML; as in, all
-                // HTML tags have a valid closing tag, and that there are no
-                // closing tags without a matching opening tag.
-                let pop = stack.pop().unwrap();
-                stack.last_mut().unwrap().add_child(pop);
-            }
-
-            CommentChild::ParamCommand(cmd) => {
-                params.add_child(Html::p(cmd.parameter));
-                params.add_child(fmt_comment_children(
-                    HtmlElement::new("div").with_class("description"),
-                    cmd.children,
-                ));
-            }
-
-            CommentChild::TParamCommand(cmd) => {
-                template_params.add_child(Html::p(cmd.parameter));
-                template_params.add_child(fmt_comment_children(
-                    HtmlElement::new("div").with_class("description"),
-                    cmd.children,
-                ));
-            }
-
-            CommentChild::BlockCommand(cmd) => match cmd.command.as_str() {
-                "return" | "returns" => returns = 
-                    Some(HtmlElement::new("section")
-                        .with_child(Html::p("Returns"))
-                        .with_child(fmt_comment_children(
-                            HtmlElement::new("div").with_class("description"),
-                            cmd.children,
-                        ))),
-
-                "since" => since = 
-                    Some(HtmlElement::new("section")
-                        .with_child(Html::p("Since"))
-                        .with_child(fmt_comment_children(
-                            HtmlElement::new("div").with_class("description"),
-                            cmd.children,
-                        ))),
-
-                "brief" => brief = 
-                    Some(HtmlElement::new("section")
-                        .with_child(fmt_comment_children(
-                            HtmlElement::new("div").with_class("description"),
-                            cmd.children,
-                        ))),
-
-                // Not handling these
-                "js" | "lua" => {},
-
-                _ => println!("Warning: Unknown command {}", cmd.command),
-            },
-
-            CommentChild::InlineCommand(cmd) => match cmd.command.as_str() {
-                "return" | "returns" => stack.last_mut().unwrap().add_child(
-                    HtmlElement::new("section")
-                        .with_class_opt(cmd.style.map(|style| match style {
-                            InlineCommandStyle::Bold => "bold",
-                            InlineCommandStyle::Emphasized => "em",
-                            InlineCommandStyle::Monospace => "mono",
-                        }))
-                        .with_child(Html::p("Returns"))
-                        .with_child(Html::p(cmd.arguments.join(" "))),
-                ),
-
-                // Not handling these
-                "js" | "lua" => {},
-
-                _ => println!("Warning: Unknown command {}", cmd.command),
-            },
-
-            _ => {
-                println!("Unsupported comment option {child:?}");
-            }
-        }
-    }
-
-    // Get first element (parent) back from stack
-    let mut res = stack.into_iter().next().unwrap();
-
-    // Add known elements in order if this comment had any
-    res.add_child_opt(brief);
-    res.add_child_opt(since);
-    if params.has_children() {
-        res.add_child(params);
-    }
-    if template_params.has_children() {
-        res.add_child(template_params);
-    }
-    res.add_child_opt(returns);
-
-    res.into()
-}
-
-fn fmt_comment(comment: Comment) -> Html {
-    fmt_comment_children(
-        HtmlElement::new("div").with_class("description"),
-        comment.get_children(),
-    )
 }
 
 fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
@@ -357,8 +217,8 @@ pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
         )
         .with_child(
             HtmlElement::new("div").with_child(
-                fun.get_parsed_comment()
-                    .map(fmt_comment)
+                fun.get_comment()
+                    .map(|s| JSDocComment::parse(s).to_html())
                     .unwrap_or(Html::p("No description provided")),
             ),
         )
@@ -413,8 +273,8 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
             "description",
             entry
                 .entity()
-                .get_parsed_comment()
-                .map(fmt_comment)
+                .get_comment()
+                .map(|s| JSDocComment::parse(s).to_html())
                 .unwrap_or(Html::p("No Description Provided")),
         ),
         ("header_link", fmt_header_link(entry.entity(), builder.config.clone())),
