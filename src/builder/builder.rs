@@ -1,11 +1,11 @@
 use clang::{Entity, EntityKind};
 use indicatif::ProgressBar;
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{collections::HashMap, fs, sync::Arc, path::PathBuf};
 use strfmt::strfmt;
 use tokio::task::JoinHandle;
 
 use crate::{
-    config::Config,
+    config::{Config, Source},
     html::{GenHtml, Html, HtmlElement, HtmlList, HtmlText},
     url::UrlPath,
 };
@@ -13,25 +13,93 @@ use crate::{
 use super::{files::Root, index::Index, namespace::Namespace};
 
 pub trait EntityMethods<'e> {
-    fn rel_url(&self) -> UrlPath {
-        UrlPath::new_with_path(self.get_fully_qualified_name())
-    }
-    fn docs_url(&self, config: Arc<Config>) -> UrlPath {
-        self.rel_url().to_absolute(config)
-    }
-    fn get_fully_qualified_name(&self) -> Vec<String>;
-    fn get_ancestorage(&self) -> Vec<Entity<'e>>;
+    /// Get the config source for this entity
+    fn config_source(&self, config: Arc<Config>) -> Option<Arc<Source>>;
+
+    /// Get the file where this entity is defined, if applicable
+    fn definition_file(&self) -> Option<PathBuf>;
+
+    /// Get a relative path to this file's header, if applicable
+    fn header(&self, config: Arc<Config>) -> Option<PathBuf>;
+
+    /// Get the relative for this entity
+    fn rel_url(&self) -> UrlPath;
+    
+    /// Get the full URL for this entity, valid for links
+    fn docs_url(&self, config: Arc<Config>) -> UrlPath;
+
+    /// Get the full online URL of this entity
+    fn github_url(&self, config: Arc<Config>) -> Option<String>;
+
+    /// Get the include path for this entity
+    fn include_path(&self, config: Arc<Config>) -> Option<UrlPath>;
+
+    /// Get the fully qualified name for this entity
+    fn full_name(&self) -> Vec<String>;
+
+    /// Get the parents of this entity
+    fn ancestorage(&self) -> Vec<Entity<'e>>;
 }
 
 impl<'e> EntityMethods<'e> for Entity<'e> {
-    fn get_fully_qualified_name(&self) -> Vec<String> {
-        self.get_ancestorage()
+    fn config_source(&self, config: Arc<Config>) -> Option<Arc<Source>> {
+        // Get the definition header
+        let path = self.header(config.clone())?;
+
+        // Find the source that has this header
+        config.sources
+            .iter()
+            .find(|src| path.starts_with(src.dir.to_pathbuf()))
+            .map(|src| src.clone())
+    }
+
+    fn definition_file(&self) -> Option<PathBuf> {
+        self
+            .get_definition()?
+            .get_location()?
+            .get_file_location()
+            .file?
+            .get_path()
+            .into()
+    }
+
+    fn header(&self, config: Arc<Config>) -> Option<PathBuf> {
+        let path = self.definition_file()?;
+        path.strip_prefix(&config.input_dir).unwrap_or(&path).to_path_buf().into()
+    }
+
+    fn rel_url(&self) -> UrlPath {
+        UrlPath::new_with_path(self.full_name())
+    }
+
+    fn docs_url(&self, config: Arc<Config>) -> UrlPath {
+        self.rel_url().to_absolute(config)
+    }
+
+    fn github_url(&self, config: Arc<Config>) -> Option<String> {
+        Some(
+            config.project.tree.clone()?
+                + &UrlPath::try_from(&self.header(config)?).ok()?.to_string()
+        )
+    }
+
+    fn include_path(&self, config: Arc<Config>) -> Option<UrlPath> {
+        let rel_path = self.header(config.clone())?;
+        if let Some(ref prefix) = self.config_source(config)?.strip_include_prefix {
+            return UrlPath::try_from(&rel_path.strip_prefix(prefix).ok()?.to_path_buf()).ok();
+        } else {
+            return UrlPath::try_from(&rel_path.to_path_buf()).ok();
+        }
+    }
+
+    fn full_name(&self) -> Vec<String> {
+        self.ancestorage()
             .iter()
             .map(|a| a.get_name().unwrap_or("_anon".into()))
             .collect()
     }
 
-    fn get_ancestorage(&self) -> Vec<Entity<'e>> {
+    fn ancestorage(&self) -> Vec<Entity<'e>> {
         let mut ancestors = Vec::new();
         if let Some(parent) = self.get_semantic_parent() {
             match parent.get_kind() {
@@ -40,7 +108,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
                 | EntityKind::UnexposedAttr
                 | EntityKind::UnexposedExpr
                 | EntityKind::UnexposedStmt => {}
-                _ => ancestors.extend(parent.get_ancestorage()),
+                _ => ancestors.extend(parent.ancestorage()),
             }
         }
         ancestors.push(*self);

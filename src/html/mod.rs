@@ -49,6 +49,7 @@ pub struct HtmlElement {
     children: Vec<Html>,
 }
 
+#[allow(unused)]
 impl HtmlElement {
     pub fn new(tag: &str) -> Self {
         Self {
@@ -87,6 +88,12 @@ impl HtmlElement {
 
     pub fn add_child<T: GenHtml>(&mut self, child: T) {
         self.children.push(child.into());
+    }
+
+    pub fn add_child_opt<T: GenHtml>(&mut self, child: Option<T>) {
+        if let Some(child) = child {
+            self.children.push(child.into());
+        }
     }
 
     pub fn with_child<T: GenHtml>(mut self, child: T) -> Self {

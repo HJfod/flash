@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 use crate::{analyze::create_docs, url::UrlPath};
 use clap::Parser;
 use config::Config;

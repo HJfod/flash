@@ -20,7 +20,7 @@ impl<'e> Entry<'e> for Class<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::new_with_path(self.entity.get_fully_qualified_name())
+        UrlPath::new_with_path(self.entity.full_name())
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {

@@ -7,7 +7,7 @@ use crate::{
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 pub struct File {
-    def: Arc<Source>,
+    source: Arc<Source>,
     path: UrlPath,
 }
 
@@ -45,7 +45,7 @@ impl<'e> OutputEntry<'e> for File {
                             .tree
                             .as_ref()
                             .map(|tree| {
-                                tree.to_owned() + &self.def.dir.join(&self.path).to_string()
+                                tree.to_owned() + &self.source.dir.join(&self.path).to_string()
                             })
                             .unwrap_or("".into()),
                     )
@@ -54,10 +54,10 @@ impl<'e> OutputEntry<'e> for File {
                 (
                     "file_path",
                     HtmlText::new(
-                        self.def
+                        self.source
                             .dir
                             .join(&self.path)
-                            .strip_prefix(self.def.include_prefix())
+                            .strip_prefix(self.source.include_prefix())
                             .to_raw_string(),
                     )
                     .into(),
@@ -69,12 +69,12 @@ impl<'e> OutputEntry<'e> for File {
 
 impl File {
     pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
-        Self { def, path }
+        Self { source: def, path }
     }
 }
 
 pub struct Dir {
-    def: Arc<Source>,
+    source: Arc<Source>,
     path: UrlPath,
     pub dirs: HashMap<String, Dir>,
     pub files: HashMap<String, File>,
@@ -116,7 +116,7 @@ impl<'e> Entry<'e> for Dir {
 impl Dir {
     pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
         Self {
-            def,
+            source: def,
             path,
             dirs: HashMap::new(),
             files: HashMap::new(),
@@ -125,7 +125,7 @@ impl Dir {
 }
 
 pub struct Root {
-    pub def: Arc<Source>,
+    pub source: Arc<Source>,
     pub dir: Dir,
 }
 
@@ -135,7 +135,7 @@ impl<'e> Entry<'e> for Root {
     }
 
     fn name(&self) -> String {
-        self.def.name.clone()
+        self.source.name.clone()
     }
 
     fn url(&self) -> UrlPath {
@@ -161,14 +161,14 @@ impl Root {
             .sources
             .iter()
             .map(|root| Root {
-                def: root.clone(),
+                source: root.clone(),
                 dir: Dir::new(root.clone(), root.name.clone().try_into().unwrap()),
             })
             .collect::<Vec<_>>();
 
         for root in &mut roots {
-            for file in root.def.include.clone() {
-                let Ok(cut_path) = file.strip_prefix(root.def.dir.to_pathbuf()) else {
+            for file in root.source.include.clone() {
+                let Ok(cut_path) = file.strip_prefix(root.source.dir.to_pathbuf()) else {
                     continue;
                 };
 
@@ -178,7 +178,7 @@ impl Root {
                 } else {
                     // Add to parent if one exists, or to root if one doesn't
                     let url = UrlPath::try_from(&cut_path.to_path_buf()).unwrap();
-                    let def = root.def.clone();
+                    let def = root.source.clone();
                     root.try_add_dirs(cut_path.parent())
                         .files
                         .insert(url.file_name().unwrap().to_owned(), File::new(def, url));
@@ -195,7 +195,7 @@ impl Root {
             let part_name = part.to_str().unwrap().to_string();
             let url = target.url();
             target = target.dirs.entry(part_name.clone()).or_insert(Dir::new(
-                self.def.clone(),
+                self.source.clone(),
                 url.join(UrlPath::try_from(&part_name).unwrap()),
             ));
         }

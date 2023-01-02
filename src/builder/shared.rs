@@ -48,6 +48,9 @@ fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Htm
     // Collect all parameter commands to one parent section
     let mut params = HtmlElement::new("section").with_class("params");
     let mut template_params = HtmlElement::new("section").with_classes(&["params", "template"]);
+    let mut returns = None;
+    let mut since = None;
+    let mut brief = None;
 
     for child in children {
         match child {
@@ -102,14 +105,31 @@ fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Htm
             }
 
             CommentChild::BlockCommand(cmd) => match cmd.command.as_str() {
-                "return" | "returns" => stack.last_mut().unwrap().add_child(
-                    HtmlElement::new("section")
+                "return" | "returns" => returns = 
+                    Some(HtmlElement::new("section")
                         .with_child(Html::p("Returns"))
                         .with_child(fmt_comment_children(
                             HtmlElement::new("div").with_class("description"),
                             cmd.children,
-                        )),
-                ),
+                        ))),
+
+                "since" => since = 
+                    Some(HtmlElement::new("section")
+                        .with_child(Html::p("Since"))
+                        .with_child(fmt_comment_children(
+                            HtmlElement::new("div").with_class("description"),
+                            cmd.children,
+                        ))),
+
+                "brief" => brief = 
+                    Some(HtmlElement::new("section")
+                        .with_child(fmt_comment_children(
+                            HtmlElement::new("div").with_class("description"),
+                            cmd.children,
+                        ))),
+
+                // Not handling these
+                "js" | "lua" => {},
 
                 _ => println!("Warning: Unknown command {}", cmd.command),
             },
@@ -126,6 +146,9 @@ fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Htm
                         .with_child(Html::p(cmd.arguments.join(" "))),
                 ),
 
+                // Not handling these
+                "js" | "lua" => {},
+
                 _ => println!("Warning: Unknown command {}", cmd.command),
             },
 
@@ -138,13 +161,16 @@ fn fmt_comment_children(parent: HtmlElement, children: Vec<CommentChild>) -> Htm
     // Get first element (parent) back from stack
     let mut res = stack.into_iter().next().unwrap();
 
-    // Add params if this comment had any
+    // Add known elements in order if this comment had any
+    res.add_child_opt(brief);
+    res.add_child_opt(since);
     if params.has_children() {
         res.add_child(params);
     }
     if template_params.has_children() {
         res.add_child(template_params);
     }
+    res.add_child_opt(returns);
 
     res.into()
 }
@@ -167,7 +193,7 @@ fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
     let name: Html = decl
         .map(|decl| {
             HtmlList::new(
-                decl.get_ancestorage()
+                decl.ancestorage()
                     .iter()
                     .map(|e| {
                         HtmlElement::new("span")
@@ -356,48 +382,24 @@ pub fn fmt_section(title: &str, data: Vec<Html>) -> Html {
         .into()
 }
 
-fn get_github_url(config: Arc<Config>, entity: &Entity) -> Option<String> {
-    let path = entity
-        .get_definition()?
-        .get_location()?
-        .get_file_location()
-        .file?
-        .get_path();
-
-    Some(
-        config.project.tree.clone()?
-            + &UrlPath::try_from(
-                &path
-                    .strip_prefix(&config.input_dir)
-                    .unwrap_or(&path)
-                    .to_path_buf(),
+pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
+    if let Some(link) = entity.github_url(config.clone()) &&
+        let Some(path) = entity.include_path(config)
+    {
+        HtmlElement::new("a")
+            .with_attr("href", link)
+            .with_class("header-link")
+            .with_child(HtmlElement::new("code")
+                .with_children(vec![
+                    HtmlText::new("#include ").into(),
+                    Html::span(&["url"], &format!("&lt;{}&gt;", path.to_raw_string()))
+                ])
             )
-            .ok()?
-            .to_string(),
-    )
-}
-
-fn get_header_path(config: Arc<Config>, entity: &Entity) -> Option<UrlPath> {
-    let path = entity
-        .get_definition()?
-        .get_location()?
-        .get_file_location()
-        .file?
-        .get_path();
-
-    let rel_path = path.strip_prefix(&config.input_dir).unwrap_or(&path);
-
-    for src in &config.sources {
-        if rel_path.starts_with(src.dir.to_pathbuf()) {
-            if let Some(ref prefix) = src.strip_include_prefix {
-                return UrlPath::try_from(&rel_path.strip_prefix(prefix).ok()?.to_path_buf()).ok();
-            } else {
-                return UrlPath::try_from(&rel_path.to_path_buf()).ok();
-            }
-        }
+            .into()
     }
-
-    None
+    else {
+        Html::p("&lt;Not available online&gt;")
+    }
 }
 
 pub fn output_entity<'e, T: ASTEntry<'e>>(
@@ -414,22 +416,7 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
                 .map(fmt_comment)
                 .unwrap_or(Html::p("No Description Provided")),
         ),
-        (
-            "header_url",
-            HtmlText::new(
-                get_github_url(builder.config.clone(), entry.entity()).unwrap_or(String::new()),
-            )
-            .into(),
-        ),
-        (
-            "header_path",
-            HtmlText::new(
-                get_header_path(builder.config.clone(), entry.entity())
-                    .unwrap_or(UrlPath::new())
-                    .to_raw_string(),
-            )
-            .into(),
-        ),
+        ("header_link", fmt_header_link(entry.entity(), builder.config.clone())),
     ]
 }
 

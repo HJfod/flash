@@ -53,6 +53,7 @@ pub struct Source {
     pub dir: UrlPath,
     pub include: Vec<PathBuf>,
     pub strip_include_prefix: Option<PathBuf>,
+    pub exists_online: bool,
 }
 
 impl Source {
@@ -84,6 +85,7 @@ impl Source {
             name: src.name,
             dir: src.dir,
             strip_include_prefix: src.strip_include_prefix,
+            exists_online: src.exists_online,
             include,
         })
     }
@@ -110,6 +112,7 @@ decl_config! {
         include: Vec<PathBuf>,
         exclude: Vec<PathBuf> = Vec::new(),
         strip_include_prefix?: PathBuf,
+        exists_online: bool = true,
     }
 
     struct Config {
