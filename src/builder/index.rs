@@ -1,5 +1,5 @@
 use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
-use crate::{url::UrlPath, html::html::Html};
+use crate::{html::html::Html, url::UrlPath};
 use std::sync::Arc;
 
 pub struct Index {}

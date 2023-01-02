@@ -73,11 +73,7 @@ async fn analyze_with_clang(config: Arc<Config>, args: &Vec<String>) -> Result<(
 async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
     // Configure the cmake project
     cmake::cmake_configure(
-        &config
-            .cmake
-            .as_ref()
-            .unwrap()
-            .build_dir,
+        &config.cmake.as_ref().unwrap().build_dir,
         config
             .cmake
             .as_ref()
@@ -90,11 +86,7 @@ async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
     // Build the cmake project
     if config.cmake.as_ref().unwrap().build {
         cmake::cmake_build(
-            &config
-                .cmake
-                .as_ref()
-                .unwrap()
-                .build_dir,
+            &config.cmake.as_ref().unwrap().build_dir,
             config
                 .cmake
                 .as_ref()

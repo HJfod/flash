@@ -1,4 +1,3 @@
-
 use flash_macros::decl_config;
 use glob::glob;
 use serde::{Deserialize, Deserializer};
@@ -23,8 +22,7 @@ where
     Ok(Vec::<RawSource>::deserialize(deserializer)?
         .into_iter()
         .map(|src| Arc::from(Source::from_raw(src).unwrap()))
-        .collect()
-    )
+        .collect())
 }
 
 macro_rules! default_template {
@@ -59,7 +57,8 @@ pub struct Source {
 
 impl Source {
     pub fn from_raw(src: RawSource) -> Result<Source, String> {
-        let exclude = src.exclude
+        let exclude = src
+            .exclude
             .into_iter()
             .map(|p| src.dir.to_pathbuf().join(p))
             .flat_map(|src| {
@@ -69,7 +68,8 @@ impl Source {
             })
             .collect::<Vec<_>>();
 
-        let include = src.include
+        let include = src
+            .include
             .into_iter()
             .map(|p| src.dir.to_pathbuf().join(p))
             .flat_map(|src| {
@@ -79,7 +79,7 @@ impl Source {
             })
             .filter(|p| !exclude.contains(p))
             .collect::<Vec<_>>();
-        
+
         Ok(Self {
             name: src.name,
             dir: src.dir,
@@ -90,8 +90,11 @@ impl Source {
 
     pub fn include_prefix(&self) -> UrlPath {
         UrlPath::try_from(
-            self.strip_include_prefix.as_ref().unwrap_or(&PathBuf::new())
-        ).unwrap_or(UrlPath::new())
+            self.strip_include_prefix
+                .as_ref()
+                .unwrap_or(&PathBuf::new()),
+        )
+        .unwrap_or(UrlPath::new())
     }
 }
 
@@ -169,6 +172,9 @@ impl Config {
     }
 
     pub fn all_includes(&self) -> Vec<PathBuf> {
-        self.sources.iter().flat_map(|src| src.include.clone()).collect()
+        self.sources
+            .iter()
+            .flat_map(|src| src.include.clone())
+            .collect()
     }
 }

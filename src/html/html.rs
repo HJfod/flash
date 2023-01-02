@@ -9,7 +9,7 @@ pub enum Html {
     Element(HtmlElement),
     /// Text inside a HTML element
     Text(HtmlText),
-    /// A list of HTML elements. Used to return a bunch of stuff with no root 
+    /// A list of HTML elements. Used to return a bunch of stuff with no root
     /// element connecting them
     List(HtmlList),
 }
@@ -21,7 +21,10 @@ impl Html {
     }
 
     pub fn span(classes: &[&str], text: &str) -> Html {
-        HtmlElement::new("span").with_classes(classes).with_text(text).into()
+        HtmlElement::new("span")
+            .with_classes(classes)
+            .with_text(text)
+            .into()
     }
 
     pub fn feather(icon: &str) -> Html {
@@ -143,15 +146,17 @@ impl GenHtml for HtmlElement {
             "<{tag} class=\"{classes}\" {attrs}>{children}</{tag}>",
             tag = self.tag,
             classes = self.classes.join(" "),
-            attrs = self.attributes
+            attrs = self
+                .attributes
                 .iter()
                 .map(|(k, v)| match k.as_str() {
                     "onclick" => format!("{k}=\"{v}\""),
-                    _ => format!("{k}=\"{}\"", v.escape_default())
+                    _ => format!("{k}=\"{}\"", v.escape_default()),
                 })
                 .collect::<Vec<_>>()
                 .join(" "),
-            children = self.children
+            children = self
+                .children
                 .into_iter()
                 .map(|c| c.gen_html())
                 .collect::<Vec<_>>()
@@ -173,7 +178,7 @@ pub struct HtmlText {
 impl HtmlText {
     pub fn new<T: AsRef<str>>(content: T) -> Self {
         Self {
-            content: content.as_ref().into()
+            content: content.as_ref().into(),
         }
     }
 }
@@ -196,15 +201,17 @@ pub struct HtmlList {
 
 impl HtmlList {
     pub fn new(list: Vec<Html>) -> Self {
-        Self {
-            list
-        }
+        Self { list }
     }
 }
 
 impl GenHtml for HtmlList {
     fn gen_html(self) -> String {
-        self.list.into_iter().map(|i| i.gen_html()).collect::<Vec<_>>().join("\n")
+        self.list
+            .into_iter()
+            .map(|i| i.gen_html())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 

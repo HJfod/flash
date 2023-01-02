@@ -7,8 +7,8 @@ mod analyze;
 mod builder;
 mod cmake;
 mod config;
-mod url;
 mod html;
+mod url;
 
 #[derive(Parser, Debug)]
 struct Args {

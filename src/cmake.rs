@@ -81,11 +81,12 @@ pub fn cmake_build(build_dir: &str, args: &Vec<String>) -> Result<(), String> {
 pub fn cmake_compile_commands(config: Arc<Config>) -> Result<CompileCommands, String> {
     serde_json::from_str(
         &fs::read_to_string(
-            config.input_dir
+            config
+                .input_dir
                 .join(&config.cmake.as_ref().unwrap().build_dir)
-                .join("compile_commands.json")
+                .join("compile_commands.json"),
         )
-            .map_err(|e| format!("Unable to read compile_commands.json: {e}"))?,
+        .map_err(|e| format!("Unable to read compile_commands.json: {e}"))?,
     )
     .map_err(|e| format!("Unable to parse compile_commands.json: {e}"))
 }

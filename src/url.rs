@@ -1,5 +1,5 @@
 use crate::config::Config;
-use percent_encoding::{utf8_percent_encode, CONTROLS, AsciiSet};
+use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
 use serde::{de::Visitor, Deserialize};
 use std::{fmt::Display, path::PathBuf, sync::Arc};
 
@@ -8,14 +8,33 @@ use std::{fmt::Display, path::PathBuf, sync::Arc};
 
 pub const URL_RESERVED: &AsciiSet = &CONTROLS
     // reserved characters
-    .add(b'!').add(b'#').add(b'$').add(b'&')
-    .add(b'\'').add(b'(').add(b')').add(b'*')
-    .add(b'+').add(b',').add(b'/').add(b':')
-    .add(b';').add(b'=').add(b'?').add(b'@')
-    .add(b'[').add(b']')
+    .add(b'!')
+    .add(b'#')
+    .add(b'$')
+    .add(b'&')
+    .add(b'\'')
+    .add(b'(')
+    .add(b')')
+    .add(b'*')
+    .add(b'+')
+    .add(b',')
+    .add(b'/')
+    .add(b':')
+    .add(b';')
+    .add(b'=')
+    .add(b'?')
+    .add(b'@')
+    .add(b'[')
+    .add(b']')
     // non-reserved ascii characters that should be escaped
-    .add(b'<').add(b'>').add(b' ').add(b'{')
-    .add(b'}').add(b'\\').add(b'|').add(b'"');
+    .add(b'<')
+    .add(b'>')
+    .add(b' ')
+    .add(b'{')
+    .add(b'}')
+    .add(b'\\')
+    .add(b'|')
+    .add(b'"');
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct UrlPath {

@@ -1,7 +1,8 @@
 use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
 use crate::{
     config::{Config, Source},
-    url::UrlPath, html::html::{Html, HtmlText},
+    html::html::{Html, HtmlText},
+    url::UrlPath,
 };
 use std::{collections::HashMap, path::Path, sync::Arc};
 
@@ -39,21 +40,28 @@ impl<'e> OutputEntry<'e> for File {
                     "file_url",
                     HtmlText::new(
                         builder
-                        .config
-                        .project
-                        .tree
-                        .as_ref()
-                        .map(|tree| tree.to_owned() + &self.def.dir.join(&self.path).to_string())
-                        .unwrap_or("".into())
+                            .config
+                            .project
+                            .tree
+                            .as_ref()
+                            .map(|tree| {
+                                tree.to_owned() + &self.def.dir.join(&self.path).to_string()
+                            })
+                            .unwrap_or("".into()),
                     )
                     .into(),
                 ),
-                ("file_path", HtmlText::new(
-                    self.def.dir
-                        .join(&self.path)
-                        .strip_prefix(self.def.include_prefix())
-                        .to_raw_string()
-                ).into()),
+                (
+                    "file_path",
+                    HtmlText::new(
+                        self.def
+                            .dir
+                            .join(&self.path)
+                            .strip_prefix(self.def.include_prefix())
+                            .to_raw_string(),
+                    )
+                    .into(),
+                ),
             ],
         )
     }
@@ -154,10 +162,7 @@ impl Root {
             .iter()
             .map(|root| Root {
                 def: root.clone(),
-                dir: Dir::new(
-                    root.clone(),
-                    root.name.clone().try_into().unwrap(),
-                ),
+                dir: Dir::new(root.clone(), root.name.clone().try_into().unwrap()),
             })
             .collect::<Vec<_>>();
 
@@ -174,10 +179,9 @@ impl Root {
                     // Add to parent if one exists, or to root if one doesn't
                     let url = UrlPath::try_from(&cut_path.to_path_buf()).unwrap();
                     let def = root.def.clone();
-                    root.try_add_dirs(cut_path.parent()).files.insert(
-                        url.file_name().unwrap().to_owned(),
-                        File::new(def, url),
-                    );
+                    root.try_add_dirs(cut_path.parent())
+                        .files
+                        .insert(url.file_name().unwrap().to_owned(), File::new(def, url));
                 }
             }
         }

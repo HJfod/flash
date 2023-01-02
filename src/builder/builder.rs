@@ -4,7 +4,11 @@ use std::{collections::HashMap, fs, sync::Arc};
 use strfmt::strfmt;
 use tokio::task::JoinHandle;
 
-use crate::{config::Config, url::UrlPath, html::html::{Html, GenHtml, HtmlElement, HtmlText, HtmlList}};
+use crate::{
+    config::Config,
+    html::html::{GenHtml, Html, HtmlElement, HtmlList, HtmlText},
+    url::UrlPath,
+};
 
 use super::{files::Root, index::Index, namespace::Namespace};
 
@@ -65,52 +69,57 @@ impl NavItem {
 
     pub fn to_html(&self, config: Arc<Config>) -> Html {
         match self {
-            NavItem::Link(name, url, icon) =>
-                HtmlElement::new("a")
-                    .with_attr("onclick", &format!("return navigate('{}')", url.to_absolute(config.clone())))
-                    .with_attr("href", url.to_absolute(config))
-                    .with_child_opt(icon.as_ref().map(|i|
-                        HtmlElement::new("i")
-                            .with_attr("data-feather", &i.0)
-                            .with_class("icon")
-                            .with_class_opt(i.1.then_some("variant"))
-                    ))
-                    .with_child(HtmlText::new(name))
-                    .into(),
+            NavItem::Link(name, url, icon) => HtmlElement::new("a")
+                .with_attr(
+                    "onclick",
+                    &format!("return navigate('{}')", url.to_absolute(config.clone())),
+                )
+                .with_attr("href", url.to_absolute(config))
+                .with_child_opt(icon.as_ref().map(|i| {
+                    HtmlElement::new("i")
+                        .with_attr("data-feather", &i.0)
+                        .with_class("icon")
+                        .with_class_opt(i.1.then_some("variant"))
+                }))
+                .with_child(HtmlText::new(name))
+                .into(),
 
-            NavItem::Dir(name, items, icon) =>
-                HtmlElement::new("details")
-                    .with_child(HtmlElement::new("summary")
-                        .with_child(HtmlElement::new("i")
-                            .with_attr("data-feather", "chevron-right")
+            NavItem::Dir(name, items, icon) => HtmlElement::new("details")
+                .with_child(
+                    HtmlElement::new("summary")
+                        .with_child(
+                            HtmlElement::new("i").with_attr("data-feather", "chevron-right"),
                         )
-                        .with_child_opt(icon.as_ref().map(|i|
+                        .with_child_opt(icon.as_ref().map(|i| {
                             HtmlElement::new("i")
                                 .with_attr("data-feather", &i.0)
                                 .with_class("icon")
                                 .with_class_opt(i.1.then_some("variant"))
-                        ))
-                        .with_child(HtmlText::new(name))
-                    )
-                    .with_child(HtmlElement::new("div")
-                        .with_children(items.iter().map(|i| i.to_html(config.clone())).collect())
-                    )
-                    .into(),
+                        }))
+                        .with_child(HtmlText::new(name)),
+                )
+                .with_child(
+                    HtmlElement::new("div")
+                        .with_children(items.iter().map(|i| i.to_html(config.clone())).collect()),
+                )
+                .into(),
 
             NavItem::Root(name, items) => {
                 if let Some(name) = name {
                     HtmlElement::new("details")
                         .with_attr("open", "")
                         .with_attr("class", "root")
-                        .with_child(HtmlElement::new("summary")
-                            .with_child(HtmlElement::new("i")
-                                .with_attr("data-feather", "chevron-right")
-                            )
-                            .with_child(HtmlText::new(name))
+                        .with_child(
+                            HtmlElement::new("summary")
+                                .with_child(
+                                    HtmlElement::new("i")
+                                        .with_attr("data-feather", "chevron-right"),
+                                )
+                                .with_child(HtmlText::new(name)),
                         )
-                        .with_child(HtmlElement::new("div")
-                            .with_children(items.iter().map(|i| i.to_html(config.clone())).collect())
-                        )
+                        .with_child(HtmlElement::new("div").with_children(
+                            items.iter().map(|i| i.to_html(config.clone())).collect(),
+                        ))
                         .into()
                 } else {
                     HtmlList::new(items.iter().map(|i| i.to_html(config.clone())).collect()).into()
