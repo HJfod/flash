@@ -52,7 +52,6 @@ pub struct Source {
     pub name: String,
     pub dir: UrlPath,
     pub include: Vec<PathBuf>,
-    pub strip_include_prefix: Option<PathBuf>,
     pub exists_online: bool,
 }
 
@@ -84,19 +83,9 @@ impl Source {
         Ok(Self {
             name: src.name,
             dir: src.dir,
-            strip_include_prefix: src.strip_include_prefix,
             exists_online: src.exists_online,
             include,
         })
-    }
-
-    pub fn include_prefix(&self) -> UrlPath {
-        UrlPath::try_from(
-            self.strip_include_prefix
-                .as_ref()
-                .unwrap_or(&PathBuf::new()),
-        )
-        .unwrap_or(UrlPath::new())
     }
 }
 
@@ -111,7 +100,6 @@ decl_config! {
         dir: UrlPath,
         include: Vec<PathBuf>,
         exclude: Vec<PathBuf> = Vec::new(),
-        strip_include_prefix?: PathBuf,
         exists_online: bool = true,
     }
 

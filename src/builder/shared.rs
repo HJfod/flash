@@ -243,9 +243,10 @@ pub fn fmt_section(title: &str, data: Vec<Html>) -> Html {
 
 pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
     if let Some(link) = entity.github_url(config.clone()) &&
-        let Some(path) = entity.include_path(config.clone())
+        let Some(path) = entity.include_path(config.clone()) &&
+        let Some(src) = entity.config_source(config)
     {
-        let disabled = !entity.config_source(config).unwrap().exists_online;
+        let disabled = !src.exists_online;
         HtmlElement::new("a")
             .with_attr_opt("href", (!disabled).then_some(link))
             .with_class("header-link")

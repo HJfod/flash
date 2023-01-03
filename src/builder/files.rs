@@ -54,11 +54,7 @@ impl<'e> OutputEntry<'e> for File {
                 (
                     "file_path",
                     HtmlText::new(
-                        self.source
-                            .dir
-                            .join(&self.path)
-                            .strip_prefix(self.source.include_prefix())
-                            .to_raw_string(),
+                        self.source.dir.join(&self.path).to_raw_string(),
                     )
                     .into(),
                 ),

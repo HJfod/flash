@@ -41,6 +41,7 @@ pub struct UrlPath {
     parts: Vec<String>,
 }
 
+#[allow(unused)]
 impl UrlPath {
     pub fn new() -> Self {
         Self { parts: Vec::new() }

@@ -73,23 +73,43 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     }
 
     fn docs_url(&self, config: Arc<Config>) -> UrlPath {
-        self.rel_url().to_absolute(config)
+        // If this is an std item, redirect to cppreference instead
+        if self.full_name().first().is_some_and(|n| n == "std") {
+            (|| {
+                UrlPath::parse(&format!(
+                    "en.cppreference.com/w/cpp/{}/{}",
+                    self.definition_file()?.file_name()?.to_str()?,
+                    self.get_name()?
+                )).ok()
+            })().unwrap_or(UrlPath::new())
+        }
+        else {
+            self.rel_url().to_absolute(config)
+        }
     }
 
     fn github_url(&self, config: Arc<Config>) -> Option<String> {
-        Some(
-            config.project.tree.clone()?
-                + &UrlPath::try_from(&self.header(config)?).ok()?.to_string()
-        )
+        // If this is an std item, redirect to cppreference instead
+        if self.full_name().first().is_some_and(|n| n == "std") {
+            Some(format!(
+                "https://en.cppreference.com/w/cpp/{}/{}",
+                self.definition_file()?.file_name()?.to_str()?,
+                self.get_name()?
+            ))
+        }
+        else {
+            Some(
+                config.project.tree.clone()?
+                    + &UrlPath::try_from(&self.header(config)?).ok()?.to_string()
+            )
+        }
     }
 
     fn include_path(&self, config: Arc<Config>) -> Option<UrlPath> {
-        let rel_path = self.header(config.clone())?;
-        if let Some(ref prefix) = self.config_source(config)?.strip_include_prefix {
-            return UrlPath::try_from(&rel_path.strip_prefix(prefix).ok()?.to_path_buf()).ok();
-        } else {
-            return UrlPath::try_from(&rel_path.to_path_buf()).ok();
-        }
+        UrlPath::try_from(&self.header(config.clone())?)
+            .ok()?
+            .strip_prefix(&self.config_source(config)?.dir)
+            .into()
     }
 
     fn full_name(&self) -> Vec<String> {
