@@ -10,7 +10,7 @@ body {
     background: var(--flash-body-bg);
     color: var(--flash-white);
     display: grid;
-    grid-template-columns: 22.5rem 1fr;
+    grid-template-columns: 26.5rem 1fr;
     grid-template-rows: 100% 100%;
 }
 

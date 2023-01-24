@@ -8,7 +8,12 @@ main {
     overflow-y: auto;
 }
 
-main div {
+/* for legibility, limit maximum width */
+main > * {
+    max-width: 56rem;
+}
+
+main > div {
     margin-bottom: 1rem;
 }
 
@@ -102,12 +107,6 @@ main .button.outlined:hover {
     color: var(--flash-purple);
 }
 
-code {
-    padding: 1rem;
-    background-color: var(--flash-gray-darkest);
-    border-radius: .5rem;
-}
-
 .header-link {
     font-size: 1.1rem;
     color: var(--flash-purple);
@@ -179,6 +178,11 @@ a.disabled:hover {
 
 /* Code thingies */
 
+details.entity-desc {
+    display: flex;
+    width: fit-content;
+}
+
 details.entity-desc[open] {
     background-color: var(--flash-darker);
     border-radius: .5rem;
@@ -212,6 +216,13 @@ details.entity-desc > summary .feather-chevron-right {
 details.entity-desc[open] > summary .feather-chevron-right {
     transform: rotate(90deg);
     opacity: 100%;
+}
+
+.description {
+    display: inline-flex;
+    flex-direction: column;
+    gap: .5rem;
+    max-width: fit-content;
 }
 
 .description > section {
@@ -323,4 +334,56 @@ details.entity-desc[open] > summary .feather-chevron-right {
 
 .entity .space-after {
     margin-right: .5rem;
+}
+
+/* code blocks */
+
+code {
+    display: inline-block;
+    font-size: 1rem;
+    padding: 1rem;
+    background-color: var(--flash-gray-darkest);
+    color: var(--flash-white);
+    border-radius: .5rem;
+}
+
+code.example {
+    display: inline-block;
+    font-size: 1rem;
+    padding: 1rem;
+    min-width: 35rem;
+    background-color: var(--flash-gray-darkest);
+    border-radius: .5rem;
+}
+
+code .keyword {
+    color: var(--flash-purple);
+}
+
+code .class-name {
+    color: var(--flash-yellow);
+}
+
+code .function {
+    color: var(--flash-blue);
+}
+
+code .operator, code .punctuation {
+    color: var(--flash-light);
+}
+
+code .boolean {
+    color: var(--flash-skin);
+}
+
+code .number {
+    color: var(--flash-red);
+}
+
+code .string {
+    color: var(--flash-green);
+}
+
+code .comment {
+    color: var(--flash-dark);
 }

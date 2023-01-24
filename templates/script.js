@@ -1,6 +1,4 @@
 
-feather.replace();
-
 // This reminds me of 8th grade
 
 const entNav = document.getElementById('nav-entities');
@@ -23,6 +21,11 @@ let searchQuery = '';
 searchInput.addEventListener('input', e => {
     search(e.target.value);
 });
+
+function highlight() {
+    feather.replace();
+    window.Prism.highlightAll();
+}
 
 function clearSearch() {
     searchInput.value = '';
@@ -248,7 +251,7 @@ function navigate(url) {
             }, "", url);
             mainBody.innerHTML = content;
             mainBody.scrollTo({ left: 0, top: 0 });
-            feather.replace();
+            highlight();
         })
         .catch(err => {
             console.error(err);
@@ -262,7 +265,7 @@ window.onpopstate = e => {
     if (e.state) {
         mainBody.innerHTML = e.state.html;
         // document.title = e.state.title;
-        feather.replace();
+        highlight();
     }
 };
 
@@ -285,3 +288,6 @@ function pickTheme(name) {
     }
     document.body.classList.add(`flash-theme-${name}`);
 }
+
+// Highlight everything
+highlight();

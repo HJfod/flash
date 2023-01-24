@@ -186,6 +186,7 @@ dependencies = [
  "futures",
  "glob",
  "indicatif",
+ "multipeek",
  "percent-encoding",
  "serde",
  "serde_json",
@@ -427,6 +428,12 @@ dependencies = [
  "wasi",
  "windows-sys",
 ]
+
+[[package]]
+name = "multipeek"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d6b1cf1c2ae7c8c3898cbf8354ee836bc7037e35592d3739a9901d53c97b6a2"
 
 [[package]]
 name = "num_cpus"

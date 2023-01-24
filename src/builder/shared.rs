@@ -41,10 +41,10 @@ impl<T, Sep: Fn() -> T> InsertBetween<T, Sep> for Vec<T> {
     }
 }
 
-fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
+fn fmt_type(entity: &Type, builder: &Builder) -> Html {
     let base = entity.get_pointee_type().unwrap_or(entity.to_owned());
     let decl = base.get_declaration();
-    let link = decl.map(|decl| decl.docs_url(config.clone()));
+    let link = decl.map(|decl| decl.docs_url(builder.config.clone()));
     let kind = decl
         .map(|decl| decl.get_kind())
         .unwrap_or(EntityKind::UnexposedDecl);
@@ -102,7 +102,7 @@ fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
                 }))
                 .into()
         });
-
+    
     HtmlElement::new("a")
         .with_class("entity")
         .with_class("type")
@@ -121,7 +121,7 @@ fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
                     types
                         .iter()
                         .map(|t| {
-                            t.map(|t| fmt_type(&t, config.clone()))
+                            t.map(|t| fmt_type(&t, builder))
                                 .unwrap_or(HtmlText::new("_unk").into())
                         })
                         .collect::<Vec<_>>()
@@ -149,10 +149,10 @@ fn fmt_type(entity: &Type, config: Arc<Config>) -> Html {
         .into()
 }
 
-fn fmt_param(param: &Entity, config: Arc<Config>) -> Html {
+fn fmt_param(param: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("div")
         .with_classes(&["entity", "var"])
-        .with_child_opt(param.get_type().map(|t| fmt_type(&t, config)))
+        .with_child_opt(param.get_type().map(|t| fmt_type(&t, builder)))
         .with_child_opt(
             param
                 .get_display_name()
@@ -161,15 +161,15 @@ fn fmt_param(param: &Entity, config: Arc<Config>) -> Html {
         .into()
 }
 
-pub fn fmt_field(field: &Entity, config: Arc<Config>) -> Html {
+pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("div")
         .with_classes(&["entity", "var"])
-        .with_child(fmt_param(field, config))
+        .with_child(fmt_param(field, builder))
         .with_child(HtmlText::new(";"))
         .into()
 }
 
-pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
+pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("details")
         .with_class("entity-desc")
         .with_child(
@@ -183,7 +183,7 @@ pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
                     fun.is_virtual_method()
                         .then_some(Html::span(&["keyword", "space-after"], "virtual")),
                 )
-                .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, config.clone())))
+                .with_child_opt(fun.get_result_type().map(|t| fmt_type(&t, builder)))
                 .with_child(Html::span(
                     &["name", "space-before"],
                     &fun.get_name().unwrap_or("_anon".into()),
@@ -193,7 +193,7 @@ pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
                         fun.get_arguments()
                             .map(|args| {
                                 args.iter()
-                                    .map(|arg| fmt_param(arg, config.clone()))
+                                    .map(|arg| fmt_param(arg, builder))
                                     .collect::<Vec<_>>()
                             })
                             .unwrap_or(Vec::new())
@@ -218,7 +218,7 @@ pub fn fmt_fun_decl(fun: &Entity, config: Arc<Config>) -> Html {
         .with_child(
             HtmlElement::new("div").with_child(
                 fun.get_comment()
-                    .map(|s| JSDocComment::parse(s).to_html())
+                    .map(|s| JSDocComment::parse(s, builder).to_html())
                     .unwrap_or(Html::p("No description provided")),
             ),
         )
@@ -275,7 +275,7 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
             entry
                 .entity()
                 .get_comment()
-                .map(|s| JSDocComment::parse(s).to_html())
+                .map(|s| JSDocComment::parse(s, builder).to_html())
                 .unwrap_or(Html::p("No Description Provided")),
         ),
         ("header_link", fmt_header_link(entry.entity(), builder.config.clone())),
@@ -301,7 +301,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                             && child.is_static_method()
                             && child.get_accessibility() == Some(Accessibility::Public)
                     })
-                    .map(|e| fmt_fun_decl(e, builder.config.clone()))
+                    .map(|e| fmt_fun_decl(e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -318,7 +318,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                             && !child.is_static_method()
                             && child.get_accessibility() == Some(Accessibility::Public)
                     })
-                    .map(|e| fmt_fun_decl(e, builder.config.clone()))
+                    .map(|e| fmt_fun_decl(e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -336,7 +336,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                             && !child.is_static_method()
                             && child.get_accessibility() == Some(Accessibility::Protected)
                     })
-                    .map(|e| fmt_fun_decl(e, builder.config.clone()))
+                    .map(|e| fmt_fun_decl(e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -352,7 +352,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                         child.get_kind() == EntityKind::FieldDecl
                             && child.get_accessibility() == Some(Accessibility::Public)
                     })
-                    .map(|e| fmt_field(e, builder.config.clone()))
+                    .map(|e| fmt_field(e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),

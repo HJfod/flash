@@ -5,7 +5,7 @@ use clang::{Entity, EntityKind};
 use crate::url::UrlPath;
 
 use super::{
-    builder::{BuildResult, Builder, EntityMethods, Entry, NavItem},
+    builder::{BuildResult, Builder, EntityMethods, Entry, NavItem, ASTEntry},
     class::Class,
     function::Function,
     struct_::Struct,
@@ -56,6 +56,17 @@ impl<'e> Entry<'e> for CppItem<'e> {
     }
 }
 
+impl<'e> ASTEntry<'e> for CppItem<'e> {
+    fn entity(&self) -> &Entity<'e> {
+        match self {
+            CppItem::Class(c) => c.entity(),
+            CppItem::Function(c) => c.entity(),
+            CppItem::Namespace(c) => c.entity(),
+            CppItem::Struct(c) => c.entity(),
+        }
+    }
+}
+
 pub struct Namespace<'e> {
     entity: Entity<'e>,
     pub entries: HashMap<String, CppItem<'e>>,
@@ -95,6 +106,12 @@ impl<'e> Entry<'e> for Namespace<'e> {
 
     fn url(&self) -> UrlPath {
         UrlPath::new_with_path(self.entity.full_name())
+    }
+}
+
+impl<'e> ASTEntry<'e> for Namespace<'e> {
+    fn entity(&self) -> &Entity<'e> {
+        &self.entity
     }
 }
 

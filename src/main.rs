@@ -1,5 +1,6 @@
 #![feature(let_chains)]
 #![feature(is_some_and)]
+#![feature(result_option_inspect)]
 
 use crate::{analyze::create_docs, url::UrlPath};
 use clap::Parser;

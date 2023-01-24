@@ -67,7 +67,7 @@ async fn analyze_with_clang(config: Arc<Config>, args: &[String]) -> Result<(), 
 
     // Build the navbar first
     pbar.set_message("Setting up");
-    let builder = Builder::new(config, unit.get_entity())?;
+    let builder = Builder::new(config, unit.get_entity(), &clang, &index, args)?;
 
     // Build the doc files
     pbar.set_message("Building docs");

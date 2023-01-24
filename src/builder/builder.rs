@@ -1,4 +1,4 @@
-use clang::{Entity, EntityKind};
+use clang::{Entity, EntityKind, Clang};
 use indicatif::ProgressBar;
 use std::{collections::HashMap, fs, sync::Arc, path::PathBuf};
 use strfmt::strfmt;
@@ -236,16 +236,28 @@ pub trait ASTEntry<'e>: Entry<'e> {
 
 pub struct Builder<'e> {
     pub config: Arc<Config>,
-    root: Namespace<'e>,
+    pub root: Namespace<'e>,
+    pub clang: &'e Clang,
+    pub index: &'e clang::Index<'e>,
+    pub args: &'e [String],
     file_roots: Vec<Root>,
     nav_cache: Option<String>,
 }
 
 impl<'e> Builder<'e> {
-    pub fn new(config: Arc<Config>, root: Entity<'e>) -> Result<Self, String> {
+    pub fn new(
+        config: Arc<Config>,
+        root: Entity<'e>,
+        clang: &'e Clang,
+        index: &'e clang::Index<'e>,
+        args: &'e [String],
+    ) -> Result<Self, String> {
         Self {
             config: config.clone(),
             root: Namespace::new(root),
+            clang,
+            index,
+            args,
             file_roots: Root::from_config(config),
             nav_cache: None,
         }

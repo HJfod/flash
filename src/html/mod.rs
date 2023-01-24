@@ -154,9 +154,11 @@ impl HtmlElement {
 impl GenHtml for HtmlElement {
     fn gen_html(self) -> String {
         format!(
-            "<{tag} class=\"{classes}\" {attrs}>{children}</{tag}>",
+            "<{tag} {classes} {attrs}>{children}</{tag}>",
             tag = self.tag,
-            classes = self.classes.join(" "),
+            classes = self.classes.is_empty().then_some(String::new()).unwrap_or(
+                format!("class=\"{}\"", self.classes.join(" "))
+            ),
             attrs = self
                 .attributes
                 .iter()
