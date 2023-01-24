@@ -18,13 +18,61 @@ const NAV_ENTITIES = 1;
 let searchNav = undefined;
 let searchQuery = '';
 
+Prism.hooks.add('complete', env => {
+    // Check if inline or actual code block (credit to line-numbers plugin)
+    const pre = env.element.parentNode;
+    if (!pre || !/pre/i.test(pre.nodeName)) {
+        return;
+    }
+
+    // Return if there already is a toolbar
+    if (pre.querySelector('.toolbar')) {
+        return;
+    }
+
+    // Add toolbar
+    const toolbar = document.createElement('div');
+    toolbar.classList.add('toolbar');
+    pre.insertBefore(toolbar, pre.firstChild);
+
+    const button = document.createElement('button');
+    button.innerHTML = `<i data-feather='copy'></i>`;
+    button.addEventListener('click', _ => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(env.code)
+                .then(() => {
+                    button.innerHTML = `<i data-feather='check'></i>`;
+                    button.classList.add('success');
+                    feather.replace();
+                },
+                () => {
+                    button.innerHTML = `<i data-feather='x'></i>`;
+                    button.classList.add('failure');
+                    feather.replace();
+                });
+        }
+        else {
+            button.innerHTML = `<i data-feather='x'></i>`;
+            button.classList.add('failure');
+            feather.replace();
+        }
+        setTimeout(_ => {
+            button.innerHTML = `<i data-feather='copy'></i>`;
+            button.classList.remove('success');
+            button.classList.remove('failure');
+            feather.replace();
+        }, 1500);
+    });
+    toolbar.appendChild(button);
+});
+
 searchInput.addEventListener('input', e => {
     search(e.target.value);
 });
 
 function highlight() {
+    Prism.highlightAll();
     feather.replace();
-    window.Prism.highlightAll();
 }
 
 function clearSearch() {

@@ -389,3 +389,41 @@ code .string {
 code .comment {
     color: var(--flash-dark);
 }
+
+pre {
+    display: inline-block;
+}
+
+pre > .toolbar {
+    position: relative;
+    height: 0px;
+    text-align: right;
+    offset-anchor: right;
+}
+
+pre > .toolbar > button {
+    margin: .5rem;
+    padding: .35rem;
+    border-radius: .35rem;
+    background: none;
+    border: none;
+    color: var(--flash-dark);
+}
+
+pre > .toolbar > button > .feather {
+    height: 1.25rem;
+}
+
+pre > .toolbar > button:hover {
+    background: var(--flash-hover);
+    color: var(--flash-white);
+    cursor: pointer;
+}
+
+pre > .toolbar > button.success {
+    color: var(--flash-green);
+}
+
+pre > .toolbar > button.failure {
+    color: var(--flash-red);
+}
