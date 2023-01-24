@@ -232,6 +232,11 @@ details.entity-desc[open] > summary .feather-chevron-right {
     margin-bottom: 2rem;
 }
 
+.description > .text a {
+    color: var(--flash-orange);
+    display: inline;
+}
+
 .description > section {
     display: flex;
     margin: 0;

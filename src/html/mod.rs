@@ -173,7 +173,7 @@ impl GenHtml for HtmlElement {
                 .into_iter()
                 .map(|c| c.gen_html())
                 .collect::<Vec<_>>()
-                .join("")
+                .join(" ")
         )
     }
 }

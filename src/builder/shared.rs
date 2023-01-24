@@ -1,6 +1,7 @@
-use super::builder::EntityMethods;
+use super::builder::{EntityMethods, Entry};
 use super::builder::{ASTEntry, Builder};
 use super::comment::JSDocComment;
+use super::namespace::CppItem;
 use crate::config::Config;
 use crate::{
     html::{Html, HtmlElement, HtmlList, HtmlText},
@@ -385,4 +386,53 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
         ),
     ]);
     ent
+}
+
+enum Word {
+    Unmatched(String),
+    Matched(Html),
+}
+
+fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Vec<Word>) {
+    for word in words.iter_mut() {
+        if let Word::Unmatched(name) = word {
+            if *name == entity.name() {
+                *word = Word::Matched(
+                    HtmlElement::new("a")
+                        .with_text(name)
+                        .with_attr("href", entity.entity().docs_url(config.clone()))
+                        .into()
+                );
+            }
+        }
+    }
+
+    match entity {
+        CppItem::Namespace(ns) => {
+            for v in ns.entries.values() {
+                fmt_autolinks_recursive(v, config.clone(), words);
+            }
+        },
+        _ => {},
+    }
+}
+
+pub fn fmt_autolinks(builder: &Builder, text: &String) -> Html {
+    let mut words = text
+        .split(|c: char| c.is_whitespace())
+        .filter(|s| s.len() > 0)
+        .map(|w| Word::Unmatched(w.into()))
+        .collect();
+
+    for entry in builder.root.entries.values() { 
+        fmt_autolinks_recursive(entry, builder.config.clone(), &mut words);
+    }
+
+    HtmlElement::new("div")
+        .with_class("text")
+        .with_children(words.into_iter().map(|word| match word {
+            Word::Matched(m) => m,
+            Word::Unmatched(w) => HtmlText::new(w).into(),
+        }).collect())
+        .into()
 }
