@@ -121,6 +121,10 @@ a.disabled:hover {
     cursor: default;
 }
 
+.section {
+    margin-top: .5rem;
+}
+
 .section > summary {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
