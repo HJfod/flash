@@ -1,9 +1,45 @@
 
+nav > header {
+    display: grid;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: bold;
+    color: var(--flash-white);
+    grid-template-columns: min-content max-content 1fr min-content;
+    align-items: center;
+}
+
+nav > header > img {
+    height: 2.25rem;
+    margin-right: .5rem;
+}
+
+nav > header > .version {
+    font-weight: normal;
+    color: var(--flash-light);
+    margin-left: .25rem;
+}
+
+nav > header > a {
+    color: var(--flash-light);
+    border: .15rem solid var(--flash-dark);
+    border-radius: 9999px;
+    height: 2.25rem;
+    width: 2.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+nav > header > a > * {
+    padding: 0;
+    margin: 0 !important;
+}
+
 nav {
     background-color: var(--flash-gray-dark);
     height: 100%;
     display: grid;
-    grid-template-rows: min-content 1fr min-content;
+    grid-template-rows: min-content min-content 1fr min-content;
 }
 
 nav > * {
@@ -13,6 +49,7 @@ nav > * {
 nav > .mode {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    padding-top: 0rem;
     padding-bottom: 0rem;
 }
 

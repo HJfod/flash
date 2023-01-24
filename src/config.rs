@@ -109,6 +109,7 @@ decl_config! {
             version: String,
             repository?: String,
             tree?: String,
+            icon?: PathBuf,
         },
         sources: Vec<Arc<Source>> as parse_sources,
         run? {

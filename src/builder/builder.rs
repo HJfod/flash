@@ -278,6 +278,10 @@ impl<'e> Builder<'e> {
             )
             .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
+        if let Some(ref icon) = self.config.project.icon {
+            fs::copy(self.config.input_dir.join(icon), self.config.output_dir.join("icon.png"))
+            .map_err(|e| format!("Unable to copy icon: {e}"))?;
+        }
         self.prebuild()?;
         Ok(self)
     }
@@ -315,18 +319,17 @@ impl<'e> Builder<'e> {
             let content = strfmt(&template, &fmt)
                 .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
-            let page = strfmt(
-                &config.templates.page,
-                &HashMap::from([
-                    (
-                        "head_content".to_owned(),
-                        strfmt(&config.templates.head, &fmt)
-                            .map_err(|e| format!("Unable to format head for {target_url}: {e}"))?,
-                    ),
-                    ("navbar_content".to_owned(), nav),
-                    ("main_content".to_owned(), content.clone()),
-                ]),
-            )
+            let mut page_fmt = default_format(config.clone());
+            page_fmt.extend(HashMap::from([
+                (
+                    "head_content".to_owned(),
+                    strfmt(&config.templates.head, &fmt)
+                        .map_err(|e| format!("Unable to format head for {target_url}: {e}"))?,
+                ),
+                ("navbar_content".to_owned(), nav),
+                ("main_content".to_owned(), content.clone()),
+            ]));
+            let page = strfmt(&config.templates.page, &page_fmt)
             .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
             // Make sure output directory exists
@@ -439,6 +442,15 @@ fn default_format(config: Arc<Config>) -> HashMap<String, String> {
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),
+        ("project_repository".into(), config.project.repository.clone().unwrap_or(String::new())),
+        ("project_icon".into(), config.project.icon.as_ref().and(Some(format!(
+            "<img src=\"{}/icon.png\">",
+            config
+                .output_url
+                .as_ref()
+                .unwrap_or(&UrlPath::new())
+                .to_string()
+        ))).unwrap_or(String::new())),
         (
             "output_url".into(),
             config
