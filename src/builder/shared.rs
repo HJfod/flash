@@ -162,10 +162,21 @@ fn fmt_param(param: &Entity, builder: &Builder) -> Html {
 }
 
 pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
-    HtmlElement::new("div")
-        .with_classes(&["entity", "var"])
-        .with_child(fmt_param(field, builder))
-        .with_child(HtmlText::new(";"))
+    HtmlElement::new("details")
+        .with_class("entity-desc")
+        .with_child(
+            HtmlElement::new("summary")
+                .with_classes(&["entity", "var"])
+                .with_child(fmt_param(field, builder))
+                .with_child(HtmlText::new(";"))
+        )
+        .with_child(
+            HtmlElement::new("div").with_child(
+                field.get_comment()
+                    .map(|s| JSDocComment::parse(s, builder).to_html(true))
+                    .unwrap_or(Html::p("No description provided")),
+            ),
+        )
         .into()
 }
 
@@ -218,7 +229,7 @@ pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
         .with_child(
             HtmlElement::new("div").with_child(
                 fun.get_comment()
-                    .map(|s| JSDocComment::parse(s, builder).to_html())
+                    .map(|s| JSDocComment::parse(s, builder).to_html(true))
                     .unwrap_or(Html::p("No description provided")),
             ),
         )
@@ -275,10 +286,26 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
             entry
                 .entity()
                 .get_comment()
-                .map(|s| JSDocComment::parse(s, builder).to_html())
+                .map(|s| JSDocComment::parse(s, builder).to_html(false))
                 .unwrap_or(Html::p("No Description Provided")),
         ),
         ("header_link", fmt_header_link(entry.entity(), builder.config.clone())),
+        (
+            "examples",
+            fmt_section(
+                "Examples", 
+                entry
+                    .entity()
+                    .get_comment()
+                    .map(|s| JSDocComment::parse(s, builder)
+                        .examples()
+                        .iter()
+                        .map(|example| example.to_html())
+                        .collect()
+                    )
+                    .unwrap_or(Vec::new()),
+            )
+        ),
     ]
 }
 

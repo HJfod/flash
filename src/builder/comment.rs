@@ -6,7 +6,7 @@ use multipeek::{MultiPeek, IteratorExt};
 
 use crate::{html::{Html, HtmlElement, HtmlText, HtmlList}, url::UrlPath};
 
-use super::{builder::{Builder, EntityMethods}, shared::fmt_section};
+use super::builder::{Builder, EntityMethods};
 
 struct CommentLexer<'s> {
     raw: MultiPeek<Chars<'s>>,
@@ -514,7 +514,7 @@ impl<'e> JSDocComment<'e> {
         Self::new(builder).parse_mut(raw)
     }
 
-    pub fn to_html(&self) -> Html {
+    pub fn to_html(&self, include_examples: bool) -> Html {
         HtmlList::new(vec![
             HtmlElement::new("div")
                 .with_class("description")
@@ -579,11 +579,16 @@ impl<'e> JSDocComment<'e> {
                         .with_child(Html::div(warning.clone()))
                         .into()
                 ).collect())
+                .with_children(if include_examples {
+                    self.examples.iter().map(|example| example.to_html()).collect()
+                } else {
+                    Vec::new()
+                })
                 .into(),
-            fmt_section(
-                "Examples", 
-                self.examples.iter().map(|example| example.to_html()).collect()
-            )
         ]).into()
+    }
+
+    pub fn examples(&self) -> &Vec<Example> {
+        &self.examples
     }
 }
