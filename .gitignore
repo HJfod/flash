@@ -3,3 +3,4 @@ test/
 output/
 geode/
 .vscode/
+Cargo.lock
