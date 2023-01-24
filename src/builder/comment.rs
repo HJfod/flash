@@ -527,64 +527,56 @@ impl<'e> JSDocComment<'e> {
                 .with_child_opt((!self.params.is_empty()).then_some(
                     HtmlElement::new("section")
                         .with_class("params")
-                        .with_children(self.params.iter().flat_map(|param|
-                            vec![
-                                Html::p(param.0.clone()),
-                                Html::div(param.1.clone()),
-                            ]
-                        ).collect())
+                        .with_child(Html::span(&["title"], "Parameters"))
+                        .with_child(HtmlElement::new("div")
+                            .with_class("grid")
+                            .with_children(self.params.iter().flat_map(|param|
+                                vec![
+                                    Html::p(param.0.clone()),
+                                    Html::div(param.1.clone()),
+                                ]
+                            ).collect())
+                        )
                 ))
                 .with_child_opt((!self.tparams.is_empty()).then_some(
                     HtmlElement::new("section")
                         .with_classes(&["params", "template"])
-                        .with_children(self.tparams.iter().flat_map(|tparam|
-                            vec![
-                                Html::p(tparam.0.clone()),
-                                Html::div(tparam.1.clone()),
-                            ]
-                        ).collect())
+                        .with_child(Html::span(&["title"], "Template parameters"))
+                        .with_child(HtmlElement::new("div")
+                            .with_class("grid")
+                            .with_children(self.tparams.iter().flat_map(|tparam|
+                                vec![
+                                    Html::p(tparam.0.clone()),
+                                    Html::div(tparam.1.clone()),
+                                ]
+                            ).collect())
+                        )
                 ))
                 .with_child_opt(self.returns.as_ref().map(|ret|
                     HtmlElement::new("section")
-                        .with_classes(&["params", "returns"])
-                        .with_children(
-                            vec![
-                                Html::p("Returns"),
-                                Html::div(ret.clone()),
-                            ]
-                        )
+                        .with_classes(&["params", "returns", "grid"])
+                        .with_child(Html::span(&["title"], "Return value"))
+                        .with_child(Html::div(ret.clone()))
                 ))
                 .with_child_opt(self.throws.as_ref().map(|ret|
                     HtmlElement::new("section")
-                        .with_classes(&["params", "throws"])
-                        .with_children(
-                            vec![
-                                Html::p("Throws"),
-                                Html::div(ret.clone()),
-                            ]
-                        )
+                        .with_classes(&["params", "throws", "grid"])
+                        .with_child(Html::span(&["title"], "Exceptions"))
+                        .with_child(Html::div(ret.clone()))
                 ))
                 // todo: see
                 .with_children(self.notes.iter().map(|note|
                     HtmlElement::new("section")
                         .with_class("note")
-                        .with_children(
-                            vec![
-                                Html::p("Note"),
-                                Html::div(note.clone()),
-                            ]
-                        )
+                        .with_child(Html::span(&["title"], "Note"))
+                        .with_child(Html::div(note.clone()))
                         .into()
                 ).collect())
                 .with_children(self.warnings.iter().map(|warning|
                     HtmlElement::new("section")
                         .with_class("warning")
-                        .with_children(
-                            vec![
-                                Html::p("Warning"),
-                                Html::div(warning.clone()),
-                            ]
-                        )
+                        .with_child(Html::span(&["title"], "Warning"))
+                        .with_child(Html::div(warning.clone()))
                         .into()
                 ).collect())
                 .into(),
