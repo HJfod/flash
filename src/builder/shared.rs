@@ -264,6 +264,7 @@ pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
             .with_class("header-link")
             .with_class_opt(disabled.then_some("disabled"))
             .with_child(HtmlElement::new("code")
+                .with_class("header-link")
                 .with_children(vec![
                     Html::span(&["keyword"], "#include ").into(),
                     Html::span(&["url"], &format!("&lt;{}&gt;", path.to_raw_string()))
@@ -390,19 +391,17 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
 
 enum Word {
     Unmatched(String),
-    Matched(Html),
+    Matched(String),
 }
 
 fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Vec<Word>) {
     for word in words.iter_mut() {
         if let Word::Unmatched(name) = word {
             if *name == entity.name() {
-                *word = Word::Matched(
-                    HtmlElement::new("a")
-                        .with_text(name)
-                        .with_attr("href", entity.entity().docs_url(config.clone()))
-                        .into()
-                );
+                *word = Word::Matched(format!(
+                    "[{name}]({})",
+                    entity.entity().docs_url(config.clone())
+                ));
             }
         }
     }
@@ -417,8 +416,10 @@ fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Ve
     }
 }
 
-pub fn fmt_autolinks(builder: &Builder, text: &String) -> Html {
+fn fmt_autolinks(builder: &Builder, text: &String) -> String {
     let mut words = text
+        // hacky fix to preserve newlines
+        .replace("\n", " <<br>> ")
         .split(|c: char| c.is_whitespace())
         .filter(|s| s.len() > 0)
         .map(|w| Word::Unmatched(w.into()))
@@ -428,11 +429,15 @@ pub fn fmt_autolinks(builder: &Builder, text: &String) -> Html {
         fmt_autolinks_recursive(entry, builder.config.clone(), &mut words);
     }
 
+    words.into_iter().map(|word| match word {
+        Word::Matched(m) => m,
+        Word::Unmatched(w) => w,
+    }).collect::<Vec<_>>().join(" ").replace("<<br>>", "\n")
+}
+
+pub fn fmt_markdown(builder: &Builder, text: &String) -> Html {
     HtmlElement::new("div")
         .with_class("text")
-        .with_children(words.into_iter().map(|word| match word {
-            Word::Matched(m) => m,
-            Word::Unmatched(w) => HtmlText::new(w).into(),
-        }).collect())
+        .with_child(Html::Raw(markdown::to_html(&fmt_autolinks(builder, text))))
         .into()
 }

@@ -12,6 +12,8 @@ pub enum Html {
     /// A list of HTML elements. Used to return a bunch of stuff with no root
     /// element connecting them
     List(HtmlList),
+    /// Raw HTML data
+    Raw(String),
 }
 
 impl Html {
@@ -42,6 +44,7 @@ impl GenHtml for Html {
             Self::Element(e) => e.gen_html(),
             Self::Text(t) => t.gen_html(),
             Self::List(l) => l.gen_html(),
+            Self::Raw(s) => s,
         }
     }
 }
@@ -224,7 +227,7 @@ impl GenHtml for HtmlList {
             .into_iter()
             .map(|i| i.gen_html())
             .collect::<Vec<_>>()
-            .join("")
+            .join(" ")
     }
 }
 

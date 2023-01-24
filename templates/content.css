@@ -357,14 +357,22 @@ details.entity-desc[open] > summary .feather-chevron-right {
 
 code {
     display: inline-block;
-    font-size: 1rem;
-    padding: 1rem;
     background-color: var(--flash-gray-darkest);
     color: var(--flash-light);
-    border-radius: .5rem;
+    border-radius: .25rem;
+    padding: .25rem;
+    font-size: 1rem;
 }
 
-code.example {
+code.header-link {
+    padding: 1rem;
+}
+
+pre > code {
+    padding: 1rem;
+}
+
+pre > code.example {
     display: inline-block;
     font-size: 1rem;
     padding: 1rem;
