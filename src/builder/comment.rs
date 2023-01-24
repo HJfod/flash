@@ -4,9 +4,9 @@ use std::{str::Chars, collections::HashMap, fs};
 use clang::{Entity, EntityKind, token::{Token, TokenKind}};
 use multipeek::{MultiPeek, IteratorExt};
 
-use crate::{html::{Html, HtmlElement, HtmlText}, url::UrlPath};
+use crate::{html::{Html, HtmlElement, HtmlText, HtmlList}, url::UrlPath};
 
-use super::{builder::{Builder, EntityMethods}};
+use super::{builder::{Builder, EntityMethods}, shared::fmt_section};
 
 struct CommentLexer<'s> {
     raw: MultiPeek<Chars<'s>>,
@@ -515,78 +515,83 @@ impl<'e> JSDocComment<'e> {
     }
 
     pub fn to_html(&self) -> Html {
-        HtmlElement::new("div")
-            .with_class("description")
-            .with_child(HtmlElement::new("div")
-                .with_class("tags")
-                .with_child_opt(self.version.as_ref().map(|v| Html::p(format!("Version {v}"))))
-                .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
+        HtmlList::new(vec![
+            HtmlElement::new("div")
+                .with_class("description")
+                .with_child(HtmlElement::new("div")
+                    .with_class("tags")
+                    .with_child_opt(self.version.as_ref().map(|v| Html::p(format!("Version {v}"))))
+                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
+                )
+                .with_child_opt(self.description.as_ref().map(HtmlText::new))
+                .with_child_opt((!self.params.is_empty()).then_some(
+                    HtmlElement::new("section")
+                        .with_class("params")
+                        .with_children(self.params.iter().flat_map(|param|
+                            vec![
+                                Html::p(param.0.clone()),
+                                Html::div(param.1.clone()),
+                            ]
+                        ).collect())
+                ))
+                .with_child_opt((!self.tparams.is_empty()).then_some(
+                    HtmlElement::new("section")
+                        .with_classes(&["params", "template"])
+                        .with_children(self.tparams.iter().flat_map(|tparam|
+                            vec![
+                                Html::p(tparam.0.clone()),
+                                Html::div(tparam.1.clone()),
+                            ]
+                        ).collect())
+                ))
+                .with_child_opt(self.returns.as_ref().map(|ret|
+                    HtmlElement::new("section")
+                        .with_classes(&["params", "returns"])
+                        .with_children(
+                            vec![
+                                Html::p("Returns"),
+                                Html::div(ret.clone()),
+                            ]
+                        )
+                ))
+                .with_child_opt(self.throws.as_ref().map(|ret|
+                    HtmlElement::new("section")
+                        .with_classes(&["params", "throws"])
+                        .with_children(
+                            vec![
+                                Html::p("Throws"),
+                                Html::div(ret.clone()),
+                            ]
+                        )
+                ))
+                // todo: see
+                .with_children(self.notes.iter().map(|note|
+                    HtmlElement::new("section")
+                        .with_class("note")
+                        .with_children(
+                            vec![
+                                Html::p("Note"),
+                                Html::div(note.clone()),
+                            ]
+                        )
+                        .into()
+                ).collect())
+                .with_children(self.warnings.iter().map(|warning|
+                    HtmlElement::new("section")
+                        .with_class("warning")
+                        .with_children(
+                            vec![
+                                Html::p("Warning"),
+                                Html::div(warning.clone()),
+                            ]
+                        )
+                        .into()
+                ).collect())
+                .into(),
+            fmt_section(
+                "Examples", 
+                self.examples.iter().map(|example| example.to_html()).collect()
             )
-            .with_child_opt(self.description.as_ref().map(HtmlText::new))
-            .with_child_opt((!self.params.is_empty()).then_some(
-                HtmlElement::new("section")
-                    .with_class("params")
-                    .with_children(self.params.iter().flat_map(|param|
-                        vec![
-                            Html::p(param.0.clone()),
-                            Html::div(param.1.clone()),
-                        ]
-                    ).collect())
-            ))
-            .with_child_opt((!self.tparams.is_empty()).then_some(
-                HtmlElement::new("section")
-                    .with_classes(&["params", "template"])
-                    .with_children(self.tparams.iter().flat_map(|tparam|
-                        vec![
-                            Html::p(tparam.0.clone()),
-                            Html::div(tparam.1.clone()),
-                        ]
-                    ).collect())
-            ))
-            .with_child_opt(self.returns.as_ref().map(|ret|
-                HtmlElement::new("section")
-                    .with_classes(&["params", "returns"])
-                    .with_children(
-                        vec![
-                            Html::p("Returns"),
-                            Html::div(ret.clone()),
-                        ]
-                    )
-            ))
-            .with_child_opt(self.throws.as_ref().map(|ret|
-                HtmlElement::new("section")
-                    .with_classes(&["params", "throws"])
-                    .with_children(
-                        vec![
-                            Html::p("Throws"),
-                            Html::div(ret.clone()),
-                        ]
-                    )
-            ))
-            // todo: see
-            .with_children(self.notes.iter().map(|note|
-                HtmlElement::new("section")
-                    .with_class("note")
-                    .with_children(
-                        vec![
-                            Html::p("Note"),
-                            Html::div(note.clone()),
-                        ]
-                    )
-                    .into()
-            ).collect())
-            .with_children(self.warnings.iter().map(|warning|
-                HtmlElement::new("section")
-                    .with_class("warning")
-                    .with_children(
-                        vec![
-                            Html::p("Warning"),
-                            Html::div(warning.clone()),
-                        ]
-                    )
-                    .into()
-            ).collect())
-            .with_children(self.examples.iter().map(|example| example.to_html()).collect())
-            .into()
+        ]).into()
     }
 }

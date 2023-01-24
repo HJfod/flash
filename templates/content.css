@@ -223,6 +223,7 @@ details.entity-desc[open] > summary .feather-chevron-right {
     flex-direction: column;
     gap: .5rem;
     max-width: fit-content;
+    margin-bottom: 2rem;
 }
 
 .description > section {
@@ -343,7 +344,7 @@ code {
     font-size: 1rem;
     padding: 1rem;
     background-color: var(--flash-gray-darkest);
-    color: var(--flash-white);
+    color: var(--flash-light);
     border-radius: .5rem;
 }
 
@@ -353,6 +354,7 @@ code.example {
     padding: 1rem;
     min-width: 35rem;
     background-color: var(--flash-gray-darkest);
+    color: var(--flash-white);
     border-radius: .5rem;
 }
 

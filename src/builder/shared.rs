@@ -253,7 +253,7 @@ pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
             .with_class_opt(disabled.then_some("disabled"))
             .with_child(HtmlElement::new("code")
                 .with_children(vec![
-                    HtmlText::new("#include ").into(),
+                    Html::span(&["keyword"], "#include ").into(),
                     Html::span(&["url"], &format!("&lt;{}&gt;", path.to_raw_string()))
                 ])
             )
