@@ -22,7 +22,7 @@ shlex = "1.1.0"
 strfmt = "0.2.2"
 toml = "0.5.10"
 flash-macros = { path = "macros" }
-tokio = { version = "1.23.0", features = ["full"] }
+tokio = { version = "1.23.1", features = ["full"] }
 futures = "0.3.25"
 percent-encoding = "2.2.0"
 multipeek = "0.1.2"
