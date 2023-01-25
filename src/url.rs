@@ -36,7 +36,7 @@ pub const URL_RESERVED: &AsciiSet = &CONTROLS
     .add(b'|')
     .add(b'"');
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Hash, Debug, Clone, PartialEq)]
 pub struct UrlPath {
     parts: Vec<String>,
 }

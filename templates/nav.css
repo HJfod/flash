@@ -186,6 +186,11 @@ nav > .content a {
     max-width: 100%;
 }
 
+nav > .content a.selected {
+    background-color: var(--flash-hover);
+    color: var(--flash-white);
+}
+
 nav > .content a .feather {
     min-width: max-content;
 }

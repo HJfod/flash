@@ -284,6 +284,8 @@ function navigate(url) {
             }, "", url);
             mainBody.innerHTML = content;
             mainBody.scrollTo({ left: 0, top: 0 });
+            nav.querySelectorAll('a.selected').forEach(a => a.classList.remove('selected'));
+            nav.querySelector(`[href="${url}"]`)?.classList.add('selected');
             highlight();
         })
         .catch(err => {
@@ -324,3 +326,29 @@ function pickTheme(name) {
 
 // Highlight everything
 highlight();
+
+// Mark the current page in nav as seleted
+{
+    let currentUrl = window.location.pathname;
+    while (currentUrl.endsWith('/')) {
+        currentUrl = currentUrl.slice(0, -1)
+    }
+    const a = nav.querySelector(`[href="${currentUrl}"]`);
+    if (a) {
+        // Find the parent nav section of the selected item
+        let parentNav = a.closest('.content');
+        showNav(parentNav.getAttribute('id').replace('nav-content-', ''));
+
+        // Open all enclosing <details> elements
+        let details = a.closest('details');
+        while (parentNav.contains(details)) {
+            details.open = true;
+            details = details.parentNode.closest('details') ?? null;
+        }
+
+        // Scroll the selected item into view
+        a.classList.add('selected');
+        a.scrollIntoView(false);
+    }
+}
+
