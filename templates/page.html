@@ -12,9 +12,11 @@
     </div>
     <nav>
         <header>
-            {project_icon} {project_name} Docs
-            <span class="version">{project_version}</span>
-            <a href="{project_repository}"><i data-feather="github"></i></a>
+            <a href="{output_url}">
+                {project_icon} {project_name} Docs
+                <span class="version">{project_version}</span>
+            </a>
+            <a href="{project_repository}" class="button"><i data-feather="github"></i></a>
         </header>
         {navbar_content}
     </nav>

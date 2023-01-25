@@ -56,3 +56,16 @@ body > .overlay > button.selected {
 body > .overlay > button > .feather {
     height: 1.25rem;
 }
+
+.version {
+    font-weight: normal;
+    color: var(--flash-light);
+    margin-left: .25rem;
+}
+
+.stretch-apart {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+}

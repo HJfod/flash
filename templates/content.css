@@ -24,19 +24,31 @@ main h1 {
     color: var(--flash-light);
 }
 
-main h1 > .feather {
+main h1 .version {
+    font-size: 1.25rem;
+}
+
+main h1 img {
+    height: 3.25rem;
+    margin-right: .5rem;
+}
+
+main h1 .feather {
     width: 2.25rem;
     height: 2.25rem;
     margin-right: .5rem;
 }
 
-main h1 > a {
+main h1 a {
     color: var(--flash-h1-color);
     font-style: normal;
     font-size: 3rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
 
-main h1 > a:hover {
+main h1 a:hover {
     text-decoration: underline;
     cursor: pointer;
 }
