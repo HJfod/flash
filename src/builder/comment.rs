@@ -526,7 +526,10 @@ impl<'e> JSDocComment<'e> {
                 .with_child_opt(
                     self.description
                         .as_ref()
-                        .map(|d| fmt_markdown(&fmt_autolinks(self.builder, d)))
+                        .map(|d| fmt_markdown(
+                            self.builder.config.clone(),
+                            &fmt_autolinks(self.builder, d)
+                        ))
                 )
                 .with_child_opt((!self.params.is_empty()).then_some(
                     HtmlElement::new("section")

@@ -436,13 +436,14 @@ pub fn fmt_autolinks(builder: &Builder, text: &String) -> String {
     }).collect::<Vec<_>>().join(" ").replace("<<br>>", "\n")
 }
 
-pub fn fmt_markdown(text: &String) -> Html {
+pub fn fmt_markdown(_config: Arc<Config>, text: &String) -> Html {
     let parser = pulldown_cmark::Parser::new_ext(
         &text,
         pulldown_cmark::Options::all()
     );
 
     let mut content = String::new();
+    // todo: parse emoji
     pulldown_cmark::html::push_html(&mut content, parser);
 
     HtmlElement::new("div")

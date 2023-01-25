@@ -37,7 +37,7 @@ impl<'e> OutputEntry<'e> for Tutorial {
             builder.config.templates.tutorial.clone(),
             vec![
                 ("title", HtmlText::new(self.name()).into()),
-                ("content", fmt_markdown(&self.unparsed_content)),
+                ("content", fmt_markdown(builder.config.clone(), &self.unparsed_content)),
                 ("links", Html::Raw(String::new())),
             ]
         )
@@ -227,9 +227,10 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
             },
             vec![
                 ("title", HtmlText::new(self.name()).into()),
-                ("content", self.index.as_ref().map(|i| fmt_markdown(i)).unwrap_or(
-                    Html::p("")
-                )),
+                ("content", self.index.as_ref()
+                    .map(|i| fmt_markdown(builder.config.clone(), i))
+                    .unwrap_or(Html::p(""))
+                ),
                 ("links", fmt_section("Pages",
                     vec![
                         HtmlElement::new("ul")
