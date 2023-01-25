@@ -139,8 +139,8 @@ nav > .content details.root:not(:last-child) {
     border-bottom: .1rem solid var(--flash-hover);
 }
 
-nav > .content:not(.monospace) details:not(:last-child) {
-    margin-bottom: 1.25rem;
+nav > .content:not(.monospace) details:not(:first-child) {
+    margin-top: 1.25rem;
 }
 
 nav > .content summary:hover {
