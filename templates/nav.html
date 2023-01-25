@@ -1,18 +1,18 @@
 
 <div class="mode">
-    <button id="nav-tab-tutorials" onclick="showNav('tutorials')">
+    <button id="nav-tab-tutorials" class="selected" onclick="showNav('tutorials')">
         <i data-feather="book"></i>Tutorials
     </button>
-    <button id="nav-tab-entities" class="selected" onclick="showNav('entities')">
+    <button id="nav-tab-entities" onclick="showNav('entities')">
         <i data-feather="code"></i>Classes
     </button>
     <button id="nav-tab-files" onclick="showNav('files')">
-        <i data-feather="file"></i>Files
+        <i data-feather="file"></i>Source
     </button>
 </div>
-<div id="nav-content-tutorials" class="content" style="display: none;">
+<div id="nav-content-tutorials" class="content">
 </div>
-<div id="nav-content-entities" class="content">
+<div id="nav-content-entities" class="content" style="display: none;">
     {entity_content}
 </div>
 <div id="nav-content-files" class="content" style="display: none;">
