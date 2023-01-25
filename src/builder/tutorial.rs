@@ -38,6 +38,7 @@ impl<'e> OutputEntry<'e> for Tutorial {
             vec![
                 ("title", HtmlText::new(self.name()).into()),
                 ("content", fmt_markdown(&self.unparsed_content)),
+                ("links", Html::Raw(String::new())),
             ]
         )
     }
@@ -208,32 +209,37 @@ impl<'e> TutorialFolder {
 
 impl<'e> OutputEntry<'e> for TutorialFolder {
     fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
-        self.index.as_ref()
-            .map(|index| (
-                builder.config.templates.tutorial.clone(),
-                vec![
-                    ("title", HtmlText::new(self.name()).into()),
-                    ("content", fmt_markdown(index)),
-                ]
-            ))
-            .unwrap_or((
-                builder.config.templates.tutorial_index.clone(),
-                vec![
-                    ("title", HtmlText::new(self.name()).into()),
-                    ("links", fmt_section("Pages",
-                        self.tutorials_sorted().iter()
-                        .map(|tut|
-                            HtmlElement::new("ul")
-                            .with_child(
-                                HtmlElement::new("a")
-                                .with_text(&tut.title)
-                                .with_attr("href", tut.url().to_absolute(builder.config.clone()))
+        (
+            if self.index.is_some() {
+                builder.config.templates.tutorial.clone()
+            } else {
+                builder.config.templates.tutorial_index.clone()
+            },
+            vec![
+                ("title", HtmlText::new(self.name()).into()),
+                ("content", self.index.as_ref().map(|i| fmt_markdown(i)).unwrap_or(
+                    Html::p("")
+                )),
+                ("links", fmt_section("Pages",
+                    vec![
+                        HtmlElement::new("ul")
+                        .with_children(
+                            self.tutorials_sorted().iter()
+                            .map(|tut|
+                                HtmlElement::new("li")
+                                .with_child(
+                                    HtmlElement::new("a")
+                                    .with_text(&tut.title)
+                                    .with_attr("href", tut.url().to_absolute(builder.config.clone()))
+                                )
+                                .into()
                             )
-                            .into()
+                            .collect()
                         )
-                        .collect()
-                    )),
-                ]
-            ))
+                        .into()
+                    ]
+                )),
+            ]
+        )
     }
 }

@@ -4,7 +4,7 @@ main {
     flex-direction: column;
     font-family: 'Open Sans', sans-serif;
     padding: 1.5rem;
-    height: calc(100% - 2rem);
+    height: calc(100% - 3rem);
     overflow-y: auto;
 }
 
