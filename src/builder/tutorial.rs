@@ -66,8 +66,8 @@ pub struct TutorialFolder {
     path: UrlPath,
     title: Option<String>,
     index: Option<String>,
-    pub folders: HashMap<String, TutorialFolder>,
-    pub tutorials: HashMap<String, Tutorial>,
+    folders: HashMap<String, TutorialFolder>,
+    tutorials: HashMap<String, Tutorial>,
 }
 
 impl<'e> Entry<'e> for TutorialFolder {
@@ -101,7 +101,7 @@ impl<'e> Entry<'e> for TutorialFolder {
             NavItem::new_root(
                 None,
                 self.tutorials_sorted().iter().map(|e| e.nav())
-                    .chain(self.folders.iter().map(|e| e.1.nav()))
+                    .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
             )
         }
@@ -109,7 +109,7 @@ impl<'e> Entry<'e> for TutorialFolder {
             NavItem::new_dir_open(
                 &self.name(),
                 self.tutorials_sorted().iter().map(|e| e.nav())
-                    .chain(self.folders.iter().map(|e| e.1.nav()))
+                    .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
                 None,
             )
@@ -198,6 +198,12 @@ impl<'e> TutorialFolder {
                 tutorials: HashMap::new(),
             }
         }
+    }
+
+    pub fn folders_sorted(&self) -> Vec<&TutorialFolder> {
+        let mut vec = self.folders.iter().collect::<Vec<_>>();
+        vec.sort_by_key(|t| t.0);
+        vec.into_iter().map(|(_, v)| v).collect()
     }
 
     pub fn tutorials_sorted(&self) -> Vec<&Tutorial> {
