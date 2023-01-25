@@ -8,11 +8,10 @@ const searchInput = document.getElementById('nav-search');
 const searchGlass = document.getElementById('nav-clear-glass');
 const searchX = document.getElementById('nav-clear-x');
 
-// mfw enum
-
 let searchNav = undefined;
 let searchQuery = '';
 
+// Add copy button to code blocks
 Prism.hooks.add('complete', env => {
     // Check if inline or actual code block (credit to line-numbers plugin)
     const pre = env.element.parentNode;
@@ -211,6 +210,9 @@ function updateNav() {
 
         const searchResults = document.createElement('div');
         searchResults.classList.add('content');
+        if (currentNav().classList.contains('monospace')) {
+            searchResults.classList.add('monospace');
+        }
     
         const results = [];
         currentNav().querySelectorAll('a').forEach(a => {
