@@ -424,7 +424,7 @@ details.entity-desc[open] > summary .feather-chevron-right {
 
 /* code blocks */
 
-code {
+code:not(pre > code) {
     display: inline-block;
     background-color: var(--flash-gray-darkest);
     color: var(--flash-light);
@@ -432,25 +432,46 @@ code {
     padding: .25rem;
     padding-top: 0rem;
     padding-bottom: 0rem;
+    font-size: 1em;
+}
+
+.line-numbers .line-numbers-rows {
+    border-right: .15rem solid var(--flash-dark);
+}
+
+.line-numbers-rows > span::before {
+    color: var(--flash-light);
+}
+
+/* 1em is a bit too small for some reason in paragraphs */
+p code:not(pre > code) {
     font-size: 1rem;
+}
+
+a code:not(pre > code) {
+    color: inherit;
 }
 
 code.header-link {
     padding: 1rem;
 }
 
-pre > code {
-    padding: 1rem;
-}
-
-pre > code.example {
+pre {
     display: inline-block;
-    font-size: 1rem;
     padding: 1rem;
     min-width: 35rem;
     background-color: var(--flash-gray-darkest);
     color: var(--flash-white);
     border-radius: .5rem;
+    font-size: 1rem;
+}
+
+code .url-link, code .url-link:visited {
+    color: inherit;
+}
+
+code .url-link:hover {
+    color: var(--flash-white);
 }
 
 code .keyword {
@@ -497,7 +518,7 @@ pre > .toolbar {
 }
 
 pre > .toolbar > button {
-    margin: .5rem;
+    margin: -.5rem;
     padding: .35rem;
     border-radius: .35rem;
     background: none;
