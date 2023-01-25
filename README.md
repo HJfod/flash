@@ -4,7 +4,7 @@ A simple tool for generating beautiful documentation for C++.
 
 Built for projects that use CMake and host their docs on GitHub Pages.
 
-:rocket: Decently fast (~20s to build docs for [Geode](https://github.com/geode-sdk/geode))
+:rocket: Decently fast (~30s to build docs for [Geode](https://github.com/geode-sdk/geode))
 
 :rocket: Beautiful, easily legible output
 

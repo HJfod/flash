@@ -3,7 +3,7 @@ main {
     display: flex;
     flex-direction: column;
     font-family: 'Open Sans', sans-serif;
-    padding: 1rem;
+    padding: 1.5rem;
     height: calc(100% - 2rem);
     overflow-y: auto;
 }
@@ -39,8 +39,9 @@ main h1 .feather {
     margin-right: .5rem;
 }
 
-main h1 a {
+main h1 a, main h1 a:visited {
     color: var(--flash-h1-color);
+    text-decoration: none;
     font-style: normal;
     font-size: 3rem;
     display: inline-flex;
@@ -293,6 +294,10 @@ details.entity-desc[open] > summary .feather-chevron-right {
     font-weight: bold;
     color: var(--flash-highlight);
     margin-right: 1rem;
+}
+
+.entity a {
+    text-decoration: none;
 }
 
 .entity .params {

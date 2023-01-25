@@ -27,7 +27,7 @@ impl<'e> Entry<'e> for Tutorial {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.title, self.url(), None)
+        NavItem::new_link(&self.title, self.url(), Some(("bookmark", false)))
     }
 }
 
@@ -63,6 +63,7 @@ impl<'e> Tutorial {
 pub struct TutorialFolder {
     is_root: bool,
     path: UrlPath,
+    title: Option<String>,
     index: Option<String>,
     pub folders: HashMap<String, TutorialFolder>,
     pub tutorials: HashMap<String, Tutorial>,
@@ -70,7 +71,7 @@ pub struct TutorialFolder {
 
 impl<'e> Entry<'e> for TutorialFolder {
     fn name(&self) -> String {
-        self.path.raw_file_name().unwrap_or(String::from("_"))
+        self.title.clone().unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
     }
 
     fn url(&self) -> UrlPath {
@@ -98,20 +99,16 @@ impl<'e> Entry<'e> for TutorialFolder {
         if self.is_root {
             NavItem::new_root(
                 None,
-                self.folders
-                    .iter()
-                    .map(|e| e.1.nav())
-                    .chain(self.tutorials.iter().map(|e| e.1.nav()))
-                    .collect::<Vec<_>>()
+                self.tutorials_sorted().iter().map(|e| e.nav())
+                    .chain(self.folders.iter().map(|e| e.1.nav()))
+                    .collect::<Vec<_>>(),
             )
         }
         else {
             NavItem::new_dir_open(
                 &self.name(),
-                self.folders
-                    .iter()
-                    .map(|e| e.1.nav())
-                    .chain(self.tutorials.iter().map(|e| e.1.nav()))
+                self.tutorials_sorted().iter().map(|e| e.nav())
+                    .chain(self.folders.iter().map(|e| e.1.nav()))
                     .collect::<Vec<_>>(),
                 None,
             )
@@ -164,15 +161,18 @@ impl<'e> TutorialFolder {
             }
         }
 
+        let index = if path.join("index.md").exists() {
+            fs::read_to_string(path.join("index.md")).ok()
+        } else {
+            None
+        };
+
         // only consider this a tutorial folder if it has some tutorials
         (folders.len() > 0 || tutorials.len() > 0).then_some(Self {
             is_root: false,
             path: UrlPath::try_from(&stripped_path).ok()?,
-            index: if path.join("index.md").exists() {
-                fs::read_to_string(path.join("index.md")).ok()
-            } else {
-                None
-            },
+            title: index.as_ref().and_then(|i| extract_title_from_md(i)),
+            index,
             folders,
             tutorials
         })
@@ -191,11 +191,18 @@ impl<'e> TutorialFolder {
             Self {
                 is_root: true,
                 path: UrlPath::new(),
+                title: None,
                 index: None,
                 folders: HashMap::new(),
                 tutorials: HashMap::new(),
             }
         }
+    }
+
+    pub fn tutorials_sorted(&self) -> Vec<&Tutorial> {
+        let mut vec = self.tutorials.iter().collect::<Vec<_>>();
+        vec.sort_by_key(|t| t.0);
+        vec.into_iter().map(|(_, v)| v).collect()
     }
 }
 
@@ -213,8 +220,9 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                 builder.config.templates.tutorial_index.clone(),
                 vec![
                     ("title", HtmlText::new(self.name()).into()),
-                    ("links", fmt_section("Pages", self.tutorials.iter()
-                        .map(|(_, tut)|
+                    ("links", fmt_section("Pages",
+                        self.tutorials_sorted().iter()
+                        .map(|tut|
                             HtmlElement::new("ul")
                             .with_child(
                                 HtmlElement::new("a")
