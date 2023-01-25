@@ -13,8 +13,37 @@ main > * {
     max-width: 56rem;
 }
 
-main p {
+main p, main ol, main ul {
     line-height: 1.75em;
+}
+
+main strong {
+    color: var(--flash-skin);
+}
+
+main a strong {
+    color: inherit;
+}
+
+main blockquote {
+    margin: .5rem;
+    padding: .25rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    border-left: .5rem solid var(--flash-dark);
+    background-color: var(--flash-darker);
+    border-radius: 0rem .5rem .5rem 0rem;
+}
+
+main blockquote.warning {
+    border-left: .5rem solid var(--flash-skin);
+}
+
+main .emoji {
+    height: 1.5em;
+    margin: 0px !important;
+    display: inline !important;
+    vertical-align: middle;
 }
 
 main > div {
@@ -80,15 +109,16 @@ main h2::after {
 }
 
 main a {
-    color: var(--flash-orange);
+    color: var(--flash-cyan-light);
+    text-decoration: underline;
 }
 
 main a:visited {
-    color: var(--flash-skin);
+    color: var(--flash-purple);
 }
 
 main a:hover {
-    color: var(--flash-yellow);
+    color: var(--flash-white);
     text-decoration: underline;
     cursor: pointer;
 }

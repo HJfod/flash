@@ -68,6 +68,7 @@ searchInput.addEventListener('input', e => {
 function highlight() {
     Prism.highlightAll();
     feather.replace();
+    twemoji.parse(document.body);
 }
 
 function clearSearch() {
