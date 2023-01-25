@@ -105,8 +105,19 @@ nav > .content details:not(.root) > div {
     padding-left: 1.25rem;
 }
 
-nav > .content summary {
+nav > .content.monospace {
     font-family: 'Source Code Pro', monospace;
+}
+
+nav > .content:not(.monospace) {
+    font-family: 'Open Sans', sans-serif;
+}
+
+nav > .content:not(.monospace) summary {
+    color: var(--flash-white);
+}
+
+nav > .content summary {
     color: var(--flash-light);
     display: flex;
     flex-direction: row;
@@ -154,7 +165,6 @@ nav > .content details[open] > summary > .feather-chevron-right {
 nav > .content a {
     color: var(--flash-light);
     text-decoration: none;
-    font-family: 'Source Code Pro', monospace;
     display: flex;
     flex-direction: row;
     padding: .25rem;

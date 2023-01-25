@@ -102,11 +102,11 @@ impl<'e> Entry<'e> for TutorialFolder {
                     .iter()
                     .map(|e| e.1.nav())
                     .chain(self.tutorials.iter().map(|e| e.1.nav()))
-                    .collect::<Vec<_>>(),
+                    .collect::<Vec<_>>()
             )
         }
         else {
-            NavItem::new_dir(
+            NavItem::new_dir_open(
                 &self.name(),
                 self.folders
                     .iter()

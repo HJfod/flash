@@ -138,7 +138,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
 
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
-    Dir(String, Vec<NavItem>, Option<(String, bool)>),
+    Dir(String, Vec<NavItem>, Option<(String, bool)>, bool),
     Link(String, UrlPath, Option<(String, bool)>),
 }
 
@@ -148,7 +148,11 @@ impl NavItem {
     }
 
     pub fn new_dir(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>) -> NavItem {
-        NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)))
+        NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), false)
+    }
+
+    pub fn new_dir_open(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>) -> NavItem {
+        NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), true)
     }
 
     pub fn new_root(name: Option<&str>, items: Vec<NavItem>) -> NavItem {
@@ -172,7 +176,8 @@ impl NavItem {
                 .with_child(HtmlText::new(name))
                 .into(),
 
-            NavItem::Dir(name, items, icon) => HtmlElement::new("details")
+            NavItem::Dir(name, items, icon, open) => HtmlElement::new("details")
+                .with_attr_opt("open", open.then_some(""))
                 .with_child(
                     HtmlElement::new("summary")
                         .with_child(
