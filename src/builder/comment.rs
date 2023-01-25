@@ -527,7 +527,6 @@ impl<'e> JSDocComment<'e> {
                     self.description
                         .as_ref()
                         .map(|d| fmt_markdown(
-                            self.builder.config.clone(),
                             &fmt_autolinks(self.builder, d)
                         ))
                 )

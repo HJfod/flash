@@ -9,7 +9,9 @@ use crate::{
 use clang::{
     Accessibility, Entity, EntityKind, Type, TypeKind,
 };
-use pulldown_cmark::{Event, Tag};
+use multipeek::{IteratorExt, MultiPeek};
+use pulldown_cmark::{Event, Tag, CowStr};
+use std::str::Chars;
 use std::sync::Arc;
 
 trait Surround<T> {
@@ -436,15 +438,58 @@ pub fn fmt_autolinks(builder: &Builder, text: &String) -> String {
     }).collect::<Vec<_>>().join(" ").replace("<<br>>", "\n")
 }
 
-pub fn fmt_markdown(_config: Arc<Config>, text: &String) -> Html {
+fn fmt_emoji(text: &CowStr) -> String {
+    fn eat_emoji<'e>(iter: &mut MultiPeek<Chars>) -> Option<&'e str> {
+        let mut buffer = String::new();
+        let mut i = 0;
+        while let Some(d) = iter.peek_nth(i) {
+            if d.is_alphanumeric() || *d == '_' {
+                buffer.push(*d);
+            }
+            else if *d == ':' {
+                break;
+            }
+            else {
+                return None;
+            }
+            i += 1;
+        }
+        if let Some(emoji) = emojis::get_by_shortcode(&buffer) {
+            drop(iter.advance_by(i + 1));
+            Some(emoji.as_str())
+        }
+        else {
+            None
+        }
+    }
+
+    let mut res = String::new();
+    res.reserve(text.len());
+
+    let mut iter = text.chars().multipeek();
+    while let Some(c) = iter.next() {
+        if c == ':' && let Some(emoji) = eat_emoji(&mut iter) {
+            res.push_str(emoji);
+        }
+        else {
+            res.push(c);
+        }
+    }
+
+    res
+}
+
+pub fn fmt_markdown(text: &String) -> Html {
     let parser = pulldown_cmark::Parser::new_ext(
         &text,
         pulldown_cmark::Options::all()
     );
 
     let mut content = String::new();
-    // todo: parse emoji
-    pulldown_cmark::html::push_html(&mut content, parser);
+    pulldown_cmark::html::push_html(&mut content, parser.map(|event| match event {
+        Event::Text(mut t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&mut t).as_str()))),
+        _ => event,
+    }));
 
     HtmlElement::new("div")
         .with_class("text")
