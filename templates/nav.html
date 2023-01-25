@@ -1,12 +1,12 @@
 
 <div class="mode">
-    <button id="nav-tab-entities" class="selected" onclick="showEntityNav()">Entities</button>
-    <button id="nav-tab-files" onclick="showFileNav()">Files</button>
+    <button id="nav-tab-entities" class="selected" onclick="showNav('entities')">Entities</button>
+    <button id="nav-tab-files" onclick="showNav('files')">Files</button>
 </div>
-<div id="nav-entities" class="content">
+<div id="nav-content-entities" class="content">
     {entity_content}
 </div>
-<div id="nav-files" class="content" style="display: none;">
+<div id="nav-content-files" class="content" style="display: none;">
     {file_content}
 </div>
 <div class="search">

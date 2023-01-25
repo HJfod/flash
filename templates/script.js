@@ -1,19 +1,14 @@
 
 // This reminds me of 8th grade
 
-const entNav = document.getElementById('nav-entities');
-const fileNav = document.getElementById('nav-files');
-const entTab = document.getElementById('nav-tab-entities');
-const fileTab = document.getElementById('nav-tab-files');
+const nav = document.querySelector('nav');
+const navModeBtns = nav.querySelector('.mode');
 const mainBody = document.querySelector('body > main');
 const searchInput = document.getElementById('nav-search');
 const searchGlass = document.getElementById('nav-clear-glass');
 const searchX = document.getElementById('nav-clear-x');
 
 // mfw enum
-
-const NAV_FILES = 0;
-const NAV_ENTITIES = 1;
 
 let searchNav = undefined;
 let searchQuery = '';
@@ -192,19 +187,14 @@ function furryMatchMany(list, query, separator) {
 }
 
 function currentNav() {
-    switch (currentNavTab()) {
-        case NAV_FILES: return fileNav;
-        case NAV_ENTITIES: return entNav;
-    }
-    return undefined;
+    return nav.querySelector(`#nav-content-${selectedNavTab()}`);
 }
 
-function currentNavTab() {
-    if (fileTab.classList.contains('selected')) {
-        return NAV_FILES;
-    } else {
-        return NAV_ENTITIES;
-    }
+function selectedNavTab() {
+    return navModeBtns
+        .querySelector(`.selected`)
+        .getAttribute('id')
+        .replace('nav-tab-', '');
 }
 
 function updateNav() {
@@ -225,7 +215,7 @@ function updateNav() {
         currentNav().querySelectorAll('a').forEach(a => {
             const match = furryMatchMany(
                 getFullName(a), searchQuery,
-                currentNavTab() == NAV_FILES ? '/' : '::'
+                selectedNavTab() == 'entities' ? '::' : '/'
             );
             if (match) {
                 const clone = a.cloneNode(false);
@@ -264,27 +254,21 @@ function updateNav() {
         searchGlass.style.display = null;
         searchX.style.display = 'none';
 
-        // hide all navs
-        fileNav.style.display = 'none';
-        entNav.style.display = 'none';
-
-        // show the currently selected one
-        switch (currentNavTab()) {
-            case NAV_FILES: fileNav.style.display = null; break;
-            case NAV_ENTITIES: entNav.style.display = null; break;
-        }
+        // hide all navs but show the currently selected one
+        nav.querySelectorAll('.content').forEach(content => {
+            if (content.getAttribute('id').replace('nav-content-', '') === selectedNavTab()) {
+                content.style.display = null;
+            }
+            else {
+                content.style.display = 'none'
+            }
+        });
     }
 }
 
-function showEntityNav() {
-    entTab.classList.add('selected');
-    fileTab.classList.remove('selected');
-    updateNav();
-}
-
-function showFileNav() {
-    entTab.classList.remove('selected');
-    fileTab.classList.add('selected');
+function showNav(id) {
+    [...navModeBtns.children].forEach(node => node.classList.remove('selected'));
+    navModeBtns.querySelector(`#nav-tab-${id}`).classList.add('selected');
     updateNav();
 }
 
