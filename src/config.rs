@@ -111,6 +111,9 @@ decl_config! {
             tree?: String,
             icon?: PathBuf,
         },
+        tutorials? {
+            dir: PathBuf,
+        },
         sources: Vec<Arc<Source>> as parse_sources,
         run? {
             prebuild?: Vec<String>,
@@ -126,14 +129,15 @@ decl_config! {
             infer_args_from: PathBuf,
         },
         templates {
-            class:    Arc<String> as parse_template = default_template!("../templates/class.html"),
-            struct_:  Arc<String> as parse_template = default_template!("../templates/struct.html"),
-            function: Arc<String> as parse_template = default_template!("../templates/function.html"),
-            index:    Arc<String> as parse_template = default_template!("../templates/index.html"),
-            head:     Arc<String> as parse_template = default_template!("../templates/head.html"),
-            nav:      Arc<String> as parse_template = default_template!("../templates/nav.html"),
-            file:     Arc<String> as parse_template = default_template!("../templates/file.html"),
-            page:     Arc<String> as parse_template = default_template!("../templates/page.html"),
+            class:          Arc<String> as parse_template = default_template!("../templates/class.html"),
+            struct_:        Arc<String> as parse_template = default_template!("../templates/struct.html"),
+            function:       Arc<String> as parse_template = default_template!("../templates/function.html"),
+            head:           Arc<String> as parse_template = default_template!("../templates/head.html"),
+            nav:            Arc<String> as parse_template = default_template!("../templates/nav.html"),
+            file:           Arc<String> as parse_template = default_template!("../templates/file.html"),
+            page:           Arc<String> as parse_template = default_template!("../templates/page.html"),
+            tutorial:       Arc<String> as parse_template = default_template!("../templates/tutorial.html"),
+            tutorial_index: Arc<String> as parse_template = default_template!("../templates/tutorial-index.html"),
         },
         scripts {
             css: Vec<Script> = default_scripts!("default.css", "nav.css", "content.css", "themes.css"),

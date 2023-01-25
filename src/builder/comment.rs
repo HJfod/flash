@@ -6,7 +6,7 @@ use multipeek::{MultiPeek, IteratorExt};
 
 use crate::{html::{Html, HtmlElement, HtmlText, HtmlList}, url::UrlPath};
 
-use super::{builder::{Builder, EntityMethods}, shared::fmt_markdown};
+use super::{builder::{Builder, EntityMethods}, shared::{fmt_markdown, fmt_autolinks}};
 
 struct CommentLexer<'s> {
     raw: MultiPeek<Chars<'s>>,
@@ -526,7 +526,7 @@ impl<'e> JSDocComment<'e> {
                 .with_child_opt(
                     self.description
                         .as_ref()
-                        .map(|d| fmt_markdown(self.builder, d))
+                        .map(|d| fmt_markdown(&fmt_autolinks(self.builder, d)))
                 )
                 .with_child_opt((!self.params.is_empty()).then_some(
                     HtmlElement::new("section")

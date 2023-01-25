@@ -26,4 +26,4 @@ tokio = { version = "1.23.1", features = ["full"] }
 futures = "0.3.25"
 percent-encoding = "2.2.0"
 multipeek = "0.1.2"
-markdown = "0.3.0"
+pulldown-cmark = "0.9.2"

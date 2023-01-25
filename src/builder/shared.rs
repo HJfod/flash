@@ -9,6 +9,7 @@ use crate::{
 use clang::{
     Accessibility, Entity, EntityKind, Type, TypeKind,
 };
+use pulldown_cmark::{Event, Tag};
 use std::sync::Arc;
 
 trait Surround<T> {
@@ -416,7 +417,7 @@ fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Ve
     }
 }
 
-fn fmt_autolinks(builder: &Builder, text: &String) -> String {
+pub fn fmt_autolinks(builder: &Builder, text: &String) -> String {
     let mut words = text
         // hacky fix to preserve newlines
         .replace("\n", " <<br>> ")
@@ -435,9 +436,43 @@ fn fmt_autolinks(builder: &Builder, text: &String) -> String {
     }).collect::<Vec<_>>().join(" ").replace("<<br>>", "\n")
 }
 
-pub fn fmt_markdown(builder: &Builder, text: &String) -> Html {
+pub fn fmt_markdown(text: &String) -> Html {
+    let parser = pulldown_cmark::Parser::new_ext(
+        &text,
+        pulldown_cmark::Options::all()
+    );
+
+    let mut content = String::new();
+    pulldown_cmark::html::push_html(&mut content, parser);
+
     HtmlElement::new("div")
         .with_class("text")
-        .with_child(Html::Raw(markdown::to_html(&fmt_autolinks(builder, text))))
+        .with_child(Html::Raw(content))
         .into()
+}
+
+pub fn extract_title_from_md(text: &String) -> Option<String> {
+    let mut parser = pulldown_cmark::Parser::new_ext(
+        text, pulldown_cmark::Options::all()
+    );
+
+    let name = parser.next()?;
+    let Event::Start(tag) = name else { return None };
+    let Tag::Heading(_, _, _) = tag else { return None };
+
+    let mut res = String::new();
+
+    while match parser.next() {
+        Some(ev) => match ev {
+            Event::End(tag) => !matches!(tag, Tag::Heading(_, _, _)),
+            Event::Text(text) => {
+                res.push_str(&text);
+                true
+            },
+            _ => true,
+        },
+        None => false,
+    } {}
+
+    (res.len() > 0).then_some(res)
 }

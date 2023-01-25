@@ -10,7 +10,7 @@ use crate::{
     url::UrlPath,
 };
 
-use super::{files::Root, index::Index, namespace::Namespace};
+use super::{files::Root, namespace::Namespace, tutorial::TutorialFolder};
 
 pub trait EntityMethods<'e> {
     /// Get the config source for this entity
@@ -241,6 +241,7 @@ pub struct Builder<'e> {
     pub index: &'e clang::Index<'e>,
     pub args: &'e [String],
     file_roots: Vec<Root>,
+    tutorials: TutorialFolder,
     nav_cache: Option<String>,
 }
 
@@ -258,7 +259,8 @@ impl<'e> Builder<'e> {
             clang,
             index,
             args,
-            file_roots: Root::from_config(config),
+            file_roots: Root::from_config(config.clone()),
+            tutorials: TutorialFolder::from_config(config),
             nav_cache: None,
         }
         .setup()
@@ -366,6 +368,7 @@ impl<'e> Builder<'e> {
             .iter()
             .map(|p| p.1 as &dyn Entry<'e>)
             .chain(self.file_roots.iter().map(|p| p as &dyn Entry<'e>))
+            .chain([&self.tutorials as &dyn Entry])
             .collect()
     }
 
@@ -403,9 +406,6 @@ impl<'e> Builder<'e> {
         .collect::<Result<Result<Vec<_>, _>, _>>()
         .map_err(|e| format!("Unable to join {e}"))??;
 
-        // Create root index.html
-        self.create_output_for(&Index {})?;
-
         Ok(())
     }
 
@@ -415,6 +415,10 @@ impl<'e> Builder<'e> {
         }
         let mut fmt = default_format(self.config.clone());
         fmt.extend([
+            (
+                "tutorial_content".into(),
+                self.tutorials.nav().to_html(self.config.clone()).gen_html(),
+            ),
             (
                 "entity_content".into(),
                 self.root.nav().to_html(self.config.clone()).gen_html(),
