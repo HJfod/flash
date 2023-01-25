@@ -53,6 +53,11 @@ main > div {
 main h1 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
+    font-size: 3rem;
+    color: var(--flash-h1-color);
+}
+
+main h1.entity-title {
     font-size: 2.25rem;
     color: var(--flash-light);
 }
@@ -425,6 +430,8 @@ code {
     color: var(--flash-light);
     border-radius: .25rem;
     padding: .25rem;
+    padding-top: 0rem;
+    padding-bottom: 0rem;
     font-size: 1rem;
 }
 
