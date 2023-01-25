@@ -54,18 +54,28 @@ nav > * {
 
 nav > .mode {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: .25rem;
     padding-top: 0rem;
     padding-bottom: 0rem;
 }
 
 nav > .mode > button {
+    display: grid;
+    grid-template-columns: 1rem 1fr 1rem;
+    align-items: center;
     font-family: 'Open Sans', sans-serif;
     color: var(--flash-white);
     padding: .5rem;
     background-color: rgba(0, 0, 0, 0);
     border: none;
     transition: background;
+}
+
+nav > .mode > button .feather {
+    width: 1rem;
+    height: 1rem;
+    opacity: 50%;
 }
 
 nav > .mode > button.selected {

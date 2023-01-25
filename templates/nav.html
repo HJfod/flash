@@ -1,7 +1,16 @@
 
 <div class="mode">
-    <button id="nav-tab-entities" class="selected" onclick="showNav('entities')">Entities</button>
-    <button id="nav-tab-files" onclick="showNav('files')">Files</button>
+    <button id="nav-tab-tutorials" onclick="showNav('tutorials')">
+        <i data-feather="book"></i>Tutorials
+    </button>
+    <button id="nav-tab-entities" class="selected" onclick="showNav('entities')">
+        <i data-feather="code"></i>Classes
+    </button>
+    <button id="nav-tab-files" onclick="showNav('files')">
+        <i data-feather="file"></i>Files
+    </button>
+</div>
+<div id="nav-content-tutorials" class="content" style="display: none;">
 </div>
 <div id="nav-content-entities" class="content">
     {entity_content}

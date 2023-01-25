@@ -43,7 +43,7 @@ main h1 a {
     color: var(--flash-h1-color);
     font-style: normal;
     font-size: 3rem;
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
     align-items: center;
 }
