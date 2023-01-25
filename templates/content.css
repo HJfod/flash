@@ -13,6 +13,10 @@ main > * {
     max-width: 56rem;
 }
 
+main p {
+    line-height: 1.75em;
+}
+
 main > div {
     margin-bottom: 1rem;
 }
