@@ -63,6 +63,7 @@ impl<'e> Tutorial {
 
 pub struct TutorialFolder {
     is_root: bool,
+    is_open: bool,
     path: UrlPath,
     title: Option<String>,
     index: Option<String>,
@@ -112,13 +113,14 @@ impl<'e> Entry<'e> for TutorialFolder {
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
                 None,
+                self.is_open,
             )
         }
     }
 }
 
 impl<'e> TutorialFolder {
-    fn from_folder(config: Arc<Config>, path: &PathBuf) -> Option<Self> {
+    fn from_folder(config: Arc<Config>, path: &PathBuf, depth: i32) -> Option<Self> {
         let mut folders = HashMap::new();
         let mut tutorials = HashMap::new();
 
@@ -135,7 +137,7 @@ impl<'e> TutorialFolder {
             // if this is a directory, add it only if it has tutorials
             if ty.is_dir() {
                 if let Some(folder) = TutorialFolder::from_folder(
-                    config.clone(), &file.path()
+                    config.clone(), &file.path(), depth + 1
                 ) {
                     folders.insert(folder.name(), folder);
                 }
@@ -171,6 +173,7 @@ impl<'e> TutorialFolder {
         // only consider this a tutorial folder if it has some tutorials
         (folders.len() > 0 || tutorials.len() > 0).then_some(Self {
             is_root: false,
+            is_open: depth < 2,
             path: UrlPath::try_from(&stripped_path).ok()?,
             title: index.as_ref().and_then(|i| extract_title_from_md(i)),
             index,
@@ -182,7 +185,7 @@ impl<'e> TutorialFolder {
     pub fn from_config(config: Arc<Config>) -> Self {
         if let Some(ref tutorials) = config.tutorials &&
             let Some(mut res) = Self::from_folder(
-                config.clone(), &config.input_dir.join(&tutorials.dir)
+                config.clone(), &config.input_dir.join(&tutorials.dir), 0
             )
         {
             res.is_root = true;
@@ -191,6 +194,7 @@ impl<'e> TutorialFolder {
         else {
             Self {
                 is_root: true,
+                is_open: true,
                 path: UrlPath::new(),
                 title: None,
                 index: None,

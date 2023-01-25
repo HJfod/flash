@@ -151,8 +151,8 @@ impl NavItem {
         NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), false)
     }
 
-    pub fn new_dir_open(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>) -> NavItem {
-        NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), true)
+    pub fn new_dir_open(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>, open: bool) -> NavItem {
+        NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), open)
     }
 
     pub fn new_root(name: Option<&str>, items: Vec<NavItem>) -> NavItem {
