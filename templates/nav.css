@@ -139,6 +139,10 @@ nav > .content details.root:not(:last-child) {
     border-bottom: .1rem solid var(--flash-hover);
 }
 
+nav > .content:not(.monospace) details:not(:last-child) {
+    margin-bottom: 1.25rem;
+}
+
 nav > .content summary:hover {
     background-color: var(--flash-hover);
     color: var(--flash-white);
@@ -160,6 +164,11 @@ nav .feather:not(.feather-chevron-right) {
 
 nav > .content details[open] > summary > .feather-chevron-right {
     transform: rotate(90deg);
+}
+
+nav > .content:not(.monospace) a {
+    padding: .5rem;
+    padding-left: 1rem;
 }
 
 nav > .content a {
