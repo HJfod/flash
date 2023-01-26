@@ -18,6 +18,36 @@ pub enum CppItem<'e> {
     Function(Function<'e>),
 }
 
+impl<'e> CppItem<'e> {
+    fn get(&'e self, matcher: &dyn Fn(&dyn ASTEntry<'e>) -> bool, out: &mut Vec<&'e dyn ASTEntry<'e>>) {
+        match self {
+            CppItem::Namespace(ns) => {
+                if matcher(ns) {
+                    out.push(ns);
+                }
+                for entry in ns.entries.values() {
+                    entry.get(&matcher, out);
+                }
+            },
+            CppItem::Class(cls) => {
+                if matcher(cls) {
+                    out.push(cls);
+                }
+            },
+            CppItem::Struct(cls) => {
+                if matcher(cls) {
+                    out.push(cls);
+                }
+            },
+            CppItem::Function(fun) => {
+                if matcher(fun) {
+                    out.push(fun);
+                }
+            },
+        }
+    }
+}
+
 impl<'e> Entry<'e> for CppItem<'e> {
     fn name(&self) -> String {
         match self {
@@ -124,6 +154,16 @@ impl<'e> Namespace<'e> {
                 _ => continue,
             }
         }
+    }
+
+    // so apparently if you make this a <M: Fn(&dyn ASTEntry<'e>) -> bool> 
+    // rustc crashes
+    pub fn get(&'e self, matcher: &dyn Fn(&dyn ASTEntry<'e>) -> bool) -> Vec<&'e dyn ASTEntry<'e>> {
+        let mut res = Vec::new();
+        for entry in self.entries.values() {
+            entry.get(&matcher, &mut res);
+        }
+        res
     }
 }
 

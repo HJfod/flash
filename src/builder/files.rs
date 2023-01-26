@@ -1,10 +1,12 @@
-use super::builder::{BuildResult, Builder, Entry, NavItem, OutputEntry};
+use clang::EntityKind;
+
+use super::{builder::{BuildResult, Builder, Entry, NavItem, OutputEntry}, shared::{fmt_fun_decl, fmt_section, fmt_classlike_decl}};
 use crate::{
     config::{Config, Source},
     html::{Html, HtmlText},
     url::UrlPath,
 };
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{collections::HashMap, path::{Path, PathBuf}, sync::Arc};
 
 pub struct File {
     source: Arc<Source>,
@@ -41,7 +43,7 @@ impl<'e> OutputEntry<'e> for File {
             builder.config.templates.file.clone(),
             vec![
                 ("name", HtmlText::new(self.name()).into()),
-                ("description", Html::p("No Description Provided")),
+                ("description", Html::p("")),
                 (
                     "file_url",
                     HtmlText::new(
@@ -60,6 +62,63 @@ impl<'e> OutputEntry<'e> for File {
                 (
                     "file_path",
                     HtmlText::new(self.source.dir.join(&self.path).to_raw_string()).into(),
+                ),
+                (
+                    "functions",
+                    fmt_section(
+                        "Functions",
+                        builder.root.get(&|entry| 
+                            entry.entity().get_kind() == EntityKind::FunctionDecl && 
+                            entry.entity().get_file()
+                                .is_some_and(|file|
+                                    file.get_path() == PathBuf::from(
+                                        self.source.dir.join(&self.path)
+                                        .to_raw_string()
+                                    )
+                                )
+                        ).into_iter().map(|fun| 
+                            fmt_fun_decl(fun.entity(), builder)
+                        )
+                        .collect()
+                    ),
+                ),
+                (
+                    "classes",
+                    fmt_section(
+                        "Classes",
+                        builder.root.get(&|entry| 
+                            entry.entity().get_kind() == EntityKind::ClassDecl && 
+                            entry.entity().get_file()
+                                .is_some_and(|file|
+                                    file.get_path() == PathBuf::from(
+                                        self.source.dir.join(&self.path)
+                                        .to_raw_string()
+                                    )
+                                )
+                        ).into_iter().map(|cls| 
+                            fmt_classlike_decl(cls.entity(), "class", builder)
+                        )
+                        .collect()
+                    ),
+                ),
+                (
+                    "structs",
+                    fmt_section(
+                        "Structs",
+                        builder.root.get(&|entry| 
+                            entry.entity().get_kind() == EntityKind::StructDecl && 
+                            entry.entity().get_file()
+                                .is_some_and(|file|
+                                    file.get_path() == PathBuf::from(
+                                        self.source.dir.join(&self.path)
+                                        .to_raw_string()
+                                    )
+                                )
+                        ).into_iter().map(|cls| 
+                            fmt_classlike_decl(cls.entity(), "struct", builder)
+                        )
+                        .collect()
+                    ),
                 ),
             ],
         )

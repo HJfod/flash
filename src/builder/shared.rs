@@ -238,6 +238,29 @@ pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
         .into()
 }
 
+pub fn fmt_classlike_decl(class: &Entity, keyword: &str, builder: &Builder) -> Html {
+    HtmlElement::new("details")
+        .with_class("entity-desc")
+        .with_child(
+            HtmlElement::new("summary")
+                .with_classes(&["entity", "fun"])
+                .with_child(Html::span(&["keyword", "space-after"], keyword))
+                .with_child(Html::span(
+                    &["name", "space-before"],
+                    &class.get_name().unwrap_or("_anon".into()),
+                ))
+                .with_child(HtmlText::new(";")),
+        )
+        .with_child(
+            HtmlElement::new("div").with_child(
+                class.get_comment()
+                    .map(|s| JSDocComment::parse(s, builder).to_html(true))
+                    .unwrap_or(Html::p("No description provided")),
+            ),
+        )
+        .into()
+}
+
 pub fn fmt_section(title: &str, data: Vec<Html>) -> Html {
     HtmlElement::new("details")
         .with_attr("open", "")
