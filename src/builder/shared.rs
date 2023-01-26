@@ -388,6 +388,22 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
                     .collect::<Vec<_>>(),
             ),
         ),
+        (
+            "protected_members",
+            fmt_section(
+                "Protected fields",
+                entry
+                    .entity()
+                    .get_children()
+                    .iter()
+                    .filter(|child| {
+                        child.get_kind() == EntityKind::FieldDecl
+                            && child.get_accessibility() == Some(Accessibility::Protected)
+                    })
+                    .map(|e| fmt_field(e, builder))
+                    .collect::<Vec<_>>(),
+            ),
+        ),
     ]);
     ent
 }

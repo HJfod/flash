@@ -444,7 +444,7 @@ code:not(pre > code) {
 }
 
 /* 1em is a bit too small for some reason in paragraphs */
-p code:not(pre > code) {
+p code:not(pre > code), a code:not(pre > code), ul code:not(pre > code), ol code:not(pre > code) {
     font-size: 1rem;
 }
 

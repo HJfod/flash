@@ -176,7 +176,7 @@ impl GenHtml for HtmlElement {
                 .into_iter()
                 .map(|c| c.gen_html())
                 .collect::<Vec<_>>()
-                .join(" ")
+                .join("")
         )
     }
 }
@@ -227,7 +227,7 @@ impl GenHtml for HtmlList {
             .into_iter()
             .map(|i| i.gen_html())
             .collect::<Vec<_>>()
-            .join(" ")
+            .join("")
     }
 }
 
