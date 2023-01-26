@@ -1,16 +1,12 @@
-use super::builder::{EntityMethods, Entry};
 use super::builder::{ASTEntry, Builder};
+use super::builder::{EntityMethods, Entry};
 use super::comment::JSDocComment;
 use super::namespace::CppItem;
 use crate::config::Config;
-use crate::{
-    html::{Html, HtmlElement, HtmlList, HtmlText},
-};
-use clang::{
-    Accessibility, Entity, EntityKind, Type, TypeKind,
-};
+use crate::html::{Html, HtmlElement, HtmlList, HtmlText};
+use clang::{Accessibility, Entity, EntityKind, Type, TypeKind};
 use multipeek::{IteratorExt, MultiPeek};
-use pulldown_cmark::{Event, Tag, CowStr};
+use pulldown_cmark::{CowStr, Event, Tag};
 use std::str::Chars;
 use std::sync::Arc;
 
@@ -106,7 +102,7 @@ fn fmt_type(entity: &Type, builder: &Builder) -> Html {
                 }))
                 .into()
         });
-    
+
     HtmlElement::new("a")
         .with_class("entity")
         .with_class("type")
@@ -172,11 +168,12 @@ pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
             HtmlElement::new("summary")
                 .with_classes(&["entity", "var"])
                 .with_child(fmt_param(field, builder))
-                .with_child(HtmlText::new(";"))
+                .with_child(HtmlText::new(";")),
         )
         .with_child(
             HtmlElement::new("div").with_child(
-                field.get_comment()
+                field
+                    .get_comment()
                     .map(|s| JSDocComment::parse(s, builder).to_html(true))
                     .unwrap_or(Html::p("No description provided")),
             ),
@@ -294,22 +291,26 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
                 .map(|s| JSDocComment::parse(s, builder).to_html(false))
                 .unwrap_or(Html::p("No Description Provided")),
         ),
-        ("header_link", fmt_header_link(entry.entity(), builder.config.clone())),
+        (
+            "header_link",
+            fmt_header_link(entry.entity(), builder.config.clone()),
+        ),
         (
             "examples",
             fmt_section(
-                "Examples", 
+                "Examples",
                 entry
                     .entity()
                     .get_comment()
-                    .map(|s| JSDocComment::parse(s, builder)
-                        .examples()
-                        .iter()
-                        .map(|example| example.to_html())
-                        .collect()
-                    )
+                    .map(|s| {
+                        JSDocComment::parse(s, builder)
+                            .examples()
+                            .iter()
+                            .map(|example| example.to_html())
+                            .collect()
+                    })
                     .unwrap_or(Vec::new()),
-            )
+            ),
         ),
     ]
 }
@@ -430,8 +431,8 @@ fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Ve
             for v in ns.entries.values() {
                 fmt_autolinks_recursive(v, config.clone(), words);
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
 }
 
@@ -444,14 +445,19 @@ pub fn fmt_autolinks(builder: &Builder, text: &String) -> String {
         .map(|w| Word::Unmatched(w.into()))
         .collect();
 
-    for entry in builder.root.entries.values() { 
+    for entry in builder.root.entries.values() {
         fmt_autolinks_recursive(entry, builder.config.clone(), &mut words);
     }
 
-    words.into_iter().map(|word| match word {
-        Word::Matched(m) => m,
-        Word::Unmatched(w) => w,
-    }).collect::<Vec<_>>().join(" ").replace("<<br>>", "\n")
+    words
+        .into_iter()
+        .map(|word| match word {
+            Word::Matched(m) => m,
+            Word::Unmatched(w) => w,
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace("<<br>>", "\n")
 }
 
 fn fmt_emoji(text: &CowStr) -> String {
@@ -461,11 +467,9 @@ fn fmt_emoji(text: &CowStr) -> String {
         while let Some(d) = iter.peek_nth(i) {
             if d.is_alphanumeric() || *d == '_' {
                 buffer.push(*d);
-            }
-            else if *d == ':' {
+            } else if *d == ':' {
                 break;
-            }
-            else {
+            } else {
                 return None;
             }
             i += 1;
@@ -473,8 +477,7 @@ fn fmt_emoji(text: &CowStr) -> String {
         if let Some(emoji) = emojis::get_by_shortcode(&buffer) {
             drop(iter.advance_by(i + 1));
             Some(emoji.as_str())
-        }
-        else {
+        } else {
             None
         }
     }
@@ -496,16 +499,16 @@ fn fmt_emoji(text: &CowStr) -> String {
 }
 
 pub fn fmt_markdown(text: &String) -> Html {
-    let parser = pulldown_cmark::Parser::new_ext(
-        &text,
-        pulldown_cmark::Options::all()
-    );
+    let parser = pulldown_cmark::Parser::new_ext(&text, pulldown_cmark::Options::all());
 
     let mut content = String::new();
-    pulldown_cmark::html::push_html(&mut content, parser.map(|event| match event {
-        Event::Text(mut t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&mut t).as_str()))),
-        _ => event,
-    }));
+    pulldown_cmark::html::push_html(
+        &mut content,
+        parser.map(|event| match event {
+            Event::Text(mut t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&mut t).as_str()))),
+            _ => event,
+        }),
+    );
 
     HtmlElement::new("div")
         .with_class("text")
@@ -514,9 +517,7 @@ pub fn fmt_markdown(text: &String) -> Html {
 }
 
 pub fn extract_title_from_md(text: &String) -> Option<String> {
-    let mut parser = pulldown_cmark::Parser::new_ext(
-        text, pulldown_cmark::Options::all()
-    );
+    let mut parser = pulldown_cmark::Parser::new_ext(text, pulldown_cmark::Options::all());
 
     let name = parser.next()?;
     let Event::Start(tag) = name else { return None };
@@ -530,7 +531,7 @@ pub fn extract_title_from_md(text: &String) -> Option<String> {
             Event::Text(text) => {
                 res.push_str(&text);
                 true
-            },
+            }
             _ => true,
         },
         None => false,

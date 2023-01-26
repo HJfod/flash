@@ -1,12 +1,20 @@
+use std::{collections::HashMap, fs, str::Chars};
 
-use std::{str::Chars, collections::HashMap, fs};
+use clang::{
+    token::{Token, TokenKind},
+    Entity, EntityKind,
+};
+use multipeek::{IteratorExt, MultiPeek};
 
-use clang::{Entity, EntityKind, token::{Token, TokenKind}};
-use multipeek::{MultiPeek, IteratorExt};
+use crate::{
+    html::{Html, HtmlElement, HtmlList, HtmlText},
+    url::UrlPath,
+};
 
-use crate::{html::{Html, HtmlElement, HtmlText, HtmlList}, url::UrlPath};
-
-use super::{builder::{Builder, EntityMethods}, shared::{fmt_markdown, fmt_autolinks}};
+use super::{
+    builder::{Builder, EntityMethods},
+    shared::{fmt_autolinks, fmt_markdown},
+};
 
 struct CommentLexer<'s> {
     raw: MultiPeek<Chars<'s>>,
@@ -15,7 +23,11 @@ struct CommentLexer<'s> {
 impl<'s> CommentLexer<'s> {
     pub fn new(raw: &'s String) -> Self {
         Self {
-            raw: raw.trim_end_matches("*/").trim_start_matches("/*").chars().multipeek(),
+            raw: raw
+                .trim_end_matches("*/")
+                .trim_start_matches("/*")
+                .chars()
+                .multipeek(),
         }
     }
 
@@ -39,7 +51,12 @@ impl<'s> CommentLexer<'s> {
             // If indentation was provided, remove that amount of whitespace if possible
             if let Some(max) = indentation {
                 let mut i = 0;
-                self.skip_while(|c| c.is_whitespace() && c != '\n' && { i += 1; i } <= max);
+                self.skip_while(|c| {
+                    c.is_whitespace() && c != '\n' && {
+                        i += 1;
+                        i
+                    } <= max
+                });
                 i
             }
             // Otherwise consume as much whitespace as possible and return the count
@@ -65,7 +82,7 @@ impl<'s> CommentLexer<'s> {
             if pred(c) {
                 break;
             }
-            // On newlines, skip whitespace and the next line's starting star 
+            // On newlines, skip whitespace and the next line's starting star
             // if there is one, compressing everything to one space
             if c == '\n' {
                 let i = self.skip_to_next_line(indent_size);
@@ -73,8 +90,7 @@ impl<'s> CommentLexer<'s> {
                     indent_size = i.into();
                 }
                 res.push('\n');
-            }
-            else {
+            } else {
                 self.raw.next();
                 res.push(c);
             }
@@ -86,7 +102,7 @@ impl<'s> CommentLexer<'s> {
     fn eat_word(&mut self) -> Option<String> {
         self.eat_until(|c| c.is_whitespace())
     }
-    
+
     pub fn next_command(&mut self) -> Option<ParsedCommand> {
         // Skip whitespace
         self.skip_to_next_value();
@@ -111,7 +127,7 @@ impl<'s> CommentLexer<'s> {
                         else {
                             break;
                         };
-                        
+
                         // Value provided
                         if self.raw.peek().is_some_and(|c| *c == '=') {
                             // Consume =
@@ -122,7 +138,7 @@ impl<'s> CommentLexer<'s> {
                                 .eat_until(|c| matches!(c, ']' | ','))
                                 .map(|s| s.trim().to_owned())
                                 .unwrap_or(String::new());
-                            
+
                             attrs.insert(key, Some(value));
                         }
                         // No value provided
@@ -135,12 +151,11 @@ impl<'s> CommentLexer<'s> {
                         match next {
                             ']' => break,
                             ',' => continue,
-                            _   => unreachable!(),
+                            _ => unreachable!(),
                         }
                     }
                     Some(ParsedCommand::new_with(cmd, attrs))
-                }
-                else {
+                } else {
                     Some(ParsedCommand::new(cmd))
                 }
             }
@@ -159,14 +174,20 @@ impl<'s> CommentLexer<'s> {
 
     pub fn param_for(&mut self, cmd: &ParsedCommand) -> String {
         self.next_param().unwrap_or_else(|| {
-            println!("Warning parsing JSDoc comment: Expected parameter for command {}", cmd.cmd);
+            println!(
+                "Warning parsing JSDoc comment: Expected parameter for command {}",
+                cmd.cmd
+            );
             String::new()
         })
     }
 
     pub fn value_for(&mut self, cmd: &ParsedCommand) -> String {
         self.next_value().unwrap_or_else(|| {
-            println!("Warning parsing JSDoc comment: Expected value for command {}", cmd.cmd);
+            println!(
+                "Warning parsing JSDoc comment: Expected value for command {}",
+                cmd.cmd
+            );
             String::new()
         })
     }
@@ -175,8 +196,8 @@ impl<'s> CommentLexer<'s> {
 struct ParsedCommand {
     /// The command, like @param or @example
     cmd: String,
-    /// Attributes as key-value pairs, like `@example[text = type, another]`. 
-    /// Trimmed but otherwise arbitary (except for cannot contain equals sign 
+    /// Attributes as key-value pairs, like `@example[text = type, another]`.
+    /// Trimmed but otherwise arbitary (except for cannot contain equals sign
     /// or comma)
     attrs: HashMap<String, Option<String>>,
 }
@@ -207,7 +228,9 @@ impl Annotation {
     pub fn from(value: &Entity, builder: &Builder, class: String) -> Option<Annotation> {
         Some(Self {
             location: value.get_range()?.get_start().get_file_location().offset,
-            link: value.docs_url(builder.config.clone()).to_absolute(builder.config.clone()),
+            link: value
+                .docs_url(builder.config.clone())
+                .to_absolute(builder.config.clone()),
             class,
         })
     }
@@ -215,7 +238,9 @@ impl Annotation {
     pub fn from_end(value: &Entity, builder: &Builder, class: String) -> Option<Annotation> {
         Some(Self {
             location: value.get_range()?.get_end().get_file_location().offset - 1,
-            link: value.docs_url(builder.config.clone()).to_absolute(builder.config.clone()),
+            link: value
+                .docs_url(builder.config.clone())
+                .to_absolute(builder.config.clone()),
             class,
         })
     }
@@ -246,7 +271,9 @@ fn annotate(base: Entity, annotations: &Vec<Annotation>) -> Vec<Html> {
                     token_start.column
                 };
 
-            list.push(HtmlText::new("\n".repeat(newlines as usize) + &" ".repeat(spaces as usize)).into());
+            list.push(
+                HtmlText::new("\n".repeat(newlines as usize) + &" ".repeat(spaces as usize)).into(),
+            );
         }
 
         let classes: &[&str] = match token.get_kind() {
@@ -254,33 +281,36 @@ fn annotate(base: Entity, annotations: &Vec<Annotation>) -> Vec<Html> {
             TokenKind::Identifier => &["identifier"],
             TokenKind::Keyword => match token.get_spelling().as_str() {
                 "true" | "false" | "this" => &["keyword", "value"],
-                _ => &["keyword"]
+                _ => &["keyword"],
             },
             TokenKind::Literal => &["literal"],
             TokenKind::Punctuation => &["punctuation"],
         };
-        
+
         // Add link
-        if let Some(a) = annotations.iter().find(|a|
-            token_start.offset <= a.location && a.location <= token_end.offset
-        ) {
-            list.push(HtmlElement::new("a")
-                .with_classes(classes)
-                .with_class(&a.class)
-                .with_attr("href", a.link.clone())
-                .with_text(token.get_spelling())
-                .into()
+        if let Some(a) = annotations
+            .iter()
+            .find(|a| token_start.offset <= a.location && a.location <= token_end.offset)
+        {
+            list.push(
+                HtmlElement::new("a")
+                    .with_classes(classes)
+                    .with_class(&a.class)
+                    .with_attr("href", a.link.clone())
+                    .with_text(token.get_spelling())
+                    .into(),
             );
         }
         // Add just the colorized token
         else {
-            list.push(HtmlElement::new("span")
-                .with_classes(classes)
-                .with_text(token.get_spelling())
-                .into()
+            list.push(
+                HtmlElement::new("span")
+                    .with_classes(classes)
+                    .with_text(token.get_spelling())
+                    .into(),
             );
         }
-        
+
         // Save current token as the previous in loop
         prev = Some(token);
     }
@@ -293,10 +323,30 @@ fn print(entity: &Entity) {
         println!(
             "{:?} :: {}:{}..{}:{} => {:?}",
             entity.get_kind(),
-            child.get_range().unwrap().get_start().get_file_location().line,
-            child.get_range().unwrap().get_start().get_file_location().column,
-            child.get_range().unwrap().get_end().get_file_location().line,
-            child.get_range().unwrap().get_end().get_file_location().column,
+            child
+                .get_range()
+                .unwrap()
+                .get_start()
+                .get_file_location()
+                .line,
+            child
+                .get_range()
+                .unwrap()
+                .get_start()
+                .get_file_location()
+                .column,
+            child
+                .get_range()
+                .unwrap()
+                .get_end()
+                .get_file_location()
+                .line,
+            child
+                .get_range()
+                .unwrap()
+                .get_end()
+                .get_file_location()
+                .column,
             child.get_kind(),
         );
     }
@@ -370,7 +420,11 @@ impl<'e> Example<'e> {
         // Create a temporary file to store the example's code in
         let mut num = 0;
         let path = loop {
-            let path = self.builder.config.output_dir.join(format!("_example_{num}.cpp"));
+            let path = self
+                .builder
+                .config
+                .output_dir
+                .join(format!("_example_{num}.cpp"));
             if !path.exists() {
                 break path;
             }
@@ -379,22 +433,25 @@ impl<'e> Example<'e> {
         fs::write(&path, &self.data).map_err(|e| e.to_string())?;
 
         // Parse this file using builder's index to avoid reparsing everything
-        let unit = self.builder.index
+        let unit = self
+            .builder
+            .index
             .parser(&path)
             .arguments(self.builder.args)
             .parse()
             .map_err(|e| e.to_string())?;
-        
+
         let res = HtmlElement::new("pre")
-            .with_child(HtmlElement::new("code")
-                .with_classes(&["example"])
-                .with_children(annotate(
-                    unit.get_entity(),
-                    &self.get_annotations(unit.get_entity())
-                ))
+            .with_child(
+                HtmlElement::new("code")
+                    .with_classes(&["example"])
+                    .with_children(annotate(
+                        unit.get_entity(),
+                        &self.get_annotations(unit.get_entity()),
+                    )),
             )
             .into();
-        
+
         // We don't really care if we can remove the file or not
         drop(fs::remove_file(path));
 
@@ -453,21 +510,19 @@ impl<'e> JSDocComment<'e> {
 
         while let Some(cmd) = lexer.next_command() {
             match cmd.cmd.as_str() {
-                "description" | "desc" => 
-                    // Empty descriptions shouldn't result in warnings
-                    // This does make it so empty @description doesn't warn but eh
-                    // good enough
-                    self.description = lexer.next_value(),
-                "param" | "arg" => 
-                    self.params.push((
-                        lexer.param_for(&cmd),
-                        lexer.value_for(&cmd),
-                    )),
-                "tparam" | "targ" =>
-                    self.tparams.push((
-                        lexer.param_for(&cmd),
-                        lexer.value_for(&cmd),
-                    )),
+                "description" | "desc" =>
+                // Empty descriptions shouldn't result in warnings
+                // This does make it so empty @description doesn't warn but eh
+                // good enough
+                {
+                    self.description = lexer.next_value()
+                }
+                "param" | "arg" => self
+                    .params
+                    .push((lexer.param_for(&cmd), lexer.value_for(&cmd))),
+                "tparam" | "targ" => self
+                    .tparams
+                    .push((lexer.param_for(&cmd), lexer.value_for(&cmd))),
                 "return" | "returns" => self.returns = lexer.value_for(&cmd).into(),
                 "throws" => self.throws = lexer.value_for(&cmd).into(),
                 "see" => self.see.push(lexer.value_for(&cmd)),
@@ -475,18 +530,16 @@ impl<'e> JSDocComment<'e> {
                 "warning" | "warn" => self.warnings.push(lexer.value_for(&cmd)),
                 "version" => self.version = lexer.value_for(&cmd).into(),
                 "since" => self.since = lexer.value_for(&cmd).into(),
-                "example" | "code" => self.examples.push(
-                    Example::new(
-                        lexer.value_for(&cmd),
-                        cmd.attrs.contains_key("flash"),
-                        self.builder
-                    )
-                ),
+                "example" | "code" => self.examples.push(Example::new(
+                    lexer.value_for(&cmd),
+                    cmd.attrs.contains_key("flash"),
+                    self.builder,
+                )),
                 // _ => println!("Warning parsing JSDoc comment: Unknown command {cmd}"),
                 _ => {
                     // eat a value even though this is an unknown command
                     lexer.next_value();
-                },
+                }
             }
         }
 
@@ -506,7 +559,7 @@ impl<'e> JSDocComment<'e> {
             version: None,
             since: None,
             examples: Vec::new(),
-            builder
+            builder,
         }
     }
 
@@ -515,83 +568,104 @@ impl<'e> JSDocComment<'e> {
     }
 
     pub fn to_html(&self, include_examples: bool) -> Html {
-        HtmlList::new(vec![
-            HtmlElement::new("div")
-                .with_class("description")
-                .with_child(HtmlElement::new("div")
+        HtmlList::new(vec![HtmlElement::new("div")
+            .with_class("description")
+            .with_child(
+                HtmlElement::new("div")
                     .with_class("tags")
-                    .with_child_opt(self.version.as_ref().map(|v| Html::p(format!("Version {v}"))))
-                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
-                )
-                .with_child_opt(
-                    self.description
-                        .as_ref()
-                        .map(|d| fmt_markdown(
-                            &fmt_autolinks(self.builder, d)
-                        ))
-                )
-                .with_child_opt((!self.params.is_empty()).then_some(
+                    .with_child_opt(
+                        self.version
+                            .as_ref()
+                            .map(|v| Html::p(format!("Version {v}"))),
+                    )
+                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}")))),
+            )
+            .with_child_opt(
+                self.description
+                    .as_ref()
+                    .map(|d| fmt_markdown(&fmt_autolinks(self.builder, d))),
+            )
+            .with_child_opt(
+                (!self.params.is_empty()).then_some(
                     HtmlElement::new("section")
                         .with_class("params")
                         .with_child(Html::span(&["title"], "Parameters"))
-                        .with_child(HtmlElement::new("div")
-                            .with_class("grid")
-                            .with_children(self.params.iter().flat_map(|param|
-                                vec![
-                                    Html::p(param.0.clone()),
-                                    Html::div(param.1.clone()),
-                                ]
-                            ).collect())
-                        )
-                ))
-                .with_child_opt((!self.tparams.is_empty()).then_some(
+                        .with_child(
+                            HtmlElement::new("div").with_class("grid").with_children(
+                                self.params
+                                    .iter()
+                                    .flat_map(|param| {
+                                        vec![Html::p(param.0.clone()), Html::div(param.1.clone())]
+                                    })
+                                    .collect(),
+                            ),
+                        ),
+                ),
+            )
+            .with_child_opt(
+                (!self.tparams.is_empty()).then_some(
                     HtmlElement::new("section")
                         .with_classes(&["params", "template"])
                         .with_child(Html::span(&["title"], "Template parameters"))
-                        .with_child(HtmlElement::new("div")
-                            .with_class("grid")
-                            .with_children(self.tparams.iter().flat_map(|tparam|
-                                vec![
-                                    Html::p(tparam.0.clone()),
-                                    Html::div(tparam.1.clone()),
-                                ]
-                            ).collect())
-                        )
-                ))
-                .with_child_opt(self.returns.as_ref().map(|ret|
-                    HtmlElement::new("section")
-                        .with_classes(&["params", "returns", "grid"])
-                        .with_child(Html::span(&["title"], "Return value"))
-                        .with_child(Html::div(ret.clone()))
-                ))
-                .with_child_opt(self.throws.as_ref().map(|ret|
-                    HtmlElement::new("section")
-                        .with_classes(&["params", "throws", "grid"])
-                        .with_child(Html::span(&["title"], "Exceptions"))
-                        .with_child(Html::div(ret.clone()))
-                ))
-                // todo: see
-                .with_children(self.notes.iter().map(|note|
-                    HtmlElement::new("section")
-                        .with_class("note")
-                        .with_child(Html::span(&["title"], "Note"))
-                        .with_child(Html::div(note.clone()))
-                        .into()
-                ).collect())
-                .with_children(self.warnings.iter().map(|warning|
-                    HtmlElement::new("section")
-                        .with_class("warning")
-                        .with_child(Html::span(&["title"], "Warning"))
-                        .with_child(Html::div(warning.clone()))
-                        .into()
-                ).collect())
-                .with_children(if include_examples {
-                    self.examples.iter().map(|example| example.to_html()).collect()
-                } else {
-                    Vec::new()
-                })
-                .into(),
-        ]).into()
+                        .with_child(
+                            HtmlElement::new("div").with_class("grid").with_children(
+                                self.tparams
+                                    .iter()
+                                    .flat_map(|tparam| {
+                                        vec![Html::p(tparam.0.clone()), Html::div(tparam.1.clone())]
+                                    })
+                                    .collect(),
+                            ),
+                        ),
+                ),
+            )
+            .with_child_opt(self.returns.as_ref().map(|ret| {
+                HtmlElement::new("section")
+                    .with_classes(&["params", "returns", "grid"])
+                    .with_child(Html::span(&["title"], "Return value"))
+                    .with_child(Html::div(ret.clone()))
+            }))
+            .with_child_opt(self.throws.as_ref().map(|ret| {
+                HtmlElement::new("section")
+                    .with_classes(&["params", "throws", "grid"])
+                    .with_child(Html::span(&["title"], "Exceptions"))
+                    .with_child(Html::div(ret.clone()))
+            }))
+            // todo: see
+            .with_children(
+                self.notes
+                    .iter()
+                    .map(|note| {
+                        HtmlElement::new("section")
+                            .with_class("note")
+                            .with_child(Html::span(&["title"], "Note"))
+                            .with_child(Html::div(note.clone()))
+                            .into()
+                    })
+                    .collect(),
+            )
+            .with_children(
+                self.warnings
+                    .iter()
+                    .map(|warning| {
+                        HtmlElement::new("section")
+                            .with_class("warning")
+                            .with_child(Html::span(&["title"], "Warning"))
+                            .with_child(Html::div(warning.clone()))
+                            .into()
+                    })
+                    .collect(),
+            )
+            .with_children(if include_examples {
+                self.examples
+                    .iter()
+                    .map(|example| example.to_html())
+                    .collect()
+            } else {
+                Vec::new()
+            })
+            .into()])
+        .into()
     }
 
     pub fn examples(&self) -> &Vec<Example> {

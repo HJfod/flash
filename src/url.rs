@@ -83,7 +83,9 @@ impl UrlPath {
     /// Strip prefix. If prefix is not a prefix of this URL, nothing happens
     pub fn strip_prefix<T: AsRef<UrlPath>>(&self, prefix: T) -> Self {
         // Make sure prefix is shorter or as long as path
-        if self.parts.len() >= prefix.as_ref().parts.len() && self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts {
+        if self.parts.len() >= prefix.as_ref().parts.len()
+            && self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts
+        {
             return UrlPath::new_with_path(self.parts[prefix.as_ref().parts.len()..].into());
         }
         self.clone()

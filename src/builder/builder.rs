@@ -1,6 +1,6 @@
-use clang::{Entity, EntityKind, Clang};
+use clang::{Clang, Entity, EntityKind};
 use indicatif::ProgressBar;
-use std::{collections::HashMap, fs, sync::Arc, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, sync::Arc};
 use strfmt::strfmt;
 use tokio::task::JoinHandle;
 
@@ -24,7 +24,7 @@ pub trait EntityMethods<'e> {
 
     /// Get the relative for this entity
     fn rel_url(&self) -> UrlPath;
-    
+
     /// Get the full URL for this entity, valid for links
     fn docs_url(&self, config: Arc<Config>) -> UrlPath;
 
@@ -47,15 +47,15 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         let path = self.header(config.clone())?;
 
         // Find the source that has this header
-        config.sources
+        config
+            .sources
             .iter()
             .find(|src| path.starts_with(src.dir.to_pathbuf()))
             .map(|src| src.clone())
     }
 
     fn definition_file(&self) -> Option<PathBuf> {
-        self
-            .get_definition()?
+        self.get_definition()?
             .get_location()?
             .get_file_location()
             .file?
@@ -65,7 +65,10 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
 
     fn header(&self, config: Arc<Config>) -> Option<PathBuf> {
         let path = self.definition_file()?;
-        path.strip_prefix(&config.input_dir).unwrap_or(&path).to_path_buf().into()
+        path.strip_prefix(&config.input_dir)
+            .unwrap_or(&path)
+            .to_path_buf()
+            .into()
     }
 
     fn rel_url(&self) -> UrlPath {
@@ -80,10 +83,11 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
                     "en.cppreference.com/w/cpp/{}/{}",
                     self.definition_file()?.file_name()?.to_str()?,
                     self.get_name()?
-                )).ok()
-            })().unwrap_or(UrlPath::new())
-        }
-        else {
+                ))
+                .ok()
+            })()
+            .unwrap_or(UrlPath::new())
+        } else {
             self.rel_url().to_absolute(config)
         }
     }
@@ -96,11 +100,10 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
                 self.definition_file()?.file_name()?.to_str()?,
                 self.get_name()?
             ))
-        }
-        else {
+        } else {
             Some(
                 config.project.tree.clone()?
-                    + &UrlPath::try_from(&self.header(config)?).ok()?.to_string()
+                    + &UrlPath::try_from(&self.header(config)?).ok()?.to_string(),
             )
         }
     }
@@ -151,7 +154,12 @@ impl NavItem {
         NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), false)
     }
 
-    pub fn new_dir_open(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>, open: bool) -> NavItem {
+    pub fn new_dir_open(
+        name: &str,
+        items: Vec<NavItem>,
+        icon: Option<(&str, bool)>,
+        open: bool,
+    ) -> NavItem {
         NavItem::Dir(name.into(), items, icon.map(|s| (s.0.into(), s.1)), open)
     }
 
@@ -286,7 +294,10 @@ impl<'e> Builder<'e> {
             .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
         if let Some(ref icon) = self.config.project.icon {
-            fs::copy(self.config.input_dir.join(icon), self.config.output_dir.join("icon.png"))
+            fs::copy(
+                self.config.input_dir.join(icon),
+                self.config.output_dir.join("icon.png"),
+            )
             .map_err(|e| format!("Unable to copy icon: {e}"))?;
         }
         self.prebuild()?;
@@ -337,7 +348,7 @@ impl<'e> Builder<'e> {
                 ("main_content".to_owned(), content.clone()),
             ]));
             let page = strfmt(&config.templates.page, &page_fmt)
-            .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+                .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
 
             // Make sure output directory exists
             fs::create_dir_all(config.output_dir.join(target_url.to_pathbuf()))
@@ -451,15 +462,26 @@ fn default_format(config: Arc<Config>) -> HashMap<String, String> {
     HashMap::from([
         ("project_name".into(), config.project.name.clone()),
         ("project_version".into(), config.project.version.clone()),
-        ("project_repository".into(), config.project.repository.clone().unwrap_or(String::new())),
-        ("project_icon".into(), config.project.icon.as_ref().and(Some(format!(
-            "<img src=\"{}/icon.png\">",
+        (
+            "project_repository".into(),
+            config.project.repository.clone().unwrap_or(String::new()),
+        ),
+        (
+            "project_icon".into(),
             config
-                .output_url
+                .project
+                .icon
                 .as_ref()
-                .unwrap_or(&UrlPath::new())
-                .to_string()
-        ))).unwrap_or(String::new())),
+                .and(Some(format!(
+                    "<img src=\"{}/icon.png\">",
+                    config
+                        .output_url
+                        .as_ref()
+                        .unwrap_or(&UrlPath::new())
+                        .to_string()
+                )))
+                .unwrap_or(String::new()),
+        ),
         (
             "output_url".into(),
             config

@@ -44,7 +44,8 @@ async fn analyze_with_clang(config: Arc<Config>, args: &[String]) -> Result<(), 
 
     let pbar = Arc::from(ProgressBar::new_spinner());
     pbar.set_style(
-        ProgressStyle::with_template("{msg:>15} {spinner} [{elapsed_precise}]").unwrap()
+        ProgressStyle::with_template("{msg:>15} {spinner} [{elapsed_precise}]")
+            .unwrap()
             .tick_strings(&[
                 "█░░░░░░",
                 "██░░░░░",

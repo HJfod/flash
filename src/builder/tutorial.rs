@@ -1,10 +1,13 @@
-
-use std::{sync::Arc, fs, collections::HashMap, path::PathBuf, ffi::OsStr};
-use crate::{html::{Html, HtmlText, HtmlElement}, url::UrlPath, config::Config};
+use crate::{
+    config::Config,
+    html::{Html, HtmlElement, HtmlText},
+    url::UrlPath,
+};
+use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc};
 
 use super::{
     builder::{BuildResult, Builder, Entry, NavItem, OutputEntry},
-    shared::{fmt_markdown, extract_title_from_md, fmt_section},
+    shared::{extract_title_from_md, fmt_markdown, fmt_section},
 };
 
 pub struct Tutorial {
@@ -16,16 +19,18 @@ pub struct Tutorial {
 impl<'e> Tutorial {
     pub fn new(config: Arc<Config>, path: UrlPath) -> Self {
         let unparsed_content = fs::read_to_string(
-            config.input_dir
+            config
+                .input_dir
                 .join(&config.tutorials.as_ref().unwrap().dir)
-                .join(&path.to_pathbuf())
-        ).expect(&format!("Unable to read tutorial {}", path.to_raw_string()));
+                .join(&path.to_pathbuf()),
+        )
+        .expect(&format!("Unable to read tutorial {}", path.to_raw_string()));
 
         Self {
             title: extract_title_from_md(&unparsed_content)
                 .unwrap_or(path.raw_file_name().unwrap()),
             unparsed_content,
-            path
+            path,
         }
     }
 }
@@ -56,7 +61,7 @@ impl<'e> OutputEntry<'e> for Tutorial {
                 ("title", HtmlText::new(self.name()).into()),
                 ("content", fmt_markdown(&self.unparsed_content)),
                 ("links", Html::Raw(String::new())),
-            ]
+            ],
         )
     }
 }
@@ -76,9 +81,14 @@ impl<'e> TutorialFolder {
         let mut folders = HashMap::new();
         let mut tutorials = HashMap::new();
 
-        let stripped_path = path.strip_prefix(
-            &config.input_dir.join(&config.tutorials.as_ref().unwrap().dir)
-        ).unwrap_or(&path).to_path_buf();
+        let stripped_path = path
+            .strip_prefix(
+                &config
+                    .input_dir
+                    .join(&config.tutorials.as_ref().unwrap().dir),
+            )
+            .unwrap_or(&path)
+            .to_path_buf();
 
         // find tutorials (markdown files)
         for file in fs::read_dir(path).ok()? {
@@ -88,15 +98,14 @@ impl<'e> TutorialFolder {
 
             // if this is a directory, add it only if it has tutorials
             if ty.is_dir() {
-                if let Some(folder) = TutorialFolder::from_folder(
-                    config.clone(), &file.path(), depth + 1
-                ) {
+                if let Some(folder) =
+                    TutorialFolder::from_folder(config.clone(), &file.path(), depth + 1)
+                {
                     folders.insert(folder.name(), folder);
                 }
             }
             // markdown files are tutorials
-            else if ty.is_file() && 
-                path.extension() == Some(OsStr::new("md")) &&
+            else if ty.is_file() && path.extension() == Some(OsStr::new("md")) &&
                 // skip special files
                 match path.file_name().map(|f| f.to_string_lossy().to_lowercase()) {
                     Some(val) => match val.as_str() {
@@ -106,10 +115,15 @@ impl<'e> TutorialFolder {
                     None => false,
                 }
             {
-                let stripped_path = path.strip_prefix(
-                    &config.input_dir.join(&config.tutorials.as_ref().unwrap().dir)
-                ).unwrap_or(&path).to_path_buf();
-                
+                let stripped_path = path
+                    .strip_prefix(
+                        &config
+                            .input_dir
+                            .join(&config.tutorials.as_ref().unwrap().dir),
+                    )
+                    .unwrap_or(&path)
+                    .to_path_buf();
+
                 let Ok(url) = UrlPath::try_from(&stripped_path) else { continue; };
                 let tut = Tutorial::new(config.clone(), url);
                 tutorials.insert(tut.name(), tut);
@@ -130,7 +144,7 @@ impl<'e> TutorialFolder {
             title: index.as_ref().and_then(|i| extract_title_from_md(i)),
             index,
             folders,
-            tutorials
+            tutorials,
         })
     }
 
@@ -171,14 +185,15 @@ impl<'e> TutorialFolder {
 
 impl<'e> Entry<'e> for TutorialFolder {
     fn name(&self) -> String {
-        self.title.clone().unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
+        self.title
+            .clone()
+            .unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
     }
 
     fn url(&self) -> UrlPath {
         if self.is_root {
             UrlPath::new()
-        }
-        else {
+        } else {
             UrlPath::parse("tutorials").unwrap().join(&self.path)
         }
     }
@@ -199,15 +214,18 @@ impl<'e> Entry<'e> for TutorialFolder {
         if self.is_root {
             NavItem::new_root(
                 None,
-                self.tutorials_sorted().iter().map(|e| e.nav())
+                self.tutorials_sorted()
+                    .iter()
+                    .map(|e| e.nav())
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
             )
-        }
-        else {
+        } else {
             NavItem::new_dir_open(
                 &self.name(),
-                self.tutorials_sorted().iter().map(|e| e.nav())
+                self.tutorials_sorted()
+                    .iter()
+                    .map(|e| e.nav())
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
                 None,
@@ -227,27 +245,33 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
             },
             vec![
                 ("title", HtmlText::new(self.name()).into()),
-                ("content", self.index.as_ref()
-                    .map(|i| fmt_markdown(i))
-                    .unwrap_or(Html::p(""))
+                (
+                    "content",
+                    self.index
+                        .as_ref()
+                        .map(|i| fmt_markdown(i))
+                        .unwrap_or(Html::p("")),
                 ),
-                ("links", fmt_section("Pages",
-                    self.tutorials_sorted().iter()
-                        .map(|tut|
-                            HtmlElement::new("ul")
-                            .with_child(
-                                HtmlElement::new("li")
-                                .with_child(
-                                    HtmlElement::new("a")
-                                    .with_text(&tut.title)
-                                    .with_attr("href", tut.url().to_absolute(builder.config.clone()))
-                                )
-                            )
-                            .into()
-                        )
-                        .collect()
-                )),
-            ]
+                (
+                    "links",
+                    fmt_section(
+                        "Pages",
+                        self.tutorials_sorted()
+                            .iter()
+                            .map(|tut| {
+                                HtmlElement::new("ul")
+                                    .with_child(HtmlElement::new("li").with_child(
+                                        HtmlElement::new("a").with_text(&tut.title).with_attr(
+                                            "href",
+                                            tut.url().to_absolute(builder.config.clone()),
+                                        ),
+                                    ))
+                                    .into()
+                            })
+                            .collect(),
+                    ),
+                ),
+            ],
         )
     }
 }
