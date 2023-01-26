@@ -239,7 +239,7 @@ pub trait Entry<'e> {
 }
 
 pub trait OutputEntry<'e>: Entry<'e> {
-    fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>);
+    fn output(&self, builder: &'e Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>);
 }
 
 pub trait ASTEntry<'e>: Entry<'e> {
@@ -303,7 +303,7 @@ impl<'e> Builder<'e> {
         Ok(self)
     }
 
-    pub fn create_output_for<E: OutputEntry<'e>>(&self, entry: &E) -> BuildResult {
+    pub fn create_output_for<E: OutputEntry<'e>>(&'e self, entry: &E) -> BuildResult {
         let (template, vars) = entry.output(self);
         Ok(vec![Self::create_output_in_thread(
             self.config.clone(),

@@ -162,6 +162,26 @@ fn fmt_param(param: &Entity, builder: &Builder) -> Html {
         .into()
 }
 
+fn fmt_template_args(entity: &Entity, _builder: &Builder) -> Option<Html> {
+    Some(HtmlList::new(
+        entity.get_template()?
+            .get_children()
+            .into_iter()
+            .map(|e|
+                HtmlText::new(e.get_name().unwrap_or("_".to_string())).into()
+            )
+            .collect::<Vec<_>>()
+            .insert_between(|| {
+                HtmlElement::new("span")
+                    .with_class("comma")
+                    .with_class("space-after")
+                    .with_child(HtmlText::new(","))
+                    .into()
+            })
+            .surround(HtmlText::new("<").into(), HtmlText::new(">").into()),
+    ).into())
+}
+
 pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("details")
         .with_class("entity-desc")
@@ -201,6 +221,7 @@ pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
                     &["name", "space-before"],
                     &fun.get_name().unwrap_or("_anon".into()),
                 ))
+                .with_child_opt(fmt_template_args(fun, builder))
                 .with_child(
                     HtmlElement::new("span").with_class("params").with_children(
                         fun.get_arguments()
@@ -243,12 +264,13 @@ pub fn fmt_classlike_decl(class: &Entity, keyword: &str, builder: &Builder) -> H
         .with_class("entity-desc")
         .with_child(
             HtmlElement::new("summary")
-                .with_classes(&["entity", "fun"])
+                .with_classes(&["entity", keyword])
                 .with_child(Html::span(&["keyword", "space-after"], keyword))
                 .with_child(Html::span(
-                    &["name", "space-before"],
+                    &["name"],
                     &class.get_name().unwrap_or("_anon".into()),
                 ))
+                .with_child_opt(fmt_template_args(class, builder))
                 .with_child(HtmlText::new(";")),
         )
         .with_child(

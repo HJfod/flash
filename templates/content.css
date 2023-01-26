@@ -389,11 +389,11 @@ details.entity-desc[open] > summary .feather-chevron-right {
     color: var(--flash-orange);
 }
 
-.entity.class > .name, .class {
+.entity.class > .name, .class.name {
     color: var(--flash-yellow);
 }
 
-.entity.struct > .name, .struct {
+.entity.struct > .name, .struct.name {
     color: var(--flash-yellow);
 }
 
