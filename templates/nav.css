@@ -53,8 +53,9 @@ nav > * {
 }
 
 nav > .mode {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    display: flex;
+    flex-direction: row;
+    justify-content: stretch;
     gap: .25rem;
     padding-top: 0rem;
     padding-bottom: 0rem;
@@ -70,6 +71,7 @@ nav > .mode > button {
     background-color: rgba(0, 0, 0, 0);
     border: none;
     transition: background;
+    flex: 1;
 }
 
 nav > .mode > button .feather {
