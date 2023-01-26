@@ -510,7 +510,7 @@ impl<'e> JSDocComment<'e> {
 
         while let Some(cmd) = lexer.next_command() {
             match cmd.cmd.as_str() {
-                "description" | "desc" =>
+                "description" | "desc" | "brief" =>
                 // Empty descriptions shouldn't result in warnings
                 // This does make it so empty @description doesn't warn but eh
                 // good enough

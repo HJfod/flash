@@ -463,7 +463,11 @@ enum Word {
 fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Vec<Word>) {
     for word in words.iter_mut() {
         if let Word::Unmatched(name) = word {
-            if *name == entity.name() {
+            // skip stuff that have all-lowercase names (so words like "get" 
+            // and "data" don't get autolinked)
+            if !name.chars().all(|c| c.is_lowercase() && c.is_alphanumeric())
+                && *name == entity.name()
+            {
                 *word = Word::Matched(format!(
                     "[{name}]({})",
                     entity.entity().docs_url(config.clone())
