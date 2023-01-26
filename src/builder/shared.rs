@@ -475,7 +475,9 @@ fn fmt_emoji(text: &CowStr) -> String {
             i += 1;
         }
         if let Some(emoji) = emojis::get_by_shortcode(&buffer) {
-            drop(iter.advance_by(i + 1));
+            match iter.advance_by(i + 1) {
+                _ => {},
+            }
             Some(emoji.as_str())
         } else {
             None
