@@ -51,6 +51,12 @@ impl UrlPath {
         Self { parts }.clean()
     }
 
+    pub fn part(part: &str) -> Self {
+        Self {
+            parts: vec![part.to_string()]
+        }
+    }
+
     pub fn parse(url: &str) -> Result<Self, String> {
         Ok(UrlPath::new_with_path(
             url.split('/').map(|s| s.to_owned()).collect(),
@@ -62,12 +68,18 @@ impl UrlPath {
         let mut filtered = Vec::new();
         self.parts
             .iter()
-            .filter_map(|p| (!p.is_empty() || p != ".").then_some(p.to_owned()))
+            .filter_map(|p|
+                (
+                    !p.is_empty()
+                    && p != "."
+                    && !p.chars().all(char::is_whitespace)
+                ).then_some(p.to_owned())
+            )
             .for_each(|p| {
                 if p == ".." {
                     filtered.pop();
                 } else {
-                    filtered.push(p);
+                    filtered.push(p.replace("/", ""));
                 }
             });
         self.parts = filtered;
@@ -89,6 +101,11 @@ impl UrlPath {
             return UrlPath::new_with_path(self.parts[prefix.as_ref().parts.len()..].into());
         }
         self.clone()
+    }
+
+    pub fn starts_with<T: AsRef<UrlPath>>(&self, prefix: T) -> bool {
+        self.parts.len() >= prefix.as_ref().parts.len()
+            && self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts
     }
 
     pub fn url_safe_parts(&self) -> Vec<String> {
@@ -120,6 +137,10 @@ impl UrlPath {
             .as_ref()
             .unwrap_or(&UrlPath::new())
             .join(self)
+    }
+
+    pub fn is_absolute(&self, config: Arc<Config>) -> bool {
+        self.starts_with(&config.output_url.as_ref().unwrap_or(&UrlPath::new()))
     }
 }
 

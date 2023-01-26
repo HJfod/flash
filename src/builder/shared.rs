@@ -4,9 +4,10 @@ use super::comment::JSDocComment;
 use super::namespace::CppItem;
 use crate::config::Config;
 use crate::html::{Html, HtmlElement, HtmlList, HtmlText};
+use crate::url::UrlPath;
 use clang::{Accessibility, Entity, EntityKind, Type, TypeKind};
 use multipeek::{IteratorExt, MultiPeek};
-use pulldown_cmark::{CowStr, Event, Tag};
+use pulldown_cmark::{CowStr, Event, Tag, LinkType};
 use std::str::Chars;
 use std::sync::Arc;
 
@@ -499,14 +500,49 @@ fn fmt_emoji(text: &CowStr) -> String {
 }
 
 #[allow(clippy::ptr_arg)]
-pub fn fmt_markdown(text: &String) -> Html {
-    let parser = pulldown_cmark::Parser::new_ext(text, pulldown_cmark::Options::all());
+pub fn fmt_markdown(config: Arc<Config>, base_url: Option<UrlPath>, text: &String) -> Html {
+    let parser = pulldown_cmark::Parser::new_ext(
+        text, pulldown_cmark::Options::all()
+    );
 
     let mut content = String::new();
     pulldown_cmark::html::push_html(
         &mut content,
         parser.map(|event| match event {
             Event::Text(t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&t).as_str()))),
+            // fix urls to point to root
+            Event::Start(tag) => match tag {
+                Tag::Link(ty, dest, title) => {
+                    let url = UrlPath::new_with_path(
+                        dest.split("/").map(|s| s.to_string()).collect()
+                    );
+                    if ty == LinkType::Inline && 
+                        dest.starts_with("/") &&
+                        // if this is already absolute, no need to do stuff
+                        !url.is_absolute(config.clone())
+                    {
+                        // add the base part if one was provided
+                        let url = if let Some(ref base) = base_url {
+                            base.join(&url)
+                                .to_absolute(config.clone())
+                                .to_string()
+                        } else {
+                            url.to_absolute(config.clone())
+                                .to_string()
+                        };
+                        // return fixed url
+                        Event::Start(Tag::Link(
+                            ty,
+                            CowStr::Boxed(Box::from(url)),
+                            title
+                        ))
+                    }
+                    else {
+                        Event::Start(Tag::Link(ty, dest, title))
+                    }
+                }
+                _ => Event::Start(tag)
+            }
             _ => event,
         }),
     );
