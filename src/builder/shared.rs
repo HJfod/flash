@@ -266,7 +266,7 @@ pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
             .with_child(HtmlElement::new("code")
                 .with_class("header-link")
                 .with_children(vec![
-                    Html::span(&["keyword"], "#include ").into(),
+                    Html::span(&["keyword"], "#include "),
                     Html::span(&["url"], &format!("&lt;{}&gt;", path.to_raw_string()))
                 ])
             )
@@ -426,22 +426,19 @@ fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Ve
         }
     }
 
-    match entity {
-        CppItem::Namespace(ns) => {
-            for v in ns.entries.values() {
-                fmt_autolinks_recursive(v, config.clone(), words);
-            }
+    if let CppItem::Namespace(ns) = entity {
+        for v in ns.entries.values() {
+            fmt_autolinks_recursive(v, config.clone(), words);
         }
-        _ => {}
     }
 }
 
-pub fn fmt_autolinks(builder: &Builder, text: &String) -> String {
+pub fn fmt_autolinks(builder: &Builder, text: &str) -> String {
     let mut words = text
         // hacky fix to preserve newlines
-        .replace("\n", " <<br>> ")
+        .replace('\n', " <<br>> ")
         .split(|c: char| c.is_whitespace())
-        .filter(|s| s.len() > 0)
+        .filter(|s| !s.is_empty())
         .map(|w| Word::Unmatched(w.into()))
         .collect();
 
@@ -475,6 +472,7 @@ fn fmt_emoji(text: &CowStr) -> String {
             i += 1;
         }
         if let Some(emoji) = emojis::get_by_shortcode(&buffer) {
+            #[allow(clippy::match_single_binding)]
             match iter.advance_by(i + 1) {
                 _ => {},
             }
@@ -500,14 +498,15 @@ fn fmt_emoji(text: &CowStr) -> String {
     res
 }
 
+#[allow(clippy::ptr_arg)]
 pub fn fmt_markdown(text: &String) -> Html {
-    let parser = pulldown_cmark::Parser::new_ext(&text, pulldown_cmark::Options::all());
+    let parser = pulldown_cmark::Parser::new_ext(text, pulldown_cmark::Options::all());
 
     let mut content = String::new();
     pulldown_cmark::html::push_html(
         &mut content,
         parser.map(|event| match event {
-            Event::Text(mut t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&mut t).as_str()))),
+            Event::Text(t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&t).as_str()))),
             _ => event,
         }),
     );
@@ -518,6 +517,7 @@ pub fn fmt_markdown(text: &String) -> Html {
         .into()
 }
 
+#[allow(clippy::ptr_arg)]
 pub fn extract_title_from_md(text: &String) -> Option<String> {
     let mut parser = pulldown_cmark::Parser::new_ext(text, pulldown_cmark::Options::all());
 

@@ -1,3 +1,4 @@
+#[allow(clippy::module_inception)]
 pub mod builder;
 pub mod class;
 pub mod comment;

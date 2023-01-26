@@ -21,7 +21,7 @@ struct CommentLexer<'s> {
 }
 
 impl<'s> CommentLexer<'s> {
-    pub fn new(raw: &'s String) -> Self {
+    pub fn new(raw: &'s str) -> Self {
         Self {
             raw: raw
                 .trim_end_matches("*/")
@@ -78,7 +78,7 @@ impl<'s> CommentLexer<'s> {
     fn eat_until<P: FnMut(char) -> bool>(&mut self, mut pred: P) -> Option<String> {
         let mut res = String::new();
         let mut indent_size = None;
-        while let Some(c) = self.raw.peek().map(|c| *c) {
+        while let Some(c) = self.raw.peek().copied() {
             if pred(c) {
                 break;
             }
@@ -246,7 +246,7 @@ impl Annotation {
     }
 }
 
-fn annotate(base: Entity, annotations: &Vec<Annotation>) -> Vec<Html> {
+fn annotate(base: Entity, annotations: &[Annotation]) -> Vec<Html> {
     let mut list = Vec::new();
 
     let mut prev: Option<Token> = None;
@@ -383,25 +383,25 @@ impl<'e> Example<'e> {
             EntityKind::TypeRef |
             // Templated types
             EntityKind::TemplateRef => {
-                if let Some(p) = Annotation::from(&entity, &self.builder, "class".into()) {
+                if let Some(p) = Annotation::from(&entity, self.builder, "class".into()) {
                     res.push(p);
                 }
             },
 
             EntityKind::InclusionDirective => {
-                if let Some(p) = Annotation::from(&entity, &self.builder, "macro".into()) {
+                if let Some(p) = Annotation::from(&entity, self.builder, "macro".into()) {
                     res.push(p);
                 }
             },
 
             EntityKind::MacroExpansion => {
-                if let Some(p) = Annotation::from(&entity, &self.builder, "macro".into()) {
+                if let Some(p) = Annotation::from(&entity, self.builder, "macro".into()) {
                     res.push(p);
                 }
             },
 
             EntityKind::CallExpr => {
-                if let Some(p) = Annotation::from_end(&entity.get_child(0).unwrap(), &self.builder, "function".into()) {
+                if let Some(p) = Annotation::from_end(&entity.get_child(0).unwrap(), self.builder, "function".into()) {
                     res.push(p);
                 }
             },

@@ -50,8 +50,7 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
         config
             .sources
             .iter()
-            .find(|src| path.starts_with(src.dir.to_pathbuf()))
-            .map(|src| src.clone())
+            .find(|src| path.starts_with(src.dir.to_pathbuf())).cloned()
     }
 
     fn definition_file(&self) -> Option<PathBuf> {
@@ -478,7 +477,6 @@ fn default_format(config: Arc<Config>) -> HashMap<String, String> {
                         .output_url
                         .as_ref()
                         .unwrap_or(&UrlPath::new())
-                        .to_string()
                 )))
                 .unwrap_or(String::new()),
         ),

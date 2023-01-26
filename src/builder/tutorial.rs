@@ -16,15 +16,15 @@ pub struct Tutorial {
     unparsed_content: String,
 }
 
-impl<'e> Tutorial {
+impl Tutorial {
     pub fn new(config: Arc<Config>, path: UrlPath) -> Self {
         let unparsed_content = fs::read_to_string(
             config
                 .input_dir
                 .join(&config.tutorials.as_ref().unwrap().dir)
-                .join(&path.to_pathbuf()),
+                .join(path.to_pathbuf()),
         )
-        .expect(&format!("Unable to read tutorial {}", path.to_raw_string()));
+        .unwrap_or_else(|_| panic!("Unable to read tutorial {}", path.to_raw_string()));
 
         Self {
             title: extract_title_from_md(&unparsed_content)
@@ -76,7 +76,7 @@ pub struct TutorialFolder {
     tutorials: HashMap<String, Tutorial>,
 }
 
-impl<'e> TutorialFolder {
+impl TutorialFolder {
     fn from_folder(config: Arc<Config>, path: &PathBuf, depth: i32) -> Option<Self> {
         let mut folders = HashMap::new();
         let mut tutorials = HashMap::new();
@@ -87,7 +87,7 @@ impl<'e> TutorialFolder {
                     .input_dir
                     .join(&config.tutorials.as_ref().unwrap().dir),
             )
-            .unwrap_or(&path)
+            .unwrap_or(path)
             .to_path_buf();
 
         // find tutorials (markdown files)
@@ -108,10 +108,7 @@ impl<'e> TutorialFolder {
             else if ty.is_file() && path.extension() == Some(OsStr::new("md")) &&
                 // skip special files
                 match path.file_name().map(|f| f.to_string_lossy().to_lowercase()) {
-                    Some(val) => match val.as_str() {
-                        "readme.md" | "index.md" => false,
-                        _ => true,
-                    },
+                    Some(val) => !matches!(val.as_str(), "readme.md" | "index.md"),
                     None => false,
                 }
             {
@@ -137,11 +134,11 @@ impl<'e> TutorialFolder {
         };
 
         // only consider this a tutorial folder if it has some tutorials
-        (folders.len() > 0 || tutorials.len() > 0).then_some(Self {
+        (!folders.is_empty() || !tutorials.is_empty()).then_some(Self {
             is_root: false,
             is_open: depth < 2,
             path: UrlPath::try_from(&stripped_path).ok()?,
-            title: index.as_ref().and_then(|i| extract_title_from_md(i)),
+            title: index.as_ref().and_then(extract_title_from_md),
             index,
             folders,
             tutorials,
@@ -249,7 +246,7 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                     "content",
                     self.index
                         .as_ref()
-                        .map(|i| fmt_markdown(i))
+                        .map(fmt_markdown)
                         .unwrap_or(Html::p("")),
                 ),
                 (
