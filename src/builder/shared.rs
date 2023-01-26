@@ -539,5 +539,5 @@ pub fn extract_title_from_md(text: &String) -> Option<String> {
         None => false,
     } {}
 
-    (res.len() > 0).then_some(res)
+    (!res.is_empty()).then_some(res)
 }

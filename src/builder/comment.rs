@@ -96,7 +96,7 @@ impl<'s> CommentLexer<'s> {
             }
         }
         // println!("indent_size: {:?}", indent_size);
-        (res.len() > 0).then_some(res)
+        (!res.is_empty()).then_some(res)
     }
 
     fn eat_word(&mut self) -> Option<String> {
