@@ -232,23 +232,20 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                     .unwrap_or(Html::p(""))
                 ),
                 ("links", fmt_section("Pages",
-                    vec![
-                        HtmlElement::new("ul")
-                        .with_children(
-                            self.tutorials_sorted().iter()
-                            .map(|tut|
+                    self.tutorials_sorted().iter()
+                        .map(|tut|
+                            HtmlElement::new("ul")
+                            .with_child(
                                 HtmlElement::new("li")
                                 .with_child(
                                     HtmlElement::new("a")
                                     .with_text(&tut.title)
                                     .with_attr("href", tut.url().to_absolute(builder.config.clone()))
                                 )
-                                .into()
                             )
-                            .collect()
+                            .into()
                         )
-                        .into()
-                    ]
+                        .collect()
                 )),
             ]
         )
