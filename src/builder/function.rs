@@ -12,6 +12,12 @@ pub struct Function<'e> {
     entity: Entity<'e>,
 }
 
+impl<'e> Function<'e> {
+    pub fn new(entity: Entity<'e>) -> Self {
+        Self { entity }
+    }
+}
+
 impl<'e> Entry<'e> for Function<'e> {
     fn name(&self) -> String {
         self.entity
@@ -46,11 +52,5 @@ impl<'e> OutputEntry<'e> for Function<'e> {
             builder.config.templates.function.clone(),
             output_entity(self, builder),
         )
-    }
-}
-
-impl<'e> Function<'e> {
-    pub fn new(entity: Entity<'e>) -> Self {
-        Self { entity }
     }
 }

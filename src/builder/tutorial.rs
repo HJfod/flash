@@ -13,6 +13,23 @@ pub struct Tutorial {
     unparsed_content: String,
 }
 
+impl<'e> Tutorial {
+    pub fn new(config: Arc<Config>, path: UrlPath) -> Self {
+        let unparsed_content = fs::read_to_string(
+            config.input_dir
+                .join(&config.tutorials.as_ref().unwrap().dir)
+                .join(&path.to_pathbuf())
+        ).expect(&format!("Unable to read tutorial {}", path.to_raw_string()));
+
+        Self {
+            title: extract_title_from_md(&unparsed_content)
+                .unwrap_or(path.raw_file_name().unwrap()),
+            unparsed_content,
+            path
+        }
+    }
+}
+
 impl<'e> Entry<'e> for Tutorial {
     fn name(&self) -> String {
         self.path.raw_file_name().unwrap().replace(".md", "")
@@ -44,23 +61,6 @@ impl<'e> OutputEntry<'e> for Tutorial {
     }
 }
 
-impl<'e> Tutorial {
-    pub fn new(config: Arc<Config>, path: UrlPath) -> Self {
-        let unparsed_content = fs::read_to_string(
-            config.input_dir
-                .join(&config.tutorials.as_ref().unwrap().dir)
-                .join(&path.to_pathbuf())
-        ).expect(&format!("Unable to read tutorial {}", path.to_raw_string()));
-
-        Self {
-            title: extract_title_from_md(&unparsed_content)
-                .unwrap_or(path.raw_file_name().unwrap()),
-            unparsed_content,
-            path
-        }
-    }
-}
-
 pub struct TutorialFolder {
     is_root: bool,
     is_open: bool,
@@ -69,54 +69,6 @@ pub struct TutorialFolder {
     index: Option<String>,
     folders: HashMap<String, TutorialFolder>,
     tutorials: HashMap<String, Tutorial>,
-}
-
-impl<'e> Entry<'e> for TutorialFolder {
-    fn name(&self) -> String {
-        self.title.clone().unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
-    }
-
-    fn url(&self) -> UrlPath {
-        if self.is_root {
-            UrlPath::new()
-        }
-        else {
-            UrlPath::parse("tutorials").unwrap().join(&self.path)
-        }
-    }
-
-    fn build(&self, builder: &Builder<'e>) -> BuildResult {
-        let mut handles = Vec::new();
-        handles.extend(builder.create_output_for(self)?);
-        for dir in self.folders.values() {
-            handles.extend(dir.build(builder)?);
-        }
-        for file in self.tutorials.values() {
-            handles.extend(file.build(builder)?);
-        }
-        Ok(handles)
-    }
-
-    fn nav(&self) -> NavItem {
-        if self.is_root {
-            NavItem::new_root(
-                None,
-                self.tutorials_sorted().iter().map(|e| e.nav())
-                    .chain(self.folders_sorted().iter().map(|e| e.nav()))
-                    .collect::<Vec<_>>(),
-            )
-        }
-        else {
-            NavItem::new_dir_open(
-                &self.name(),
-                self.tutorials_sorted().iter().map(|e| e.nav())
-                    .chain(self.folders_sorted().iter().map(|e| e.nav()))
-                    .collect::<Vec<_>>(),
-                None,
-                self.is_open,
-            )
-        }
-    }
 }
 
 impl<'e> TutorialFolder {
@@ -214,6 +166,54 @@ impl<'e> TutorialFolder {
         let mut vec = self.tutorials.iter().collect::<Vec<_>>();
         vec.sort_by_key(|t| t.0);
         vec.into_iter().map(|(_, v)| v).collect()
+    }
+}
+
+impl<'e> Entry<'e> for TutorialFolder {
+    fn name(&self) -> String {
+        self.title.clone().unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
+    }
+
+    fn url(&self) -> UrlPath {
+        if self.is_root {
+            UrlPath::new()
+        }
+        else {
+            UrlPath::parse("tutorials").unwrap().join(&self.path)
+        }
+    }
+
+    fn build(&self, builder: &Builder<'e>) -> BuildResult {
+        let mut handles = Vec::new();
+        handles.extend(builder.create_output_for(self)?);
+        for dir in self.folders.values() {
+            handles.extend(dir.build(builder)?);
+        }
+        for file in self.tutorials.values() {
+            handles.extend(file.build(builder)?);
+        }
+        Ok(handles)
+    }
+
+    fn nav(&self) -> NavItem {
+        if self.is_root {
+            NavItem::new_root(
+                None,
+                self.tutorials_sorted().iter().map(|e| e.nav())
+                    .chain(self.folders_sorted().iter().map(|e| e.nav()))
+                    .collect::<Vec<_>>(),
+            )
+        }
+        else {
+            NavItem::new_dir_open(
+                &self.name(),
+                self.tutorials_sorted().iter().map(|e| e.nav())
+                    .chain(self.folders_sorted().iter().map(|e| e.nav()))
+                    .collect::<Vec<_>>(),
+                None,
+                self.is_open,
+            )
+        }
     }
 }
 

@@ -12,6 +12,12 @@ pub struct Class<'e> {
     entity: Entity<'e>,
 }
 
+impl<'e> Class<'e> {
+    pub fn new(entity: Entity<'e>) -> Self {
+        Self { entity }
+    }
+}
+
 impl<'e> Entry<'e> for Class<'e> {
     fn name(&self) -> String {
         self.entity
@@ -44,11 +50,5 @@ impl<'e> OutputEntry<'e> for Class<'e> {
             builder.config.templates.class.clone(),
             output_classlike(self, builder),
         )
-    }
-}
-
-impl<'e> Class<'e> {
-    pub fn new(entity: Entity<'e>) -> Self {
-        Self { entity }
     }
 }

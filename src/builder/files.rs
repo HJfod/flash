@@ -11,6 +11,12 @@ pub struct File {
     path: UrlPath,
 }
 
+impl File {
+    pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
+        Self { source: def, path }
+    }
+}
+
 impl<'e> Entry<'e> for File {
     fn name(&self) -> String {
         self.path.raw_file_name().unwrap()
@@ -63,17 +69,22 @@ impl<'e> OutputEntry<'e> for File {
     }
 }
 
-impl File {
-    pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
-        Self { source: def, path }
-    }
-}
-
 pub struct Dir {
     source: Arc<Source>,
     path: UrlPath,
     pub dirs: HashMap<String, Dir>,
     pub files: HashMap<String, File>,
+}
+
+impl Dir {
+    pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
+        Self {
+            source: def,
+            path,
+            dirs: HashMap::new(),
+            files: HashMap::new(),
+        }
+    }
 }
 
 impl<'e> Entry<'e> for Dir {
@@ -109,46 +120,9 @@ impl<'e> Entry<'e> for Dir {
     }
 }
 
-impl Dir {
-    pub fn new(def: Arc<Source>, path: UrlPath) -> Self {
-        Self {
-            source: def,
-            path,
-            dirs: HashMap::new(),
-            files: HashMap::new(),
-        }
-    }
-}
-
 pub struct Root {
     pub source: Arc<Source>,
     pub dir: Dir,
-}
-
-impl<'e> Entry<'e> for Root {
-    fn build(&self, builder: &Builder<'e>) -> BuildResult {
-        self.dir.build(builder)
-    }
-
-    fn name(&self) -> String {
-        self.source.name.clone()
-    }
-
-    fn url(&self) -> UrlPath {
-        UrlPath::new()
-    }
-
-    fn nav(&self) -> NavItem {
-        NavItem::Root(
-            Some(self.name()),
-            self.dir
-                .dirs
-                .iter()
-                .map(|e| e.1.nav())
-                .chain(self.dir.files.iter().map(|e| e.1.nav()))
-                .collect(),
-        )
-    }
 }
 
 impl Root {
@@ -204,5 +178,31 @@ impl Root {
         } else {
             &mut self.dir
         }
+    }
+}
+
+impl<'e> Entry<'e> for Root {
+    fn build(&self, builder: &Builder<'e>) -> BuildResult {
+        self.dir.build(builder)
+    }
+
+    fn name(&self) -> String {
+        self.source.name.clone()
+    }
+
+    fn url(&self) -> UrlPath {
+        UrlPath::new()
+    }
+
+    fn nav(&self) -> NavItem {
+        NavItem::Root(
+            Some(self.name()),
+            self.dir
+                .dirs
+                .iter()
+                .map(|e| e.1.nav())
+                .chain(self.dir.files.iter().map(|e| e.1.nav()))
+                .collect(),
+        )
     }
 }

@@ -72,49 +72,6 @@ pub struct Namespace<'e> {
     pub entries: HashMap<String, CppItem<'e>>,
 }
 
-impl<'e> Entry<'e> for Namespace<'e> {
-    fn build(&self, builder: &Builder<'e>) -> BuildResult {
-        let mut handles = Vec::new();
-        for entry in self.entries.values() {
-            handles.extend(entry.build(builder)?);
-        }
-        Ok(handles)
-    }
-
-    fn nav(&self) -> NavItem {
-        let mut entries = self.entries.iter().collect::<Vec<_>>();
-
-        // Namespaces first in sorted order, everything else after in sorted order
-        entries.sort_by_key(|p| (!matches!(p.1, CppItem::Namespace(_)), p.0));
-
-        if self.entity.get_kind() == EntityKind::TranslationUnit {
-            NavItem::new_root(None, entries.iter().map(|e| e.1.nav()).collect())
-        } else {
-            NavItem::new_dir(
-                &self.name(),
-                entries.iter().map(|e| e.1.nav()).collect(),
-                None,
-            )
-        }
-    }
-
-    fn name(&self) -> String {
-        self.entity
-            .get_name()
-            .unwrap_or("<Anonymous namespace>".into())
-    }
-
-    fn url(&self) -> UrlPath {
-        UrlPath::new_with_path(self.entity.full_name())
-    }
-}
-
-impl<'e> ASTEntry<'e> for Namespace<'e> {
-    fn entity(&self) -> &Entity<'e> {
-        &self.entity
-    }
-}
-
 impl<'e> Namespace<'e> {
     pub fn new(entity: Entity<'e>) -> Self {
         let mut ret = Self {
@@ -167,5 +124,48 @@ impl<'e> Namespace<'e> {
                 _ => continue,
             }
         }
+    }
+}
+
+impl<'e> Entry<'e> for Namespace<'e> {
+    fn build(&self, builder: &Builder<'e>) -> BuildResult {
+        let mut handles = Vec::new();
+        for entry in self.entries.values() {
+            handles.extend(entry.build(builder)?);
+        }
+        Ok(handles)
+    }
+
+    fn nav(&self) -> NavItem {
+        let mut entries = self.entries.iter().collect::<Vec<_>>();
+
+        // Namespaces first in sorted order, everything else after in sorted order
+        entries.sort_by_key(|p| (!matches!(p.1, CppItem::Namespace(_)), p.0));
+
+        if self.entity.get_kind() == EntityKind::TranslationUnit {
+            NavItem::new_root(None, entries.iter().map(|e| e.1.nav()).collect())
+        } else {
+            NavItem::new_dir(
+                &self.name(),
+                entries.iter().map(|e| e.1.nav()).collect(),
+                None,
+            )
+        }
+    }
+
+    fn name(&self) -> String {
+        self.entity
+            .get_name()
+            .unwrap_or("<Anonymous namespace>".into())
+    }
+
+    fn url(&self) -> UrlPath {
+        UrlPath::new_with_path(self.entity.full_name())
+    }
+}
+
+impl<'e> ASTEntry<'e> for Namespace<'e> {
+    fn entity(&self) -> &Entity<'e> {
+        &self.entity
     }
 }
