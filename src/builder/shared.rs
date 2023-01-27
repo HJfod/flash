@@ -571,7 +571,7 @@ pub fn fmt_markdown(config: Arc<Config>, base_url: Option<UrlPath>, text: &Strin
                         !url.is_absolute(config.clone())
                     {
                         // add the base part if one was provided
-                        let url = if let Some(ref base) = base_url {
+                        let mut url = if let Some(ref base) = base_url {
                             base.join(&url)
                                 .to_absolute(config.clone())
                                 .to_string()
@@ -579,6 +579,8 @@ pub fn fmt_markdown(config: Arc<Config>, base_url: Option<UrlPath>, text: &Strin
                             url.to_absolute(config.clone())
                                 .to_string()
                         };
+                        // remove .md if it was added because those are stripped from urls
+                        url = url.strip_suffix(".md").map(|u| u.to_owned()).unwrap_or(url);
                         // return fixed url
                         Event::Start(Tag::Link(
                             ty,

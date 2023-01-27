@@ -41,7 +41,7 @@ impl<'e> Entry<'e> for Tutorial {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::parse("tutorials").unwrap().join(&self.path)
+        UrlPath::parse("tutorials").unwrap().join(&self.path.remove_extension(".md"))
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {

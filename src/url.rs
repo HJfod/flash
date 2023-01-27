@@ -103,6 +103,16 @@ impl UrlPath {
         self.clone()
     }
 
+    pub fn remove_extension(&self, extension: &str) -> Self {
+        let mut copy = self.clone();
+        if let Some(last) = copy.parts.last_mut() {
+            if last.ends_with(extension) {
+                *last = last.strip_suffix(extension).unwrap().to_owned();
+            }
+        }
+        copy
+    }
+
     pub fn starts_with<T: AsRef<UrlPath>>(&self, prefix: T) -> bool {
         self.parts.len() >= prefix.as_ref().parts.len()
             && self.parts[0..prefix.as_ref().parts.len()] == prefix.as_ref().parts
