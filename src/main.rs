@@ -6,7 +6,7 @@
 use crate::{analyze::create_docs, url::UrlPath};
 use clap::Parser;
 use config::Config;
-use std::{fs, path::PathBuf, process::exit};
+use std::{fs, path::{PathBuf, Path}, process::exit, io};
 
 mod analyze;
 mod builder;
@@ -30,12 +30,32 @@ struct Args {
     overwrite: bool,
 }
 
+fn remove_dir_contents<P: AsRef<Path>>(path: P) -> io::Result<()> {
+    for entry in fs::read_dir(path)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if entry.file_type()?.is_dir() {
+            remove_dir_contents(&path)?;
+            fs::remove_dir(path)?;
+        } else {
+            fs::remove_file(path)?;
+        }
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), String> {
     let args = Args::parse();
 
-    // Check output dir
-    if args.output.exists() && !args.overwrite {
+    // Check if output dir exists
+    if args.output.exists()
+        // Check if it's empty
+        && args.output.read_dir().map(|mut i| i.next().is_some()).unwrap_or(false)
+        // Then overwrite must be specified
+        && !args.overwrite
+    {
         println!(
             "Output directory {} already exists and no --overwrite option was specified, aborting",
             args.output.to_str().unwrap()
@@ -43,11 +63,13 @@ async fn main() -> Result<(), String> {
         exit(1);
     }
 
-    // Delete output dir if it exists
+    // Clear output dir if it exists
     if args.output.exists() {
-        fs::remove_dir_all(&args.output).unwrap();
+        remove_dir_contents(&args.output).unwrap();
     }
-    fs::create_dir_all(&args.output).unwrap();
+    else {
+        fs::create_dir_all(&args.output).unwrap();
+    }
 
     let relative_output = if args.output.is_relative() {
         Some(UrlPath::try_from(&args.output).ok()).flatten()
