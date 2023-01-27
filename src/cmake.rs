@@ -91,12 +91,14 @@ pub fn cmake_compile_commands(config: Arc<Config>) -> Result<CompileCommands, St
     .map_err(|e| format!("Unable to parse compile_commands.json: {e}"))
 }
 
-pub fn cmake_compile_args_for(config: Arc<Config>) -> Option<Vec<String>> {
-    let from = &config.cmake.as_ref()?.infer_args_from;
-    for cmd in cmake_compile_commands(config.clone()).ok()? {
+pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String> {
+    let from = &config.cmake.as_ref()
+        .ok_or(String::from("Project does not use CMake"))?
+        .infer_args_from;
+    for cmd in cmake_compile_commands(config.clone())? {
         if cmd.file == config.input_dir.join(from) {
-            return Some(cmd.get_command_list(config));
+            return Ok(cmd.get_command_list(config));
         }
     }
-    None
+    Err(format!("Unable to find compile args for '{}'", from.to_string_lossy()))
 }
