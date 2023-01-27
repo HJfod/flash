@@ -99,6 +99,7 @@ impl<'e> ASTEntry<'e> for CppItem<'e> {
 
 pub struct Namespace<'e> {
     entity: Entity<'e>,
+    is_root: bool,
     pub entries: HashMap<String, CppItem<'e>>,
 }
 
@@ -106,6 +107,17 @@ impl<'e> Namespace<'e> {
     pub fn new(entity: Entity<'e>) -> Self {
         let mut ret = Self {
             entity,
+            is_root: false,
+            entries: HashMap::new(),
+        };
+        ret.load_entries();
+        ret
+    }
+
+    pub fn new_root(entity: Entity<'e>) -> Self {
+        let mut ret = Self {
+            entity,
+            is_root: true,
             entries: HashMap::new(),
         };
         ret.load_entries();
@@ -182,7 +194,7 @@ impl<'e> Entry<'e> for Namespace<'e> {
         // Namespaces first in sorted order, everything else after in sorted order
         entries.sort_by_key(|p| (!matches!(p.1, CppItem::Namespace(_)), p.0));
 
-        if self.entity.get_kind() == EntityKind::TranslationUnit {
+        if self.is_root {
             NavItem::new_root(None, entries.iter().map(|e| e.1.nav()).collect())
         } else {
             NavItem::new_dir(
@@ -200,7 +212,12 @@ impl<'e> Entry<'e> for Namespace<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::new_with_path(self.entity.full_name())
+        if self.is_root {
+            UrlPath::new()
+        }
+        else {
+            UrlPath::new_with_path(self.entity.full_name())
+        }
     }
 }
 

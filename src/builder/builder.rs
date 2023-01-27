@@ -267,7 +267,7 @@ impl<'e> Builder<'e> {
     ) -> Result<Self, String> {
         Self {
             config: config.clone(),
-            root: Namespace::new(root),
+            root: Namespace::new_root(root),
             clang,
             index,
             args,
