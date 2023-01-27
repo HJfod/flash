@@ -85,6 +85,10 @@ nav > .mode > button {
     flex: 1;
 }
 
+nav > .mode > button:hover {
+    cursor: pointer;
+}
+
 nav > .mode > button .feather {
     width: 1rem;
     height: 1rem;

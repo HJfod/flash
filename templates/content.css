@@ -470,6 +470,10 @@ code.header-link {
     padding: 1rem;
 }
 
+a:hover > code.header-link {
+    text-decoration: underline;
+}
+
 pre {
     display: inline-block;
     padding: 1rem;
