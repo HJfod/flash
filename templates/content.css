@@ -8,9 +8,11 @@ main {
     overflow-y: auto;
 }
 
-/* for legibility, limit maximum width */
-main > * {
-    max-width: 56rem;
+@media only screen and (min-device-width: 1100px) {
+    /* for legibility, limit maximum width */
+    main > * {
+        max-width: 56rem;
+    }
 }
 
 main p, main ol, main ul {
@@ -225,6 +227,16 @@ a.disabled:hover {
     border: .1rem solid var(--flash-border);
 }
 
+div.text {
+    display: flex;
+    flex-direction: column;
+}
+
+main div:not(.entity) {
+    display: flex;
+    flex-direction: column;
+}
+
 .section > div {
     padding-left: 2rem;
     padding-right: 2rem;
@@ -306,9 +318,11 @@ details.entity-desc[open] > summary .feather-chevron-right {
     display: flex;
     margin: 0;
     padding: 1rem;
+    padding-right: 5rem;
     border-radius: .5rem;
     background-color: var(--flash-shade);
     flex-direction: column;
+    max-width: fit-content;
 }
 
 .description > section > .grid {
@@ -459,7 +473,10 @@ code.header-link {
 pre {
     display: inline-block;
     padding: 1rem;
-    min-width: 35rem;
+    padding-right: 4rem;
+    min-width: 0;
+    max-width: min-content;
+    overflow-x: auto;
     background-color: var(--flash-gray-darkest);
     color: var(--flash-white);
     border-radius: .5rem;
@@ -506,40 +523,41 @@ code .comment {
     color: var(--flash-dark);
 }
 
-pre {
-    display: inline-block;
+.toolbar-wrapper {
+    max-width: fit-content;
 }
 
-pre > .toolbar {
+.toolbar-wrapper > .toolbar {
     position: relative;
-    height: 0px;
-    text-align: right;
-    offset-anchor: right;
+    height: 0;
+    align-self: flex-end;
+    z-index: 1;
 }
 
-pre > .toolbar > button {
-    margin: -.5rem;
+.toolbar-wrapper > .toolbar > button {
+    margin-top: 1.5rem;
+    margin-right: .5rem;
     padding: .35rem;
     border-radius: .35rem;
-    background: none;
     border: none;
     color: var(--flash-dark);
+    background-color: var(--flash-gray-darkest);
 }
 
-pre > .toolbar > button > .feather {
+.toolbar-wrapper > .toolbar > button > .feather {
     height: 1.25rem;
 }
 
-pre > .toolbar > button:hover {
-    background: var(--flash-hover);
+.toolbar-wrapper > .toolbar > button:hover {
+    background-color: var(--flash-hover);
     color: var(--flash-white);
     cursor: pointer;
 }
 
-pre > .toolbar > button.success {
+.toolbar-wrapper > .toolbar > button.success {
     color: var(--flash-green);
 }
 
-pre > .toolbar > button.failure {
+.toolbar-wrapper > .toolbar > button.failure {
     color: var(--flash-red);
 }

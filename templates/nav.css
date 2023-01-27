@@ -8,6 +8,16 @@ nav > header {
     align-items: center;
 }
 
+@media only screen and (max-device-width: 1100px) {
+    nav > header {
+        padding-left: 3.5rem;
+    }
+
+    nav > header > a {
+        justify-content: center;
+    }
+}
+
 nav > header > a {
     color: var(--flash-white);
     text-decoration: none;
@@ -46,6 +56,7 @@ nav {
     height: 100%;
     display: grid;
     grid-template-rows: min-content min-content 1fr min-content;
+    z-index: 3;
 }
 
 nav > * {
@@ -172,10 +183,6 @@ nav > .content details[open] > summary > .feather-chevron-right {
     transform: rotate(90deg);
 }
 
-nav > .content:not(.monospace) a {
-    padding: .5rem;
-}
-
 nav > .content a {
     color: var(--flash-light);
     text-decoration: none;
@@ -186,6 +193,32 @@ nav > .content a {
     white-space: nowrap;
     text-overflow: clip;
     max-width: 100%;
+}
+
+@media only screen and (max-device-width: 800px) {
+    nav > .content summary {
+        padding: .75rem;
+    }
+
+    nav > .content a {
+        padding: .75rem;
+    }
+}
+
+@media only screen and (min-device-width: 800px) and (max-device-width: 1100px) {
+    nav > .content.monospace summary {
+        padding: .5rem;
+    }
+
+    nav > .content.monospace a {
+        padding: .5rem;
+    }
+}
+
+@media only screen and (min-device-width: 1100px) {
+    nav > .content:not(.monospace) a {
+        padding: .5rem;
+    }    
 }
 
 nav > .content a.selected {

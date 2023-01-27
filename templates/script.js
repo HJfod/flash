@@ -20,14 +20,21 @@ Prism.hooks.add('complete', env => {
     }
 
     // Return if there already is a toolbar
-    if (pre.querySelector('.toolbar')) {
+    if (pre.classList.contains('has-toolbar')) {
         return;
     }
+
+    pre.classList.add('has-toolbar');
+
+    const wrapper = document.createElement('div');
+    wrapper.classList.add('toolbar-wrapper');
+    pre.parentNode.replaceChild(wrapper, pre);
 
     // Add toolbar
     const toolbar = document.createElement('div');
     toolbar.classList.add('toolbar');
-    pre.insertBefore(toolbar, pre.firstChild);
+    wrapper.appendChild(toolbar);
+    wrapper.appendChild(pre);
 
     const button = document.createElement('button');
     button.innerHTML = `<i data-feather='copy'></i>`;
@@ -324,6 +331,10 @@ function pickTheme(name) {
         }
     }
     document.body.classList.add(`flash-theme-${name}`);
+}
+
+function toggleMenu() {
+    nav.classList.toggle('collapsed');
 }
 
 // Highlight everything

@@ -10,18 +10,92 @@ body {
     background: var(--flash-body-bg);
     color: var(--flash-white);
     display: grid;
-    grid-template-columns: 26.5rem 1fr;
+    grid-template-columns: minmax(1rem, 26.5rem) 1fr;
     grid-template-rows: 100% 100%;
+}
+
+@media only screen and (max-device-width: 250px) {
+    body > .overlay.theme {
+        display: none;
+    }
+}
+
+@media only screen and (max-device-width: 800px) {
+    body {
+        grid-template-columns: 1fr;
+    }
+    
+    nav {
+        position: absolute;
+        width: 100%;
+        transition: opacity .25s;
+    }
+
+    nav.collapsed {
+        opacity: 0%;
+        pointer-events: none;
+    }
+
+    nav:not(.collapsed) {
+        opacity: 100%;
+    }
+
+    nav:not(.collapsed) ~ .overlay.theme {
+        display: none;
+    }
+
+    body > .overlay.menu {
+        display: block;
+    }
+}
+
+@media only screen and (min-device-width: 800px) and (max-device-width: 1100px) {
+    body {
+        grid-template-columns: 1fr;
+    }
+
+    nav {
+        position: absolute;
+        width: 30rem;
+        transition: left .25s;
+    }
+
+    nav:not(.collapsed) {
+        left: 0rem;
+        box-shadow: .25rem 0rem .5rem var(--flash-shadow);
+    }
+
+    nav.collapsed {
+        left: -30rem;
+    }
+
+    body > .overlay.menu {
+        display: block;
+    }
+}
+
+@media only screen and (min-device-width: 1100px) {
+    body > .overlay.menu {
+        display: none;
+    }
+}
+
+body > .overlay.menu {
+    left: 1rem;
+}
+
+body > .overlay.theme {
+    right: 1rem;
 }
 
 body > .overlay {
     top: 1rem;
-    right: 1rem;
     position: absolute;
     display: flex;
     flex-direction: row;
     border-radius: 9999px;
     box-shadow: 0 .25rem .5rem var(--flash-shadow);
+    z-index: 4;
 }
 
 body > .overlay > button {
