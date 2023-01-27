@@ -223,7 +223,6 @@ impl TryFrom<&str> for UrlPath {
 
 impl TryFrom<String> for UrlPath {
     type Error = String;
-
     fn try_from(value: String) -> Result<Self, Self::Error> {
         UrlPath::parse(&value)
     }

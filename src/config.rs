@@ -3,7 +3,7 @@ use glob::glob;
 use serde::{Deserialize, Deserializer};
 use std::{fs, path::PathBuf, sync::Arc};
 
-use crate::url::UrlPath;
+use crate::{url::UrlPath, normalize::Normalize};
 
 fn parse_template<'de, D>(deserializer: D) -> Result<Arc<String>, D::Error>
 where
@@ -161,8 +161,8 @@ impl Config {
         )
         .map_err(|e| format!("Unable to parse config: {e}"))?;
 
-        config.input_dir = input_dir;
-        config.output_dir = output_dir;
+        config.input_dir = input_dir.normalize();
+        config.output_dir = output_dir.normalize();
         config.output_url = output_url;
         Ok(Arc::from(config))
     }

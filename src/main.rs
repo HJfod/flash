@@ -14,6 +14,7 @@ mod cmake;
 mod config;
 mod html;
 mod url;
+mod normalize;
 
 #[derive(Parser, Debug)]
 struct Args {

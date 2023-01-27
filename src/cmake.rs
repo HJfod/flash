@@ -100,5 +100,5 @@ pub fn cmake_compile_args_for(config: Arc<Config>) -> Result<Vec<String>, String
             return Ok(cmd.get_command_list(config));
         }
     }
-    Err(format!("Unable to find compile args for '{}'", from.to_string_lossy()))
+    Err(format!("Unable to find compile args for '{}'", config.input_dir.join(from).to_string_lossy()))
 }
