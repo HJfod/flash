@@ -642,7 +642,7 @@ pub fn output_tutorial<'e, T: Entry<'e>>(
         (
             "content",
             fmt_markdown(
-                &fmt_autolinks(builder, content, Some('@')),
+                &content,
                 Some(|url: UrlPath| {
                     let url = url.remove_extension(".md");
                     Some(UrlPath::part("tutorials").join(url))
