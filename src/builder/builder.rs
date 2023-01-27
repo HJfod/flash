@@ -124,13 +124,17 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     fn ancestorage(&self) -> Vec<Entity<'e>> {
         let mut ancestors = Vec::new();
         if let Some(parent) = self.get_semantic_parent() {
-            match parent.get_kind() {
-                EntityKind::TranslationUnit
-                | EntityKind::UnexposedDecl
-                | EntityKind::UnexposedAttr
-                | EntityKind::UnexposedExpr
-                | EntityKind::UnexposedStmt => {}
-                _ => ancestors.extend(parent.ancestorage()),
+            // apparently in github actions TranslationUnit enum doesn't 
+            // match, so use this as a fail-safe
+            if !parent.get_name().is_some_and(|p| p.ends_with(".cpp")) {
+                match parent.get_kind() {
+                    EntityKind::TranslationUnit
+                    | EntityKind::UnexposedDecl
+                    | EntityKind::UnexposedAttr
+                    | EntityKind::UnexposedExpr
+                    | EntityKind::UnexposedStmt => {}
+                    _ => ancestors.extend(parent.ancestorage()),
+                }
             }
         }
         ancestors.push(*self);

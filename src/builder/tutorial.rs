@@ -1,13 +1,13 @@
 use crate::{
     config::Config,
-    html::{Html, HtmlElement, HtmlText},
+    html::{Html, HtmlElement},
     url::UrlPath,
 };
 use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc};
 
 use super::{
     builder::{BuildResult, Builder, Entry, NavItem, OutputEntry},
-    shared::{extract_title_from_md, fmt_markdown, fmt_section},
+    shared::{extract_title_from_md, fmt_section, output_tutorial},
 };
 
 pub struct Tutorial {
@@ -57,15 +57,12 @@ impl<'e> OutputEntry<'e> for Tutorial {
     fn output(&self, builder: &Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>) {
         (
             builder.config.templates.tutorial.clone(),
-            vec![
-                ("title", HtmlText::new(self.name()).into()),
-                ("content", fmt_markdown(
-                    builder.config.clone(),
-                    Some(UrlPath::part("tutorials")),
-                    &self.unparsed_content
-                )),
-                ("links", Html::Raw(String::new())),
-            ],
+            output_tutorial(
+                self,
+                builder,
+                &self.unparsed_content,
+                Html::Raw(String::new())
+            )
         )
     }
 }
@@ -244,39 +241,27 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
             } else {
                 builder.config.templates.tutorial_index.clone()
             },
-            vec![
-                ("title", HtmlText::new(self.name()).into()),
-                (
-                    "content",
-                    self.index
-                        .as_ref()
-                        .map(|i| fmt_markdown(
-                            builder.config.clone(),
-                            Some(UrlPath::part("tutorials")),
-                            i
-                        ))
-                        .unwrap_or(Html::p("")),
-                ),
-                (
-                    "links",
-                    fmt_section(
-                        "Pages",
-                        self.tutorials_sorted()
-                            .iter()
-                            .map(|tut| {
-                                HtmlElement::new("ul")
-                                    .with_child(HtmlElement::new("li").with_child(
-                                        HtmlElement::new("a").with_text(&tut.title).with_attr(
-                                            "href",
-                                            tut.url().to_absolute(builder.config.clone()),
-                                        ),
-                                    ))
-                                    .into()
-                            })
-                            .collect(),
-                    ),
-                ),
-            ],
+            output_tutorial(
+                self,
+                builder,
+                self.index.as_ref().map(|s| s.as_str()).unwrap_or(""),
+                fmt_section(
+                    "Pages",
+                    self.tutorials_sorted()
+                        .iter()
+                        .map(|tut| {
+                            HtmlElement::new("ul")
+                                .with_child(HtmlElement::new("li").with_child(
+                                    HtmlElement::new("a").with_text(&tut.title).with_attr(
+                                        "href",
+                                        tut.url().to_absolute(builder.config.clone()),
+                                    ),
+                                ))
+                                .into()
+                        })
+                        .collect(),
+                )
+            )
         )
     }
 }

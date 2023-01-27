@@ -460,7 +460,12 @@ enum Word {
     Matched(String),
 }
 
-fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Vec<Word>) {
+fn fmt_autolinks_recursive(
+    entity: &CppItem,
+    config: Arc<Config>,
+    words: &mut Vec<Word>,
+    prefix: &Option<char>,
+) {
     for word in words.iter_mut() {
         if let Word::Unmatched(name) = word {
             // skip stuff that have all-lowercase names (so words like "get" 
@@ -478,12 +483,12 @@ fn fmt_autolinks_recursive(entity: &CppItem, config: Arc<Config>, words: &mut Ve
 
     if let CppItem::Namespace(ns) = entity {
         for v in ns.entries.values() {
-            fmt_autolinks_recursive(v, config.clone(), words);
+            fmt_autolinks_recursive(v, config.clone(), words, prefix);
         }
     }
 }
 
-pub fn fmt_autolinks(builder: &Builder, text: &str) -> String {
+pub fn fmt_autolinks(builder: &Builder, text: &str, prefix: Option<char>) -> String {
     let mut words = text
         // hacky fix to preserve newlines
         .replace('\n', " <<br>> ")
@@ -493,7 +498,9 @@ pub fn fmt_autolinks(builder: &Builder, text: &str) -> String {
         .collect();
 
     for entry in builder.root.entries.values() {
-        fmt_autolinks_recursive(entry, builder.config.clone(), &mut words);
+        fmt_autolinks_recursive(
+            entry, builder.config.clone(), &mut words, &prefix
+        );
     }
 
     words
@@ -549,7 +556,9 @@ fn fmt_emoji(text: &CowStr) -> String {
 }
 
 #[allow(clippy::ptr_arg)]
-pub fn fmt_markdown(config: Arc<Config>, base_url: Option<UrlPath>, text: &String) -> Html {
+pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
+    text: &str, url_fixer: Option<F>
+) -> Html {
     let parser = pulldown_cmark::Parser::new_ext(
         text, pulldown_cmark::Options::all()
     );
@@ -562,31 +571,24 @@ pub fn fmt_markdown(config: Arc<Config>, base_url: Option<UrlPath>, text: &Strin
             // fix urls to point to root
             Event::Start(tag) => match tag {
                 Tag::Link(ty, dest, title) => {
-                    let url = UrlPath::new_with_path(
-                        dest.split("/").map(|s| s.to_string()).collect()
-                    );
-                    if ty == LinkType::Inline && 
-                        dest.starts_with("/") &&
-                        // if this is already absolute, no need to do stuff
-                        !url.is_absolute(config.clone())
+                    if ty == LinkType::Inline 
+                        && dest.starts_with("/")
+                        && let Some(ref url_fixer) = url_fixer
                     {
-                        // add the base part if one was provided
-                        let mut url = if let Some(ref base) = base_url {
-                            base.join(&url)
-                                .to_absolute(config.clone())
-                                .to_string()
-                        } else {
-                            url.to_absolute(config.clone())
-                                .to_string()
-                        };
-                        // remove .md if it was added because those are stripped from urls
-                        url = url.strip_suffix(".md").map(|u| u.to_owned()).unwrap_or(url);
-                        // return fixed url
-                        Event::Start(Tag::Link(
-                            ty,
-                            CowStr::Boxed(Box::from(url)),
-                            title
-                        ))
+                        let url = UrlPath::new_with_path(
+                            dest.split("/").map(|s| s.to_string()).collect()
+                        );
+                        if let Some(url) = url_fixer(url) {
+                            // return fixed url
+                            Event::Start(Tag::Link(
+                                ty,
+                                CowStr::Boxed(Box::from(url.to_string())),
+                                title
+                            ))
+                        }
+                        else {
+                            Event::Start(Tag::Link(ty, dest, title))
+                        }
                     }
                     else {
                         Event::Start(Tag::Link(ty, dest, title))
@@ -627,4 +629,26 @@ pub fn extract_title_from_md(text: &String) -> Option<String> {
     } {}
 
     (!res.is_empty()).then_some(res)
+}
+
+pub fn output_tutorial<'e, T: Entry<'e>>(
+    entry: &T,
+    builder: &Builder,
+    content: &str,
+    links: Html,
+) -> Vec<(&'static str, Html)> {
+    vec![
+        ("title", HtmlText::new(entry.name()).into()),
+        (
+            "content",
+            fmt_markdown(
+                &fmt_autolinks(builder, content, Some('@')),
+                Some(|url: UrlPath| {
+                    let url = url.remove_extension(".md");
+                    Some(UrlPath::part("tutorials").join(url))
+                }),
+            ),
+        ),
+        ("links", links),
+    ]
 }
