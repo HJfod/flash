@@ -644,8 +644,7 @@ pub fn output_tutorial<'e, T: Entry<'e>>(
             fmt_markdown(
                 &content,
                 Some(|url: UrlPath| {
-                    let url = url.remove_extension(".md");
-                    Some(UrlPath::part("tutorials").join(url))
+                    Some(UrlPath::part("tutorials").join(url.remove_extension(".md")))
                 }),
             ),
         ),
