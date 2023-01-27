@@ -3,7 +3,7 @@
 #![feature(result_option_inspect)]
 #![feature(iter_advance_by)]
 
-use crate::{analyze::create_docs, url::UrlPath};
+use crate::{analyze::create_docs, url::UrlPath, normalize::Normalize};
 use clap::Parser;
 use config::Config;
 use std::{fs, path::{PathBuf, Path}, process::exit, io};
@@ -84,12 +84,12 @@ async fn main() -> Result<(), String> {
     let full_output = if args.output.is_absolute() {
         args.output
     } else {
-        std::env::current_dir().unwrap().join(args.output)
+        std::env::current_dir().unwrap().join(args.output).normalize()
     };
     let full_input = if args.input.is_absolute() {
         args.input
     } else {
-        std::env::current_dir().unwrap().join(args.input)
+        std::env::current_dir().unwrap().join(args.input).normalize()
     };
     std::env::set_current_dir(&full_input).expect(
         "Unable to set input dir as working directory \
