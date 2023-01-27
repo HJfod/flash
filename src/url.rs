@@ -152,6 +152,10 @@ impl UrlPath {
     pub fn is_absolute(&self, config: Arc<Config>) -> bool {
         self.starts_with(&config.output_url.as_ref().unwrap_or(&UrlPath::new()))
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.parts.is_empty()
+    }
 }
 
 struct UrlVisitor;
@@ -238,6 +242,12 @@ impl TryFrom<&String> for UrlPath {
 
 impl Display for UrlPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("/{}", &self.url_safe_parts().join("/")))
+        // empty urls are just ""
+        if !self.is_empty() {
+            f.write_fmt(format_args!("/{}", &self.url_safe_parts().join("/")))
+        }
+        else {
+            Ok(())
+        }
     }
 }
