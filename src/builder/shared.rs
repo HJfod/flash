@@ -466,9 +466,7 @@ fn fmt_autolinks_recursive<'a>(
     while let Some(word) = annotations.next() {
         // skip stuff that have all-lowercase names (so words like "get" 
         // and "data" don't get autolinked)
-        if !word.chars().all(|c| c.is_lowercase() && c.is_alphanumeric())
-            && *word == entity.name()
-        {
+        if !word.chars().all(|c| c.is_lowercase()) && *word == entity.name() {
             if let Some(url) = entity.entity().abs_docs_url(config.clone()) {
                 annotations.annotate(format!("[{word}]({})", url));
             }
