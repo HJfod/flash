@@ -42,6 +42,10 @@ impl<'e> ASTEntry<'e> for Function<'e> {
     fn entity(&self) -> &Entity<'e> {
         &self.entity
     }
+
+    fn category(&self) -> &'static str {
+        "function"
+    }
 }
 
 impl<'e> OutputEntry<'e> for Function<'e> {
@@ -50,5 +54,13 @@ impl<'e> OutputEntry<'e> for Function<'e> {
             builder.config.templates.function.clone(),
             output_entity(self, builder),
         )
+    }
+
+    fn title(&self, builder: &'e Builder<'e>) -> String {
+        self.output_title(builder)
+    }
+
+    fn description(&self, builder: &'e Builder<'e>) -> String {
+        self.output_description(builder)
     }
 }

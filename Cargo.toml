@@ -1,6 +1,6 @@
 [package]
 name = "flash"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 authors = ["HJfod"]
 description = "Documentation generator for C++"
@@ -29,3 +29,4 @@ multipeek = "0.1.2"
 pulldown-cmark = "0.9.2"
 emojis = "0.5.2"
 cached = "0.42.0"
+serde_yaml = "0.9.17"

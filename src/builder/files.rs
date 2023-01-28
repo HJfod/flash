@@ -123,6 +123,22 @@ impl<'e> OutputEntry<'e> for File {
             ],
         )
     }
+
+    fn title(&self, builder: &'e Builder<'e>) -> String {
+        format!(
+            "{} Docs in {}",
+            self.name(),
+            builder.config.project.name
+        )
+    }
+
+    fn description(&self, builder: &'e Builder<'e>) -> String {
+        format!(
+            "Documentation for {} in {}",
+            self.path,
+            builder.config.project.name
+        )
+    }
 }
 
 pub struct Dir {

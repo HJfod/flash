@@ -245,10 +245,28 @@ pub trait Entry<'e> {
 
 pub trait OutputEntry<'e>: Entry<'e> {
     fn output(&self, builder: &'e Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>);
+    fn title(&self, builder: &'e Builder<'e>) -> String;
+    fn description(&self, builder: &'e Builder<'e>) -> String;
 }
 
 pub trait ASTEntry<'e>: Entry<'e> {
     fn entity(&self) -> &Entity<'e>;
+    fn category(&self) -> &'static str;
+    fn output_title(&self, builder: &'e Builder<'e>) -> String{
+        format!(
+            "{} Docs in {}",
+            self.name(),
+            builder.config.project.name
+        )
+    }
+    fn output_description(&self, builder: &'e Builder<'e>) -> String {
+        format!(
+            "Documentation for the {} {} in {}",
+            self.name(),
+            self.category(),
+            builder.config.project.name
+        )
+    }
 }
 
 pub struct Builder<'e> {
@@ -341,6 +359,8 @@ impl<'e> Builder<'e> {
         Ok(vec![Self::create_output_in_thread(
             self.config.clone(),
             self.build_nav()?,
+            entry.title(self),
+            entry.description(self),
             entry.url(),
             template,
             vars,
@@ -350,16 +370,22 @@ impl<'e> Builder<'e> {
     fn create_output_in_thread(
         config: Arc<Config>,
         nav: String,
+        title: String,
+        description: String,
         target_url: UrlPath,
         template: Arc<String>,
         vars: Vec<(&'static str, Html)>,
     ) -> JoinHandle<Result<UrlPath, String>> {
         tokio::spawn(async move {
             let mut fmt = default_format(config.clone());
-            fmt.extend(HashMap::from([(
-                "page_url".to_owned(),
-                target_url.to_absolute(config.clone()).to_string(),
-            )]));
+            fmt.extend(HashMap::from([
+                (
+                    "page_url".to_owned(),
+                    target_url.to_absolute(config.clone()).to_string(),
+                ),
+                ("page_title".to_owned(), title),
+                ("page_description".to_owned(), description),
+            ]));
             fmt.extend(
                 vars.into_iter()
                     .map(|(k, v)| (k.to_string(), v.gen_html()))

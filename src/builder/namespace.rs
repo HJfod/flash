@@ -123,6 +123,15 @@ impl<'e> ASTEntry<'e> for CppItem<'e> {
             CppItem::Struct(c) => c.entity(),
         }
     }
+
+    fn category(&self) -> &'static str {
+        match self {
+            CppItem::Namespace(ns) => ns.category(),
+            CppItem::Class(cs) => cs.category(),
+            CppItem::Struct(st) => st.category(),
+            CppItem::Function(st) => st.category(),
+        }
+    }
 }
 
 pub struct Namespace<'e> {
@@ -252,5 +261,9 @@ impl<'e> Entry<'e> for Namespace<'e> {
 impl<'e> ASTEntry<'e> for Namespace<'e> {
     fn entity(&self) -> &Entity<'e> {
         &self.entity
+    }
+
+    fn category(&self) -> &'static str {
+        "namespace"
     }
 }

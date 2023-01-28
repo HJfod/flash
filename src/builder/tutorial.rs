@@ -7,12 +7,12 @@ use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc};
 
 use super::{
     builder::{BuildResult, Builder, Entry, NavItem, OutputEntry},
-    shared::{extract_title_from_md, fmt_section, output_tutorial},
+    shared::{extract_metadata_from_md, fmt_section, output_tutorial, Metadata},
 };
 
 pub struct Tutorial {
     path: UrlPath,
-    title: String,
+    metadata: Metadata,
     unparsed_content: String,
 }
 
@@ -27,8 +27,12 @@ impl Tutorial {
         .unwrap_or_else(|_| panic!("Unable to read tutorial {}", path.to_raw_string()));
 
         Self {
-            title: extract_title_from_md(&unparsed_content)
-                .unwrap_or(path.raw_file_name().unwrap()),
+            metadata: extract_metadata_from_md(&unparsed_content)
+                .unwrap_or(Metadata {
+                    title: path.raw_file_name(),
+                    description: None,
+                    icon: None
+                }),
             unparsed_content,
             path,
         }
@@ -49,7 +53,9 @@ impl<'e> Entry<'e> for Tutorial {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.title, self.url(), Some(("bookmark", false)))
+        NavItem::new_link(
+            self.metadata.title.as_ref().unwrap(), self.url(), Some(("bookmark", false))
+        )
     }
 }
 
@@ -65,13 +71,24 @@ impl<'e> OutputEntry<'e> for Tutorial {
             )
         )
     }
+
+    fn title(&self, _: &'e Builder<'e>) -> String {
+        self.metadata.title.clone().unwrap()
+    }
+
+    fn description(&self, builder: &'e Builder<'e>) -> String {
+        self.metadata.description.clone().unwrap_or(format!(
+            "Tutorial for {}",
+            builder.config.project.name
+        ))
+    }
 }
 
 pub struct TutorialFolder {
     is_root: bool,
     is_open: bool,
     path: UrlPath,
-    title: Option<String>,
+    metadata: Option<Metadata>,
     index: Option<String>,
     folders: HashMap<String, TutorialFolder>,
     tutorials: HashMap<String, Tutorial>,
@@ -139,7 +156,7 @@ impl TutorialFolder {
             is_root: false,
             is_open: depth < 2,
             path: UrlPath::try_from(&stripped_path).ok()?,
-            title: index.as_ref().and_then(extract_title_from_md),
+            metadata: index.as_ref().and_then(extract_metadata_from_md),
             index,
             folders,
             tutorials,
@@ -160,7 +177,7 @@ impl TutorialFolder {
                 is_root: true,
                 is_open: true,
                 path: UrlPath::new(),
-                title: None,
+                metadata: None,
                 index: None,
                 folders: HashMap::new(),
                 tutorials: HashMap::new(),
@@ -183,8 +200,9 @@ impl TutorialFolder {
 
 impl<'e> Entry<'e> for TutorialFolder {
     fn name(&self) -> String {
-        self.title
+        self.metadata
             .clone()
+            .and_then(|m| m.title)
             .unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
     }
 
@@ -252,10 +270,12 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                         .map(|tut| {
                             HtmlElement::new("ul")
                                 .with_child(HtmlElement::new("li").with_child(
-                                    HtmlElement::new("a").with_text(&tut.title).with_attr(
-                                        "href",
-                                        tut.url().to_absolute(builder.config.clone()),
-                                    ),
+                                    HtmlElement::new("a")
+                                        .with_text(&tut.title(builder))
+                                        .with_attr(
+                                            "href",
+                                            tut.url().to_absolute(builder.config.clone()),
+                                        ),
                                 ))
                                 .into()
                         })
@@ -263,5 +283,27 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                 )
             )
         )
+    }
+
+    fn title(&self, builder: &'e Builder<'e>) -> String {
+        self.metadata
+            .clone()
+            .and_then(|m| m.title)
+            .unwrap_or(format!("{} Docs", builder.config.project.name))
+    }
+
+    fn description(&self, builder: &'e Builder<'e>) -> String {
+        if self.is_root {
+            format!("Documentation for {}", builder.config.project.name)
+        }
+        else {
+            self.metadata
+                .clone()
+                .and_then(|m| m.description)
+                .unwrap_or(format!(
+                    "Tutorials for {}",
+                    builder.config.project.name
+                ))
+        }
     }
 }

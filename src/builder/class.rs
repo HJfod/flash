@@ -42,6 +42,10 @@ impl<'e> ASTEntry<'e> for Class<'e> {
     fn entity(&self) -> &Entity<'e> {
         &self.entity
     }
+
+    fn category(&self) -> &'static str {
+        "class"
+    }
 }
 
 impl<'e> OutputEntry<'e> for Class<'e> {
@@ -50,5 +54,13 @@ impl<'e> OutputEntry<'e> for Class<'e> {
             builder.config.templates.class.clone(),
             output_classlike(self, builder),
         )
+    }
+
+    fn title(&self, builder: &'e Builder<'e>) -> String {
+        self.output_title(builder)
+    }
+
+    fn description(&self, builder: &'e Builder<'e>) -> String {
+        self.output_description(builder)
     }
 }
