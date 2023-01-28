@@ -15,6 +15,7 @@ mod config;
 mod html;
 mod url;
 mod normalize;
+mod annotation;
 
 #[derive(Parser, Debug)]
 struct Args {

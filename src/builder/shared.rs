@@ -2,6 +2,7 @@ use super::builder::{ASTEntry, Builder};
 use super::builder::{EntityMethods, Entry};
 use super::comment::JSDocComment;
 use super::namespace::CppItem;
+use crate::annotation::Annotations;
 use crate::config::Config;
 use crate::html::{Html, HtmlElement, HtmlList, HtmlText};
 use crate::url::UrlPath;
@@ -455,62 +456,40 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
     ent
 }
 
-enum Word {
-    Unmatched(String),
-    Matched(String),
-}
-
-fn fmt_autolinks_recursive(
+fn fmt_autolinks_recursive<'a>(
     entity: &CppItem,
     config: Arc<Config>,
-    words: &mut Vec<Word>,
+    annotations: &mut Annotations<'a>,
     prefix: &Option<char>,
 ) {
-    for word in words.iter_mut() {
-        if let Word::Unmatched(name) = word {
-            // skip stuff that have all-lowercase names (so words like "get" 
-            // and "data" don't get autolinked)
-            if !name.chars().all(|c| c.is_lowercase() && c.is_alphanumeric())
-                && *name == entity.name()
-            {
-                if let Some(url) = entity.entity().abs_docs_url(config.clone()) {
-                    *word = Word::Matched(format!("[{name}]({})", url));
-                }
+    annotations.rewind();
+    while let Some(word) = annotations.next() {
+        // skip stuff that have all-lowercase names (so words like "get" 
+        // and "data" don't get autolinked)
+        if !word.chars().all(|c| c.is_lowercase() && c.is_alphanumeric())
+            && *word == entity.name()
+        {
+            if let Some(url) = entity.entity().abs_docs_url(config.clone()) {
+                annotations.annotate(format!("[{word}]({})", url));
             }
         }
     }
 
     if let CppItem::Namespace(ns) = entity {
         for v in ns.entries.values() {
-            fmt_autolinks_recursive(v, config.clone(), words, prefix);
+            fmt_autolinks_recursive(v, config.clone(), annotations, prefix);
         }
     }
 }
 
 pub fn fmt_autolinks(builder: &Builder, text: &str, prefix: Option<char>) -> String {
-    let mut words = text
-        // hacky fix to preserve newlines
-        .replace('\n', " <<br>> ")
-        .split(|c: char| c.is_whitespace())
-        .filter(|s| !s.is_empty())
-        .map(|w| Word::Unmatched(w.into()))
-        .collect();
-
+    let mut annotations = Annotations::new(text);
     for entry in builder.root.entries.values() {
         fmt_autolinks_recursive(
-            entry, builder.config.clone(), &mut words, &prefix
+            entry, builder.config.clone(), &mut annotations, &prefix
         );
     }
-
-    words
-        .into_iter()
-        .map(|word| match word {
-            Word::Matched(m) => m,
-            Word::Unmatched(w) => w,
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
-        .replace("<<br>>", "\n")
+    annotations.into_result()
 }
 
 fn fmt_emoji(text: &CowStr) -> String {
