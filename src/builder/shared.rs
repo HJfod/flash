@@ -566,8 +566,8 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
                         new_dest = dest.to_string();
                     }
 
-                    // make the url absolute in any case
-                    if let Ok(dest) = UrlPath::parse(&new_dest) {
+                    // make the url absolute in any case if it starts with /
+                    if dest.starts_with("/") && let Ok(dest) = UrlPath::parse(&new_dest) {
                         new_dest = dest.to_absolute(builder.config.clone()).to_string();
                     }
 

@@ -31,7 +31,7 @@ main hr {
 }
 
 main img {
-    width: 100%;
+    max-width: 100%;
 }
 
 main strong {

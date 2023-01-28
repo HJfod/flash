@@ -18,6 +18,7 @@ mod normalize;
 mod annotation;
 
 #[derive(Parser, Debug)]
+#[command(name("Flash"), version, about)]
 struct Args {
     /// Input directory with the flash.json file
     #[arg(short, long)]
