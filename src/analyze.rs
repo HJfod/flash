@@ -88,26 +88,22 @@ async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
     // Configure the cmake project
     cmake::cmake_configure(
         &config.cmake.as_ref().unwrap().build_dir,
-        config
+        &config
             .cmake
             .as_ref()
             .unwrap()
-            .config_args
-            .as_ref()
-            .unwrap_or(&Vec::new()),
+            .config_args,
     )?;
 
     // Build the cmake project
     if config.cmake.as_ref().unwrap().build {
         cmake::cmake_build(
             &config.cmake.as_ref().unwrap().build_dir,
-            config
+            &config
                 .cmake
                 .as_ref()
                 .unwrap()
-                .build_args
-                .as_ref()
-                .unwrap_or(&Vec::new()),
+                .build_args,
         )?;
     }
 
@@ -122,7 +118,7 @@ async fn analyze_with_cmake(config: Arc<Config>) -> Result<(), String> {
 
 pub async fn create_docs(config: Arc<Config>) -> Result<(), String> {
     // Execute prebuild commands
-    if let Some(cmds) = config.run.as_ref().and_then(|c| c.prebuild.as_ref()) {
+    if let Some(cmds) = config.run.as_ref().map(|c| &c.prebuild) {
         for cmd in cmds {
             run_command(cmd)?;
         }

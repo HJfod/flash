@@ -546,7 +546,7 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
             Event::Text(t) => Event::Text(CowStr::Boxed(Box::from(fmt_emoji(&t).as_str()))),
             // fix urls to point to root
             Event::Start(tag) => match tag {
-                Tag::Link(ty, dest, title) => {
+                Tag::Link(ty, ref dest, ref title) | Tag::Image(ty, ref dest, ref title) => {
                     let mut new_dest;
                     if ty == LinkType::Inline 
                         && dest.starts_with("/")
@@ -566,16 +566,26 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
                         new_dest = dest.to_string();
                     }
 
+                    // make the url absolute in any case
                     if let Ok(dest) = UrlPath::parse(&new_dest) {
                         new_dest = dest.to_absolute(builder.config.clone()).to_string();
                     }
 
                     // return fixed url
-                    Event::Start(Tag::Link(
-                        ty,
-                        CowStr::Boxed(Box::from(new_dest)),
-                        title
-                    ))
+                    if matches!(tag, Tag::Link(_, _, _)) {
+                        Event::Start(Tag::Link(
+                            ty,
+                            CowStr::Boxed(Box::from(new_dest)),
+                            title.to_owned()
+                        ))
+                    }
+                    else {
+                        Event::Start(Tag::Image(
+                            ty,
+                            CowStr::Boxed(Box::from(new_dest)),
+                            title.to_owned()
+                        ))
+                    }
                 }
                 _ => Event::Start(tag)
             }

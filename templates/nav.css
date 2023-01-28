@@ -217,12 +217,16 @@ nav > .content a {
     nav > .content.monospace a {
         padding: .5rem;
     }
+    
+    nav > .content:not(.monospace) a {
+        padding: .5rem;
+    }
 }
 
 @media only screen and (min-device-width: 1100px) {
     nav > .content:not(.monospace) a {
         padding: .5rem;
-    }    
+    }
 }
 
 nav > .content a.selected {

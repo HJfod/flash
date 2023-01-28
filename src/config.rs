@@ -25,6 +25,20 @@ where
         .collect())
 }
 
+fn parse_glob<'de, D>(deserializer: D) -> Result<Vec<PathBuf>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Vec::<PathBuf>::deserialize(deserializer)?
+        .iter()
+        .flat_map(|src| {
+            glob(src.to_str().unwrap())
+                .unwrap_or_else(|_| panic!("Invalid glob pattern {}", src.to_str().unwrap()))
+                .map(|g| g.unwrap())
+        })
+        .collect())
+}
+
 macro_rules! default_template {
     ($name: expr) => {
         Arc::from(include_str!($name).to_string())
@@ -113,17 +127,18 @@ decl_config! {
         },
         tutorials? {
             dir: PathBuf,
+            assets: Vec<PathBuf> as parse_glob = Vec::new(),
         },
         sources: Vec<Arc<Source>> as parse_sources,
         run? {
-            prebuild?: Vec<String>,
+            prebuild: Vec<String> = Vec::new(),
         },
         analysis {
             compile_args: Vec<String> = Vec::new(),
         },
         cmake? {
-            config_args?: Vec<String>,
-            build_args?: Vec<String>,
+            config_args: Vec<String> = Vec::new(),
+            build_args: Vec<String> = Vec::new(),
             build: bool = false,
             build_dir: String = String::from("build"),
             infer_args_from: PathBuf,

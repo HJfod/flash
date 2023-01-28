@@ -284,6 +284,7 @@ impl<'e> Builder<'e> {
     }
 
     fn setup(mut self) -> Result<Self, String> {
+        // copy scripts
         for script in self
             .config
             .scripts
@@ -297,6 +298,7 @@ impl<'e> Builder<'e> {
             )
             .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
+        // copy icon
         if let Some(ref icon) = self.config.project.icon {
             fs::copy(
                 self.config.input_dir.join(icon),
@@ -304,6 +306,32 @@ impl<'e> Builder<'e> {
             )
             .map_err(|e| format!("Unable to copy icon: {e}"))?;
         }
+        // copy tutorial assets
+        if let Some(ref tutorials) = self.config.tutorials {
+            for asset in &tutorials.assets {
+                let output = self.config.output_dir.join(
+                    // if the tutorials are in docs and the assets are in 
+                    // docs/assets, then they are probably referenced with 
+                    // just assets/image.png so we should strip the docs 
+                    // part
+                    asset.strip_prefix(&tutorials.dir).unwrap_or(asset)
+                );
+                if let Some(parent) = output.parent() {
+                    fs::create_dir_all(self.config.output_dir.join(parent))
+                    .map_err(|e| format!(
+                        "Unable to create asset directory '{}': {e}",
+                        output.to_string_lossy()
+                    ))?;
+                }
+                fs::copy(self.config.input_dir.join(asset), output)
+                .map_err(|e| format!(
+                    "Unable to copy asset '{}': {e}, {}",
+                    asset.to_string_lossy(),
+                    self.config.input_dir.join(asset).to_string_lossy(),
+                ))?;
+            }
+        }
+        // prebuild nav for performance
         self.prebuild()?;
         Ok(self)
     }
