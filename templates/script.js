@@ -283,7 +283,6 @@ function showNav(id) {
 }
 
 function navigate(url) {
-    // todo: progress indicator
     fetch(`${url}/content.html`)
         .then(res => res.text())
         .then(content => {
@@ -296,6 +295,8 @@ function navigate(url) {
             nav.querySelectorAll('a.selected').forEach(a => a.classList.remove('selected'));
             nav.querySelector(`[href="${url}"]`)?.classList.add('selected');
             highlight();
+            // hide navbar
+            nav.classList.add('collapsed');
         })
         .catch(err => {
             console.error(err);
