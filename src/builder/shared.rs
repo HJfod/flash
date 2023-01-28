@@ -80,10 +80,10 @@ fn fmt_type(entity: &Type, builder: &Builder) -> Html {
         })
         .unwrap_or_else(|| {
             HtmlElement::new("span")
-                .with_class(if base.is_pod() {
-                    "keyword"
-                } else {
+                .with_class(if base.get_kind() == TypeKind::Unexposed {
                     "template-param"
+                } else {
+                    "keyword"
                 })
                 .with_class("name")
                 .with_child(HtmlText::new(match base.get_kind() {
