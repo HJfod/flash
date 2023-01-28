@@ -26,7 +26,7 @@ impl<'e> Entry<'e> for Class<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::new_with_path(self.entity.full_name())
+        self.entity.rel_docs_url().expect("Unable to get class URL")
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {

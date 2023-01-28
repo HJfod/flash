@@ -11,6 +11,34 @@ use super::{
     struct_::Struct,
 };
 
+pub enum CppItemKind {
+    Namespace,
+    Class,
+    Struct,
+    Function,
+}
+
+impl CppItemKind {
+    pub fn from<'e>(entity: &Entity<'e>) -> Option<Self> {
+        match entity.get_kind() {
+            EntityKind::StructDecl => Some(Self::Struct),
+            EntityKind::ClassDecl | EntityKind::ClassTemplate => Some(Self::Class),
+            EntityKind::FunctionDecl => Some(Self::Function),
+            EntityKind::Namespace => Some(Self::Namespace),
+            _ => None,
+        }
+    }
+
+    pub fn docs_category(&self) -> UrlPath {
+        UrlPath::part(match self {
+            Self::Namespace => "namespaces",
+            Self::Class => "classes",
+            Self::Struct => "classes",
+            Self::Function => "functions",
+        })
+    }
+}
+
 pub enum CppItem<'e> {
     Namespace(Namespace<'e>),
     Class(Class<'e>),
@@ -129,41 +157,41 @@ impl<'e> Namespace<'e> {
             if child.is_in_system_header() || child.get_name().is_none() {
                 continue;
             }
-            match child.get_kind() {
-                EntityKind::Namespace => {
-                    let entry = Namespace::new(*child);
-                    // Merge existing entries of namespace
-                    if let Some(key) = self.entries.get_mut(&entry.name()) {
-                        if let CppItem::Namespace(ns) = key {
-                            ns.entries.extend(entry.entries);
+            if let Some(kind) = CppItemKind::from(child) {
+                match kind {
+                    CppItemKind::Namespace => {
+                        let entry = Namespace::new(*child);
+                        // Merge existing entries of namespace
+                        if let Some(key) = self.entries.get_mut(&entry.name()) {
+                            if let CppItem::Namespace(ns) = key {
+                                ns.entries.extend(entry.entries);
+                            }
+                        }
+                        // Insert new namespace
+                        else {
+                            self.entries.insert(entry.name(), CppItem::Namespace(entry));
                         }
                     }
-                    // Insert new namespace
-                    else {
-                        self.entries.insert(entry.name(), CppItem::Namespace(entry));
+
+                    CppItemKind::Struct => {
+                        if child.is_definition() {
+                            let entry = Struct::new(*child);
+                            self.entries.insert(entry.name(), CppItem::Struct(entry));
+                        }
+                    }
+
+                    CppItemKind::Class => {
+                        if child.is_definition() {
+                            let entry = Class::new(*child);
+                            self.entries.insert(entry.name(), CppItem::Class(entry));
+                        }
+                    }
+
+                    CppItemKind::Function => {
+                        let entry = Function::new(*child);
+                        self.entries.insert(entry.name(), CppItem::Function(entry));
                     }
                 }
-
-                EntityKind::StructDecl => {
-                    if child.is_definition() {
-                        let entry = Struct::new(*child);
-                        self.entries.insert(entry.name(), CppItem::Struct(entry));
-                    }
-                }
-
-                EntityKind::ClassDecl | EntityKind::ClassTemplate => {
-                    if child.is_definition() {
-                        let entry = Class::new(*child);
-                        self.entries.insert(entry.name(), CppItem::Class(entry));
-                    }
-                }
-
-                EntityKind::FunctionDecl => {
-                    let entry = Function::new(*child);
-                    self.entries.insert(entry.name(), CppItem::Function(entry));
-                }
-
-                _ => continue,
             }
         }
     }
@@ -216,7 +244,7 @@ impl<'e> Entry<'e> for Namespace<'e> {
             UrlPath::new()
         }
         else {
-            UrlPath::new_with_path(self.entity.full_name())
+            self.entity.rel_docs_url().expect("Unable to get namespace URL")
         }
     }
 }

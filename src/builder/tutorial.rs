@@ -41,7 +41,7 @@ impl<'e> Entry<'e> for Tutorial {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::parse("tutorials").unwrap().join(&self.path.remove_extension(".md"))
+        self.path.remove_extension(".md")
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {
@@ -192,7 +192,7 @@ impl<'e> Entry<'e> for TutorialFolder {
         if self.is_root {
             UrlPath::new()
         } else {
-            UrlPath::parse("tutorials").unwrap().join(&self.path)
+            self.path.clone()
         }
     }
 

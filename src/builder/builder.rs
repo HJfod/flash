@@ -10,7 +10,7 @@ use crate::{
     url::UrlPath,
 };
 
-use super::{files::Root, namespace::Namespace, tutorial::TutorialFolder};
+use super::{files::Root, namespace::{Namespace, CppItemKind}, tutorial::TutorialFolder};
 
 pub trait EntityMethods<'e> {
     /// Get the config source for this entity
@@ -23,10 +23,10 @@ pub trait EntityMethods<'e> {
     fn header(&self, config: Arc<Config>) -> Option<PathBuf>;
 
     /// Get the relative for this entity
-    fn rel_url(&self) -> UrlPath;
+    fn rel_docs_url(&self) -> Option<UrlPath>;
 
     /// Get the full URL for this entity, valid for links
-    fn docs_url(&self, config: Arc<Config>) -> UrlPath;
+    fn abs_docs_url(&self, config: Arc<Config>) -> Option<UrlPath>;
 
     /// Get the full online URL of this entity
     fn github_url(&self, config: Arc<Config>) -> Option<String>;
@@ -70,24 +70,25 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
             .into()
     }
 
-    fn rel_url(&self) -> UrlPath {
-        UrlPath::new_with_path(self.full_name())
+    fn rel_docs_url(&self) -> Option<UrlPath> {
+        Some(
+            CppItemKind::from(self)?
+                .docs_category()
+                .join(UrlPath::new_with_path(self.full_name()))
+        )
     }
 
-    fn docs_url(&self, config: Arc<Config>) -> UrlPath {
+    fn abs_docs_url(&self, config: Arc<Config>) -> Option<UrlPath> {
         // If this is an std item, redirect to cppreference instead
         if self.full_name().first().is_some_and(|n| n == "std") {
-            (|| {
-                UrlPath::parse(&format!(
-                    "en.cppreference.com/w/cpp/{}/{}",
-                    self.definition_file()?.file_name()?.to_str()?,
-                    self.get_name()?
-                ))
-                .ok()
-            })()
-            .unwrap_or(UrlPath::new())
+            UrlPath::parse(&format!(
+                "en.cppreference.com/w/cpp/{}/{}",
+                self.definition_file()?.file_name()?.to_str()?,
+                self.get_name()?
+            ))
+            .ok()
         } else {
-            self.rel_url().to_absolute(config)
+            Some(self.rel_docs_url()?.to_absolute(config))
         }
     }
 

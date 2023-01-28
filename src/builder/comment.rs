@@ -229,7 +229,7 @@ impl Annotation {
         Some(Self {
             location: value.get_range()?.get_start().get_file_location().offset,
             link: value
-                .docs_url(builder.config.clone())
+                .abs_docs_url(builder.config.clone())?
                 .to_absolute(builder.config.clone()),
             class,
         })
@@ -239,7 +239,7 @@ impl Annotation {
         Some(Self {
             location: value.get_range()?.get_end().get_file_location().offset - 1,
             link: value
-                .docs_url(builder.config.clone())
+                .abs_docs_url(builder.config.clone())?
                 .to_absolute(builder.config.clone()),
             class,
         })
@@ -584,6 +584,7 @@ impl<'e> JSDocComment<'e> {
                 self.description
                     .as_ref()
                     .map(|d| fmt_markdown(
+                        self.builder,
                         &fmt_autolinks(self.builder, d, None),
                         None::<fn(_) -> _>
                     )),

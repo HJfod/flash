@@ -26,9 +26,7 @@ impl<'e> Entry<'e> for Function<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        UrlPath::parse("functions")
-            .unwrap()
-            .join(self.entity.rel_url())
+        self.entity.rel_docs_url().expect("Unable to get function URL")
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {

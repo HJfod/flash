@@ -142,11 +142,16 @@ impl UrlPath {
     }
 
     pub fn to_absolute(&self, config: Arc<Config>) -> Self {
-        config
-            .output_url
-            .as_ref()
-            .unwrap_or(&UrlPath::new())
-            .join(self)
+        if self.is_absolute(config.clone()) {
+            self.clone()
+        }
+        else {
+            config
+                .output_url
+                .as_ref()
+                .unwrap_or(&UrlPath::new())
+                .join(self)
+        }
     }
 
     pub fn is_absolute(&self, config: Arc<Config>) -> bool {

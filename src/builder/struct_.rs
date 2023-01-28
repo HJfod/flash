@@ -1,8 +1,7 @@
-use std::sync::Arc;
 
+use std::sync::Arc;
 use crate::{html::Html, url::UrlPath};
 use clang::Entity;
-
 use super::{
     builder::{ASTEntry, BuildResult, Builder, EntityMethods, Entry, NavItem, OutputEntry},
     shared::output_classlike,
@@ -26,7 +25,7 @@ impl<'e> Entry<'e> for Struct<'e> {
     }
 
     fn url(&self) -> UrlPath {
-        self.entity.rel_url()
+        self.entity.rel_docs_url().expect("Unable to get struct URL")
     }
 
     fn build(&self, builder: &Builder<'e>) -> BuildResult {

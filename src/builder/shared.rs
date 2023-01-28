@@ -45,7 +45,7 @@ impl<T, Sep: Fn() -> T> InsertBetween<T, Sep> for Vec<T> {
 fn fmt_type(entity: &Type, builder: &Builder) -> Html {
     let base = entity.get_pointee_type().unwrap_or(entity.to_owned());
     let decl = base.get_declaration();
-    let link = decl.map(|decl| decl.docs_url(builder.config.clone()));
+    let link = decl.and_then(|decl| decl.abs_docs_url(builder.config.clone()));
     let kind = decl
         .map(|decl| decl.get_kind())
         .unwrap_or(EntityKind::UnexposedDecl);
@@ -473,10 +473,9 @@ fn fmt_autolinks_recursive(
             if !name.chars().all(|c| c.is_lowercase() && c.is_alphanumeric())
                 && *name == entity.name()
             {
-                *word = Word::Matched(format!(
-                    "[{name}]({})",
-                    entity.entity().docs_url(config.clone())
-                ));
+                if let Some(url) = entity.entity().abs_docs_url(config.clone()) {
+                    *word = Word::Matched(format!("[{name}]({})", url));
+                }
             }
         }
     }
@@ -557,7 +556,7 @@ fn fmt_emoji(text: &CowStr) -> String {
 
 #[allow(clippy::ptr_arg)]
 pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
-    text: &str, url_fixer: Option<F>
+    builder: &Builder, text: &str, url_fixer: Option<F>
 ) -> Html {
     let parser = pulldown_cmark::Parser::new_ext(
         text, pulldown_cmark::Options::all()
@@ -571,6 +570,7 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
             // fix urls to point to root
             Event::Start(tag) => match tag {
                 Tag::Link(ty, dest, title) => {
+                    let mut new_dest;
                     if ty == LinkType::Inline 
                         && dest.starts_with("/")
                         && let Some(ref url_fixer) = url_fixer
@@ -579,20 +579,26 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
                             dest.split("/").map(|s| s.to_string()).collect()
                         );
                         if let Some(url) = url_fixer(url) {
-                            // return fixed url
-                            Event::Start(Tag::Link(
-                                ty,
-                                CowStr::Boxed(Box::from(url.to_string())),
-                                title
-                            ))
+                            new_dest = url.to_string();
                         }
                         else {
-                            Event::Start(Tag::Link(ty, dest, title))
+                            new_dest = dest.to_string();
                         }
                     }
                     else {
-                        Event::Start(Tag::Link(ty, dest, title))
+                        new_dest = dest.to_string();
                     }
+
+                    if let Ok(dest) = UrlPath::parse(&new_dest) {
+                        new_dest = dest.to_absolute(builder.config.clone()).to_string();
+                    }
+
+                    // return fixed url
+                    Event::Start(Tag::Link(
+                        ty,
+                        CowStr::Boxed(Box::from(new_dest)),
+                        title
+                    ))
                 }
                 _ => Event::Start(tag)
             }
@@ -642,9 +648,10 @@ pub fn output_tutorial<'e, T: Entry<'e>>(
         (
             "content",
             fmt_markdown(
+                builder,
                 &content,
                 Some(|url: UrlPath| {
-                    Some(UrlPath::part("tutorials").join(url.remove_extension(".md")))
+                    Some(url.remove_extension(".md"))
                 }),
             ),
         ),

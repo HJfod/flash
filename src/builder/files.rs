@@ -1,6 +1,5 @@
-use clang::EntityKind;
 
-use super::{builder::{BuildResult, Builder, Entry, NavItem, OutputEntry}, shared::{fmt_fun_decl, fmt_section, fmt_classlike_decl}};
+use super::{builder::{BuildResult, Builder, Entry, NavItem, OutputEntry}, shared::{fmt_fun_decl, fmt_section, fmt_classlike_decl}, namespace::CppItemKind};
 use crate::{
     config::{Config, Source},
     html::{Html, HtmlText},
@@ -79,8 +78,10 @@ impl<'e> OutputEntry<'e> for File {
                         "Functions",
                         builder.root
                             .get(&|entry| 
-                                entry.entity().get_kind() == EntityKind::FunctionDecl
-                                && matcher(entry)
+                                matches!(
+                                    CppItemKind::from(entry.entity()),
+                                    Some(CppItemKind::Function)
+                                ) && matcher(entry)
                             )
                             .into_iter()
                             .map(|fun| fmt_fun_decl(fun.entity(), builder))
@@ -94,8 +95,8 @@ impl<'e> OutputEntry<'e> for File {
                         builder.root
                             .get(&|entry| 
                                 matches!(
-                                    entry.entity().get_kind(),
-                                    EntityKind::ClassDecl | EntityKind::ClassTemplate
+                                    CppItemKind::from(entry.entity()),
+                                    Some(CppItemKind::Class)
                                 ) && matcher(entry)
                             )
                             .into_iter()
@@ -109,8 +110,10 @@ impl<'e> OutputEntry<'e> for File {
                         "Structs",
                         builder.root
                             .get(&|entry| 
-                                entry.entity().get_kind() == EntityKind::StructDecl
-                                && matcher(entry)
+                                matches!(
+                                    CppItemKind::from(entry.entity()),
+                                    Some(CppItemKind::Struct)
+                                ) && matcher(entry)
                             )
                             .into_iter()
                             .map(|cls| fmt_classlike_decl(cls.entity(), "struct", builder))
