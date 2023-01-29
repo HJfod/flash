@@ -56,7 +56,13 @@ impl<'e> Entry<'e> for Tutorial {
 
     fn nav(&self) -> NavItem {
         NavItem::new_link(
-            self.metadata.title.as_ref().unwrap(), self.url(), Some(("bookmark", false))
+            self.metadata.title.as_ref().unwrap(),
+            self.url(),
+            Some(
+                self.metadata.icon.as_ref()
+                    .map(|i| (i.as_str(), false))
+                    .unwrap_or(("bookmark", false))
+            ),
         )
     }
 }
@@ -242,7 +248,9 @@ impl<'e> Entry<'e> for TutorialFolder {
                     .map(|e| e.nav())
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
-                None,
+                self.metadata.as_ref()
+                    .and_then(|m| m.icon.as_ref())
+                    .map(|i| (i.as_str(), false)),
                 self.is_open,
             )
         }
