@@ -68,6 +68,16 @@ impl<'e> Builder<'e> {
                 self.config.output_dir.join("icon.png"),
             )
             .map_err(|e| format!("Unable to copy icon: {e}"))?;
+
+            let mut icon_dir = ico::IconDir::new(ico::ResourceType::Icon);
+            let ico = ico::IconImage::read_png(
+                std::fs::File::open(self.config.input_dir.join(icon)).unwrap()
+            ).map_err(|e| format!("Icon doesn't appear to be a valid .png: {e}"))?;
+            icon_dir.add_entry(ico::IconDirEntry::encode(&ico).unwrap());
+            let ico_file = std::fs::File::create(
+                self.config.output_dir.join("favicon.ico"),
+            ).unwrap();
+            icon_dir.write(ico_file).unwrap();
         }
 
         // copy tutorial assets

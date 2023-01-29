@@ -1,6 +1,6 @@
 [package]
 name = "flash"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 authors = ["HJfod"]
 description = "Documentation generator for C++"
@@ -35,3 +35,4 @@ swc_common = "0.29.28"
 anyhow = "1.0.68"
 minify-html = "0.10.7"
 lightningcss = "1.0.0-alpha.39"
+ico = "0.3.0"
