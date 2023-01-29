@@ -4,7 +4,8 @@ use crate::{html::Html, url::UrlPath};
 use clang::Entity;
 
 use super::{
-    builder::{ASTEntry, BuildResult, Builder, EntityMethods, Entry, NavItem, OutputEntry},
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry},
+    builder::Builder,
     shared::output_entity,
 };
 

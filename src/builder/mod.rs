@@ -8,3 +8,5 @@ pub mod namespace;
 pub mod shared;
 pub mod struct_;
 pub mod tutorial;
+pub mod traits;
+pub mod markdown;

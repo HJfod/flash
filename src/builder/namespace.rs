@@ -5,7 +5,8 @@ use clang::{Entity, EntityKind};
 use crate::url::UrlPath;
 
 use super::{
-    builder::{ASTEntry, BuildResult, Builder, EntityMethods, Entry, NavItem},
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem},
+    builder::Builder,
     class::Class,
     function::Function,
     struct_::Struct,

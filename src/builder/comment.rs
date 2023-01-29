@@ -12,8 +12,10 @@ use crate::{
 };
 
 use super::{
-    builder::{Builder, EntityMethods},
-    shared::{fmt_autolinks, fmt_markdown},
+    builder::Builder,
+    traits::EntityMethods,
+    shared::fmt_autolinks,
+    markdown::fmt_markdown,
 };
 
 struct CommentLexer<'s> {

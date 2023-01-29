@@ -1,9 +1,14 @@
 
-use super::{builder::{BuildResult, Builder, Entry, NavItem, OutputEntry}, shared::{fmt_fun_decl, fmt_section, fmt_classlike_decl}, namespace::CppItemKind};
+use super::{
+    builder::Builder,
+    traits::{BuildResult, Entry, NavItem, OutputEntry, ASTEntry},
+    shared::{fmt_fun_decl, fmt_section, fmt_classlike_decl},
+    namespace::CppItemKind
+};
 use crate::{
     config::{Config, Source},
     html::{Html, HtmlText},
-    url::UrlPath, builder::builder::ASTEntry,
+    url::UrlPath,
 };
 use std::{collections::HashMap, path::Path, sync::Arc};
 

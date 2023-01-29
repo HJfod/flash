@@ -6,8 +6,10 @@ use crate::{
 use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc};
 
 use super::{
-    builder::{BuildResult, Builder, Entry, NavItem, OutputEntry},
-    shared::{extract_metadata_from_md, fmt_section, output_tutorial, Metadata},
+    traits::{BuildResult, Entry, NavItem, OutputEntry},
+    builder::Builder,
+    shared::fmt_section,
+    markdown::{extract_metadata_from_md, output_tutorial, Metadata},
 };
 
 pub struct Tutorial {
