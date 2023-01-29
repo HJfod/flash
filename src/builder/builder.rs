@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     config::{Config},
-    html::{GenHtml, Html},
+    html::{GenHtml, Html, process::{transpile_and_minify_js, transpile_and_minify_css}},
     url::UrlPath,
 };
 
@@ -45,20 +45,22 @@ impl<'e> Builder<'e> {
     }
 
     fn setup(mut self) -> Result<Self, String> {
-        // copy scripts
-        for script in self
-            .config
-            .scripts
-            .css
-            .iter()
-            .chain(&self.config.scripts.js)
-        {
+        // copy & minify CSS
+        for script in &self.config.scripts.css {
             fs::write(
                 self.config.output_dir.join(&script.name),
-                script.content.as_ref(),
-            )
-            .map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
+                transpile_and_minify_css(script.content.to_string())?,
+            ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
+
+        // transpile, minify, and copy JS
+        for script in &self.config.scripts.js {
+            fs::write(
+                &self.config.output_dir.join(&script.name),
+                transpile_and_minify_js(script.content.to_string())?,
+            ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
+        }
+
         // copy icon
         if let Some(ref icon) = self.config.project.icon {
             fs::copy(
@@ -67,6 +69,7 @@ impl<'e> Builder<'e> {
             )
             .map_err(|e| format!("Unable to copy icon: {e}"))?;
         }
+
         // copy tutorial assets
         if let Some(ref tutorials) = self.config.tutorials {
             for asset in &tutorials.assets {
@@ -92,8 +95,10 @@ impl<'e> Builder<'e> {
                 ))?;
             }
         }
+
         // prebuild nav for performance
         self.prebuild()?;
+
         Ok(self)
     }
 

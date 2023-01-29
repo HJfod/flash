@@ -30,3 +30,7 @@ pulldown-cmark = "0.9.2"
 emojis = "0.5.2"
 cached = "0.42.0"
 serde_yaml = "0.9.17"
+swc = "0.245.5"
+swc_common = "0.29.28"
+swc_css = { version = "0.149.1", features = ["minifier"] }
+anyhow = "1.0.68"

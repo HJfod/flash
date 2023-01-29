@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub mod process;
+
 pub trait GenHtml: Into<Html> {
     fn gen_html(self) -> String;
 }
