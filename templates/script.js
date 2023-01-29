@@ -283,13 +283,15 @@ function showNav(id) {
 }
 
 function navigate(url) {
-    fetch(`${url}/content.html`)
-        .then(res => res.text())
-        .then(content => {
+    Promise.all([
+        fetch(`${url}/content.html`).then(res => res.text()),
+        fetch(`${url}/metadata.json`).then(res => res.json()),
+    ]).then(([content, metadata]) => {
             window.history.pushState({
                 html: content,
-                // "title": 
+                ...metadata,
             }, "", url);
+            document.title = metadata.title;
             mainBody.innerHTML = content;
             mainBody.scrollTo({ left: 0, top: 0 });
             nav.querySelectorAll('a.selected').forEach(a => a.classList.remove('selected'));
@@ -309,7 +311,7 @@ function navigate(url) {
 window.onpopstate = e => {
     if (e.state) {
         mainBody.innerHTML = e.state.html;
-        // document.title = e.state.title;
+        document.title = e.state.title;
         highlight();
     }
 };

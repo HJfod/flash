@@ -10,7 +10,7 @@ use crate::{
     url::UrlPath,
 };
 
-use super::{namespace::{CppItemKind}, builder::Builder};
+use super::{namespace::CppItemKind, builder::Builder};
 
 pub trait EntityMethods<'e> {
     /// Get the config source for this entity
@@ -245,20 +245,12 @@ pub trait Entry<'e> {
 
 pub trait OutputEntry<'e>: Entry<'e> {
     fn output(&self, builder: &'e Builder<'e>) -> (Arc<String>, Vec<(&'static str, Html)>);
-    fn title(&self, builder: &'e Builder<'e>) -> String;
     fn description(&self, builder: &'e Builder<'e>) -> String;
 }
 
 pub trait ASTEntry<'e>: Entry<'e> {
     fn entity(&self) -> &Entity<'e>;
     fn category(&self) -> &'static str;
-    fn output_title(&self, builder: &'e Builder<'e>) -> String{
-        format!(
-            "{} Docs in {}",
-            self.name(),
-            builder.config.project.name
-        )
-    }
     fn output_description(&self, builder: &'e Builder<'e>) -> String {
         format!(
             "Documentation for the {} {} in {}",

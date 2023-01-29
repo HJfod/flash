@@ -57,10 +57,6 @@ impl<'e> OutputEntry<'e> for Function<'e> {
         )
     }
 
-    fn title(&self, builder: &'e Builder<'e>) -> String {
-        self.output_title(builder)
-    }
-
     fn description(&self, builder: &'e Builder<'e>) -> String {
         self.output_description(builder)
     }

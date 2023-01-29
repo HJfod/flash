@@ -31,7 +31,7 @@ impl Tutorial {
         Self {
             metadata: extract_metadata_from_md(&unparsed_content)
                 .unwrap_or(Metadata {
-                    title: path.raw_file_name(),
+                    title: path.remove_extension(".md").raw_file_name(),
                     description: None,
                     icon: None
                 }),
@@ -43,7 +43,7 @@ impl Tutorial {
 
 impl<'e> Entry<'e> for Tutorial {
     fn name(&self) -> String {
-        self.path.raw_file_name().unwrap().replace(".md", "")
+        self.metadata.title.clone().unwrap()
     }
 
     fn url(&self) -> UrlPath {
@@ -72,10 +72,6 @@ impl<'e> OutputEntry<'e> for Tutorial {
                 Html::Raw(String::new())
             )
         )
-    }
-
-    fn title(&self, _: &'e Builder<'e>) -> String {
-        self.metadata.title.clone().unwrap()
     }
 
     fn description(&self, builder: &'e Builder<'e>) -> String {
@@ -205,7 +201,7 @@ impl<'e> Entry<'e> for TutorialFolder {
         self.metadata
             .clone()
             .and_then(|m| m.title)
-            .unwrap_or(self.path.raw_file_name().unwrap_or(String::from("_")))
+            .unwrap_or(self.path.raw_file_name().unwrap_or(String::from("")))
     }
 
     fn url(&self) -> UrlPath {
@@ -273,7 +269,7 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                             HtmlElement::new("ul")
                                 .with_child(HtmlElement::new("li").with_child(
                                     HtmlElement::new("a")
-                                        .with_text(&tut.title(builder))
+                                        .with_text(&tut.name())
                                         .with_attr(
                                             "href",
                                             tut.url().to_absolute(builder.config.clone()),
@@ -285,13 +281,6 @@ impl<'e> OutputEntry<'e> for TutorialFolder {
                 )
             )
         )
-    }
-
-    fn title(&self, builder: &'e Builder<'e>) -> String {
-        self.metadata
-            .clone()
-            .and_then(|m| m.title)
-            .unwrap_or(format!("{} Docs", builder.config.project.name))
     }
 
     fn description(&self, builder: &'e Builder<'e>) -> String {

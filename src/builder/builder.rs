@@ -102,7 +102,7 @@ impl<'e> Builder<'e> {
         Ok(vec![Self::create_output_in_thread(
             self.config.clone(),
             self.build_nav()?,
-            entry.title(self),
+            entry.name(),
             entry.description(self),
             entry.url(),
             template,
@@ -113,21 +113,27 @@ impl<'e> Builder<'e> {
     fn create_output_in_thread(
         config: Arc<Config>,
         nav: String,
-        title: String,
+        name: String,
         description: String,
         target_url: UrlPath,
         template: Arc<String>,
         vars: Vec<(&'static str, Html)>,
     ) -> JoinHandle<Result<UrlPath, String>> {
         tokio::spawn(async move {
+            let title = if name.is_empty() {
+                format!("{} Docs", config.project.name)
+            } else {
+                format!("{} - {} Docs", name, config.project.name)
+            };
+
             let mut fmt = default_format(config.clone());
             fmt.extend(HashMap::from([
                 (
                     "page_url".to_owned(),
                     target_url.to_absolute(config.clone()).to_string(),
                 ),
-                ("page_title".to_owned(), title),
-                ("page_description".to_owned(), description),
+                ("page_title".to_owned(), title.clone()),
+                ("page_description".to_owned(), description.clone()),
             ]));
             fmt.extend(
                 vars.into_iter()
@@ -150,10 +156,21 @@ impl<'e> Builder<'e> {
             ]));
             let page = strfmt(&config.templates.page, &page_fmt)
                 .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+            
+            let output_dir = config.output_dir.join(target_url.to_pathbuf());
 
             // Make sure output directory exists
-            fs::create_dir_all(config.output_dir.join(target_url.to_pathbuf()))
+            fs::create_dir_all(&output_dir)
                 .map_err(|e| format!("Unable to create directory for {target_url}: {e}"))?;
+
+            // Save metadata to a file
+            fs::write(
+                output_dir.join("metadata.json"),
+                format!(
+                    r#"{{"title": "{}", "description": "{}"}}"#,
+                    title, description,
+                )
+            ).map_err(|e| format!("Unable to save metadata for {target_url}: {e}"))?;
 
             // Write the plain content output
             fs::write(
