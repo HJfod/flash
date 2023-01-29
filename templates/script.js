@@ -328,12 +328,14 @@ document.querySelectorAll('[data-pick-theme]').forEach(btn => {
 });
 
 function pickTheme(name) {
+    if (!name) return;
     for (const cls of document.body.classList) {
         if (cls.startsWith('flash-theme-')) {
             document.body.classList.remove(cls);
         }
     }
     document.body.classList.add(`flash-theme-${name}`);
+    localStorage.setItem('theme', name);
 }
 
 function toggleMenu() {
@@ -368,3 +370,7 @@ highlight();
     }
 }
 
+// Restore selected theme by clicking the selected theme button
+document.querySelector(`[data-pick-theme="${
+    localStorage.getItem('theme') ?? 'dark'
+}"]`)?.click();
