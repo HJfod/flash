@@ -6,7 +6,7 @@ use tokio::task::JoinHandle;
 
 use crate::{
     config::{Config},
-    html::{GenHtml, Html, process::{transpile_and_minify_js, transpile_and_minify_css}},
+    html::{GenHtml, Html, process::{minify_js, minify_css, minify_html}},
     url::UrlPath,
 };
 
@@ -49,7 +49,7 @@ impl<'e> Builder<'e> {
         for script in &self.config.scripts.css {
             fs::write(
                 self.config.output_dir.join(&script.name),
-                transpile_and_minify_css(script.content.to_string())?,
+                minify_css(script.content.to_string())?,
             ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
 
@@ -57,7 +57,7 @@ impl<'e> Builder<'e> {
         for script in &self.config.scripts.js {
             fs::write(
                 &self.config.output_dir.join(&script.name),
-                transpile_and_minify_js(script.content.to_string())?,
+                minify_js(script.content.to_string())?,
             ).map_err(|e| format!("Unable to copy {}: {e}", script.name))?;
         }
 
@@ -146,8 +146,10 @@ impl<'e> Builder<'e> {
                     .collect::<Vec<_>>(),
             );
 
-            let content = strfmt(&template, &fmt)
-                .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+            let content = minify_html(
+                strfmt(&template, &fmt)
+                .map_err(|e| format!("Unable to format {target_url}: {e}"))?
+            )?;
 
             let mut page_fmt = default_format(config.clone());
             page_fmt.extend(HashMap::from([
@@ -159,8 +161,10 @@ impl<'e> Builder<'e> {
                 ("navbar_content".to_owned(), nav),
                 ("main_content".to_owned(), content.clone()),
             ]));
-            let page = strfmt(&config.templates.page, &page_fmt)
-                .map_err(|e| format!("Unable to format {target_url}: {e}"))?;
+            let page = minify_html(
+                strfmt(&config.templates.page, &page_fmt)
+                .map_err(|e| format!("Unable to format {target_url}: {e}"))?
+            )?;
             
             let output_dir = config.output_dir.join(target_url.to_pathbuf());
 

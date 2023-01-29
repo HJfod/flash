@@ -32,5 +32,6 @@ cached = "0.42.0"
 serde_yaml = "0.9.17"
 swc = "0.245.5"
 swc_common = "0.29.28"
-swc_css = { version = "0.149.1", features = ["minifier"] }
 anyhow = "1.0.68"
+minify-html = "0.10.7"
+lightningcss = "1.0.0-alpha.39"
