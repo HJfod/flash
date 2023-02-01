@@ -16,6 +16,10 @@ Because I tried Doxygen for five seconds and found its output way too bloated an
 
 The goals of this project is to generate documentation that looks beautiful and is super easy to navigate. I also wanted to make just browsing the docs intuitive and simple to encourage learning about what tools are available before you find an usecase for them.
 
+## :star: Live example
+
+The docs for [Geode](https://github.com/geode-sdk/geode) have been built with Flash: <https://docs.geode-sdk.org>.
+
 ## :point_right: Usage
 
 Flash can be compiled using `cargo build` as usual for Rust projects.
