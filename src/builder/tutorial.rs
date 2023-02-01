@@ -29,12 +29,10 @@ impl Tutorial {
         .unwrap_or_else(|_| panic!("Unable to read tutorial {}", path.to_raw_string()));
 
         Self {
-            metadata: extract_metadata_from_md(&unparsed_content)
-                .unwrap_or(Metadata {
-                    title: path.remove_extension(".md").raw_file_name(),
-                    description: None,
-                    icon: None
-                }),
+            metadata: extract_metadata_from_md(
+                &unparsed_content,
+                path.remove_extension(".md").raw_file_name()
+            ).unwrap(),
             unparsed_content,
             path,
         }
@@ -160,7 +158,7 @@ impl TutorialFolder {
             is_root: false,
             is_open: depth < 2,
             path: UrlPath::try_from(&stripped_path).ok()?,
-            metadata: index.as_ref().and_then(extract_metadata_from_md),
+            metadata: index.as_ref().and_then(|i| extract_metadata_from_md(i, None)),
             index,
             folders,
             tutorials,

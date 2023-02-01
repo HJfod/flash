@@ -108,7 +108,7 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
 }
 
 #[allow(clippy::ptr_arg)]
-pub fn extract_metadata_from_md(text: &String) -> Option<Metadata> {
+pub fn extract_metadata_from_md(text: &String, default_title: Option<String>) -> Option<Metadata> {
     let (text, metadata) = parse_markdown_metadata(text);
 
     // if the metadata provided the title, no need to parse the doc for it
@@ -139,16 +139,30 @@ pub fn extract_metadata_from_md(text: &String) -> Option<Metadata> {
 
     // if some metadata was found, set the title
     if let Some(mut metadata) = metadata {
-        metadata.title = (!res.is_empty()).then_some(res);
+        metadata.title = (!res.is_empty()).then_some(res).or(default_title);
         Some(metadata)
     }
     // otherwise only return Some if a title was found
     else {
-        (!res.is_empty()).then_some(Metadata {
-            title: Some(res),
-            description: None,
-            icon: None,
-        })
+        if res.is_empty() {
+            if let Some(title) = default_title {
+                Some(Metadata {
+                    title: Some(title),
+                    description: None,
+                    icon: None,
+                })
+            }
+            else {
+                None
+            }
+        }
+        else {
+            Some(Metadata {
+                title: Some(res),
+                description: None,
+                icon: None,
+            })
+        }
     }
 }
 
