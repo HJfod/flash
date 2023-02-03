@@ -122,7 +122,7 @@ impl<
                 }
                 // Add id to heading so they can be navigated to with url#header
                 Tag::Heading(lvl, mut frag, classes) => {
-                    if frag.is_none() {
+                    if frag.is_none() && (lvl as usize) < 4 {
                         let mut buf = String::new();
                         for t in self.iter.lookahead() {
                             match t {
