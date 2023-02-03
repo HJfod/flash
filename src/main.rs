@@ -16,6 +16,7 @@ mod html;
 mod url;
 mod normalize;
 mod annotation;
+mod lookahead;
 
 #[derive(Parser, Debug)]
 #[command(name("Flash"), version, about)]
