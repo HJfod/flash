@@ -11,6 +11,34 @@ const searchX = document.getElementById('nav-clear-x');
 let searchNav = undefined;
 let searchQuery = '';
 
+function createCopyButton(icon, text) {
+    const button = document.createElement('button');
+    button.innerHTML = `${icon}`;
+    button.addEventListener('click', _ => {
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    button.innerHTML = `${feather.icons.check.toSvg()}`;
+                    button.classList.add('success');
+                },
+                () => {
+                    button.innerHTML = `${feather.icons.x.toSvg()}`;
+                    button.classList.add('failure');
+                });
+        }
+        else {
+            button.innerHTML = `${feather.icons.x.toSvg()}`;
+            button.classList.add('failure');
+        }
+        setTimeout(_ => {
+            button.innerHTML = `${icon}`;
+            button.classList.remove('success');
+            button.classList.remove('failure');
+        }, 1500);
+    });
+    return button;
+}
+
 // Add copy button to code blocks
 Prism.hooks.add('complete', env => {
     // Check if inline or actual code block (credit to line-numbers plugin)
@@ -36,35 +64,10 @@ Prism.hooks.add('complete', env => {
     wrapper.appendChild(toolbar);
     wrapper.appendChild(pre);
 
-    const button = document.createElement('button');
-    button.innerHTML = `<i data-feather='copy'></i>`;
-    button.addEventListener('click', _ => {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(env.code)
-                .then(() => {
-                    button.innerHTML = `<i data-feather='check'></i>`;
-                    button.classList.add('success');
-                    feather.replace();
-                },
-                () => {
-                    button.innerHTML = `<i data-feather='x'></i>`;
-                    button.classList.add('failure');
-                    feather.replace();
-                });
-        }
-        else {
-            button.innerHTML = `<i data-feather='x'></i>`;
-            button.classList.add('failure');
-            feather.replace();
-        }
-        setTimeout(_ => {
-            button.innerHTML = `<i data-feather='copy'></i>`;
-            button.classList.remove('success');
-            button.classList.remove('failure');
-            feather.replace();
-        }, 1500);
-    });
-    toolbar.appendChild(button);
+    toolbar.appendChild(createCopyButton(
+        feather.icons.copy.toSvg(),
+        env.code
+    ));
 });
 
 searchInput.addEventListener('input', e => {
@@ -72,6 +75,23 @@ searchInput.addEventListener('input', e => {
 });
 
 function highlight() {
+    // Add links to all top-level headings
+    document.querySelectorAll('.text > h1, .text > h2, .text > h3')
+        .forEach(head => {
+            if (!head.querySelector('.get-header-link')) {
+                let currentUrl = window.location.href;
+                while (currentUrl.endsWith('/')) {
+                    currentUrl = currentUrl.slice(0, -1)
+                }
+                const linkBtn = createCopyButton(
+                    feather.icons.link.toSvg(),
+                    `${currentUrl}#${head.getAttribute('id')}`
+                );
+                linkBtn.classList.add('get-header-link');
+                head.appendChild(linkBtn);
+            }
+        });
+
     Prism.highlightAll();
     feather.replace();
     twemoji.parse(document.body);

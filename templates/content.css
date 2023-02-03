@@ -67,6 +67,62 @@ main > div {
     margin-bottom: 1rem;
 }
 
+main h1 > .get-header-link,
+main h2 > .get-header-link,
+main h3 > .get-header-link {
+    background-color: rgba(0, 0, 0, 0);
+    border: none;
+    border-radius: .25rem;
+    outline: none;
+    color: var(--flash-white);
+    display: none;
+    padding: .25rem;
+    margin-left: .25rem;
+}
+
+main h1 > .get-header-link > .feather {
+    height: 2em;
+}
+
+main h2 > .get-header-link > .feather {
+    height: 1.5em;
+}
+
+main h3 > .get-header-link > .feather {
+    height: 1.25em;
+}
+
+main h1 > .get-header-link > .feather,
+main h2 > .get-header-link > .feather ,
+main h3 > .get-header-link > .feather {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+main h1 > .get-header-link:hover,
+main h2 > .get-header-link:hover,
+main h3 > .get-header-link:hover {
+    background-color: var(--flash-hover-light);
+}
+
+main h1:hover > .get-header-link,
+main h2:hover > .get-header-link,
+main h3:hover > .get-header-link {
+    display: initial;
+}
+
+main h1 > .get-header-link.success,
+main h2 > .get-header-link.success,
+main h3 > .get-header-link.success {
+    color: var(--flash-green);
+}
+
+main h1 > .get-header-link.failure,
+main h2 > .get-header-link.failure,
+main h3 > .get-header-link.failure {
+    color: var(--flash-red);
+}
+
 main h1 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
