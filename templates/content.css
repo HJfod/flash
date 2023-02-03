@@ -120,7 +120,19 @@ main h2 {
     margin-top: 2rem;
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
-    font-size: 1.75rem;
+    font-size: 2rem;
+}
+
+main h3 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 1.65rem;
+}
+
+main h4 {
+    font-family: 'Varela Round', sans-serif;
+    font-weight: bold;
+    font-size: 1.35rem;
 }
 
 main h2::after {
@@ -540,6 +552,18 @@ code .string {
 
 code .comment {
     color: var(--flash-dark);
+}
+
+code .property {
+    color: var(--flash-orange);
+}
+
+code .macro {
+    color: var(--flash-cyan-light);
+}
+
+code .macro .keyword {
+    color: var(--flash-cyan-light);
 }
 
 .toolbar-wrapper {
