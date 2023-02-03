@@ -120,19 +120,19 @@ main h2 {
     margin-top: 2rem;
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
-    font-size: 2rem;
+    font-size: 1.75rem;
 }
 
 main h3 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
-    font-size: 1.65rem;
+    font-size: 1.6rem;
 }
 
 main h4 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
-    font-size: 1.35rem;
+    font-size: 1.3rem;
 }
 
 main h2::after {
