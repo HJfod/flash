@@ -1,3 +1,4 @@
+'use strict';
 
 // This reminds me of 8th grade
 
@@ -10,6 +11,8 @@ const searchX = document.getElementById('nav-clear-x');
 
 let searchNav = undefined;
 let searchQuery = '';
+
+let memberFunctionsList = null;
 
 function createCopyButton(icon, text) {
     const button = document.createElement('button');
@@ -74,6 +77,17 @@ searchInput.addEventListener('input', e => {
     search(e.target.value);
 });
 
+function headingLink(value) {
+    return value
+        // make lower-case
+        .toLowerCase()
+        // remove non-alphanumeric
+        .replace(/[^a-z0-9\s]/g, '')
+        // remove duplicate whitespace
+        // convert to hyphens
+        .replace(/\s+/g, '-')
+}
+
 function highlight() {
     // Add links to all top-level headings
     document.querySelectorAll('.text > h1, .text > h2, .text > h3')
@@ -104,6 +118,14 @@ function clearSearch() {
 
 function search(query) {
     searchQuery = query;
+    if (!memberFunctionsList && selectedNavTab() == 'entities') {
+        fetch(`${FLASH_OUTPUT_URL}/functions.json`)
+            .then(res => res.json())
+            .then(res => {
+                memberFunctionsList = res;
+                search(searchQuery);
+            });
+    }
     updateNav();
 }
 
@@ -258,8 +280,29 @@ function updateNav() {
                 results.push([match.score, clone]);
             }
         });
-        // Sort by match quality
-        results.sort((a, b) => b[0] - a[0]).forEach(([_, clone]) => {
+        if (selectedNavTab() == 'entities') {
+            memberFunctionsList?.forEach(fun => {
+                let f = fun.split('::');
+                const name = f.pop();
+                const match = furryMatchMany([name], searchQuery, '::');
+                if (match) {
+                    const node = document.createElement('a');
+                    const url = `${FLASH_OUTPUT_URL}/classes/${f.join('/')}#${name}`;
+                    node.setAttribute('href', url);
+                    node.addEventListener('click', e => {
+                        navigate(url);
+                        e.preventDefault();
+                    });
+                    f = f.map(a => `<span class="namespace">${a}</span>`);
+                    f.push(match.matched);
+                    node.innerHTML = feather.icons.code.toSvg({ 'class': 'icon class' }) + 
+                        f.join('<span class="scope">::</span>');
+                    results.push([match.score, node]);
+                }
+            });
+        }
+        // Sort by match quality (also limit results for better performance)
+        results.sort((a, b) => b[0] - a[0]).slice(0, 350).forEach(([_, clone]) => {
             searchResults.appendChild(clone);
         });
 
@@ -303,9 +346,11 @@ function showNav(id) {
 }
 
 function navigate(url) {
+    const trueURL = url.split('#').shift();
+    const head = url.split('#').pop();
     Promise.all([
-        fetch(`${url}/content.html`).then(res => res.text()),
-        fetch(`${url}/metadata.json`).then(res => res.json()),
+        fetch(`${trueURL}/content.html`).then(res => res.text()),
+        fetch(`${trueURL}/metadata.json`).then(res => res.json()),
     ]).then(([content, metadata]) => {
             window.history.pushState({
                 html: content,
@@ -319,6 +364,15 @@ function navigate(url) {
             highlight();
             // hide navbar
             nav.classList.add('collapsed');
+            if (head) {
+                const target = document.getElementById(head);
+                if (target) {
+                    target.scrollIntoView();
+                    if (target.tagName === 'DETAILS') {
+                        target.open = true;
+                    }
+                }
+            }
         })
         .catch(err => {
             console.error(err);

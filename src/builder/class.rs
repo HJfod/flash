@@ -5,7 +5,7 @@ use clang::Entity;
 
 use super::{
     builder::Builder,
-    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry},
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry, SubItem},
     shared::output_classlike,
 };
 
@@ -35,7 +35,10 @@ impl<'e> Entry<'e> for Class<'e> {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.name(), self.url(), Some(("box", false)))
+        NavItem::new_link(
+            &self.name(), self.url(), Some(("box", false)),
+            SubItem::for_classlike(&self.entity)
+        )
     }
 }
 

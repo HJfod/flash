@@ -257,6 +257,10 @@ main .button.outlined:hover {
     color: var(--flash-purple);
 }
 
+.icon.feather-code.class {
+    color: var(--flash-red);
+}
+
 .header-link {
     font-size: 1.1rem;
     color: var(--flash-purple);

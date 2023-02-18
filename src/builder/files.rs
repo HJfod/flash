@@ -37,7 +37,7 @@ impl<'e> Entry<'e> for File {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.name(), self.url(), Some(("file", false)))
+        NavItem::new_link(&self.name(), self.url(), Some(("file", false)), Vec::new())
     }
 }
 
@@ -139,6 +139,7 @@ impl<'e> OutputEntry<'e> for File {
 }
 
 pub struct Dir {
+    #[allow(unused)]
     source: Arc<Source>,
     path: UrlPath,
     pub dirs: HashMap<String, Dir>,

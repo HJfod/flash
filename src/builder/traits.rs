@@ -1,4 +1,4 @@
-use clang::{Entity, EntityKind};
+use clang::{Entity, EntityKind, Accessibility};
 
 use std::{path::PathBuf, sync::Arc};
 
@@ -10,7 +10,7 @@ use crate::{
     url::UrlPath,
 };
 
-use super::{namespace::CppItemKind, builder::Builder};
+use super::{namespace::CppItemKind, builder::Builder, shared::member_fun_link};
 
 pub trait EntityMethods<'e> {
     /// Get the config source for this entity
@@ -143,15 +143,49 @@ impl<'e> EntityMethods<'e> for Entity<'e> {
     }
 }
 
+#[derive(Clone)]
+pub struct SubItem {
+    pub title: String,
+    pub heading: String,
+    pub icon: Option<(String, bool)>,
+}
+
+impl SubItem {
+    pub fn for_classlike(entity: &Entity) -> Vec<SubItem> {
+        let Some(kind) = CppItemKind::from(entity) else {
+            return Vec::new();
+        };
+        match kind {
+            CppItemKind::Class | CppItemKind::Struct => {
+                get_member_functions(entity, Access::All, Include::All)
+                    .into_iter()
+                    .filter_map(|e| Some(SubItem {
+                        title: e.get_name()?,
+                        heading: member_fun_link(&e)?,
+                        icon: Some((String::from("code"), true)),
+                    }))
+                    .collect()
+            }
+
+            CppItemKind::Namespace | CppItemKind::Function => Vec::new()
+        }
+    }
+}
+
 pub enum NavItem {
     Root(Option<String>, Vec<NavItem>),
     Dir(String, Vec<NavItem>, Option<(String, bool)>, bool),
-    Link(String, UrlPath, Option<(String, bool)>),
+    Link(String, UrlPath, Option<(String, bool)>, Vec<SubItem>),
 }
 
 impl NavItem {
-    pub fn new_link(name: &str, url: UrlPath, icon: Option<(&str, bool)>) -> NavItem {
-        NavItem::Link(name.into(), url, icon.map(|s| (s.0.into(), s.1)))
+    pub fn new_link(
+        name: &str,
+        url: UrlPath,
+        icon: Option<(&str, bool)>,
+        suboptions: Vec<SubItem>,
+    ) -> NavItem {
+        NavItem::Link(name.into(), url, icon.map(|s| (s.0.into(), s.1)), suboptions)
     }
 
     pub fn new_dir(name: &str, items: Vec<NavItem>, icon: Option<(&str, bool)>) -> NavItem {
@@ -171,22 +205,45 @@ impl NavItem {
         NavItem::Root(name.map(|s| s.into()), items)
     }
 
+    pub fn suboptions_titles(&self, config: Arc<Config>) -> Vec<String> {
+        match self {
+            NavItem::Link(name, _, _, suboptions) => suboptions.clone()
+                .into_iter()
+                .map(|o| format!("{}::{}", name, o.title))
+                .collect(),
+
+            NavItem::Dir(name, items, _, _) => items.iter()
+                .flat_map(|i| i.suboptions_titles(config.clone()))
+                .into_iter()
+                .map(|t| format!("{}::{}", name, t))
+                .collect(),
+            
+            NavItem::Root(_, items) => items.iter()
+                .flat_map(|i| i.suboptions_titles(config.clone()))
+                .collect()
+        }
+    }
+
     pub fn to_html(&self, config: Arc<Config>) -> Html {
         match self {
-            NavItem::Link(name, url, icon) => HtmlElement::new("a")
-                .with_attr(
-                    "onclick",
-                    format!("return navigate('{}')", url.to_absolute(config.clone())),
-                )
-                .with_attr("href", url.to_absolute(config))
-                .with_child_opt(icon.as_ref().map(|i| {
-                    HtmlElement::new("i")
-                        .with_attr("data-feather", &i.0)
-                        .with_class("icon")
-                        .with_class_opt(i.1.then_some("variant"))
-                }))
-                .with_child(HtmlText::new(name))
-                .into(),
+            NavItem::Link(name, url, icon, _) => {
+                HtmlList::new(vec![
+                    HtmlElement::new("a")
+                        .with_attr(
+                            "onclick",
+                            format!("return navigate('{}')", url.to_absolute(config.clone())),
+                        )
+                        .with_attr("href", url.to_absolute(config.clone()))
+                        .with_child_opt(icon.as_ref().map(|i| {
+                            HtmlElement::new("i")
+                                .with_attr("data-feather", &i.0)
+                                .with_class("icon")
+                                .with_class_opt(i.1.then_some("variant"))
+                        }))
+                        .with_child(HtmlText::new(name))
+                        .into()
+                ]).into()
+            }
 
             NavItem::Dir(name, items, icon, open) => HtmlElement::new("details")
                 .with_attr_opt("open", open.then_some(""))
@@ -259,4 +316,42 @@ pub trait ASTEntry<'e>: Entry<'e> {
             builder.config.project.name
         )
     }
+}
+
+pub enum Access {
+    All,
+    Public,
+    Protected,
+}
+
+pub enum Include {
+    All,
+    Members,
+    Statics,
+}
+
+pub fn get_member_functions<'e>(
+    entity: &Entity<'e>,
+    visibility: Access,
+    include_statics: Include,
+) -> Vec<Entity<'e>> {
+    entity
+        .get_children()
+        .into_iter()
+        .filter(|child| {
+            child.get_kind() == EntityKind::Method
+                && match include_statics {
+                    Include::Members => !child.is_static_method(),
+                    Include::Statics => child.is_static_method(),
+                    Include::All => true,
+                }
+                && match child.get_accessibility() {
+                    Some(Accessibility::Protected)
+                    => matches!(visibility, Access::All | Access::Protected),
+                    Some(Accessibility::Public)
+                    => matches!(visibility, Access::All | Access::Public),
+                    _ => false,
+                }
+        })
+        .collect()
 }

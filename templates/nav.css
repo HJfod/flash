@@ -229,12 +229,12 @@ nav > .content a {
     }
 }
 
-nav > .content a.selected {
+nav a.selected {
     background-color: var(--flash-hover);
     color: var(--flash-white);
 }
 
-nav > .content a .feather {
+nav a .feather {
     min-width: max-content;
 }
 
@@ -249,8 +249,13 @@ nav a .matched {
     font-weight: bold;
 }
 
+nav a .namespace {
+    opacity: 50%;
+}
+
 nav a .scope {
     opacity: 50%;
+    color: var(--flash-less-light);
 }
 
 nav .nothing-found {

@@ -61,6 +61,7 @@ impl<'e> Entry<'e> for Tutorial {
                     .map(|i| (i.as_str(), false))
                     .unwrap_or(("bookmark", false))
             ),
+            Vec::new(),
         )
     }
 }

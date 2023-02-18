@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{html::Html, url::UrlPath};
 use clang::Entity;
 use super::{
-    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry},
+    traits::{ASTEntry, BuildResult, EntityMethods, Entry, NavItem, OutputEntry, SubItem},
     builder::Builder,
     shared::output_classlike,
 };
@@ -34,7 +34,10 @@ impl<'e> Entry<'e> for Struct<'e> {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.name(), self.url(), Some(("box", true)))
+        NavItem::new_link(
+            &self.name(), self.url(), Some(("box", true)),
+            SubItem::for_classlike(&self.entity)
+        )
     }
 }
 

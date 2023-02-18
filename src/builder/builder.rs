@@ -259,6 +259,17 @@ impl<'e> Builder<'e> {
         .collect::<Result<Result<Vec<_>, _>, _>>()
         .map_err(|e| format!("Unable to join {e}"))??;
 
+        if let Some(pbar) = pbar.clone() {
+            pbar.set_message("Generating metadata".to_string());
+        }
+
+        fs::write(
+            &self.config.output_dir.join("functions.json"),
+            serde_json::to_string(
+                &self.root.nav().suboptions_titles(self.config.clone())
+            ).map_err(|e| format!("Unable to save metadata {e}"))?
+        ).map_err(|e| format!("Unable to save metadata {e}"))?;
+
         Ok(())
     }
 

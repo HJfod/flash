@@ -1,5 +1,5 @@
 use super::builder::Builder;
-use super::traits::{ASTEntry, EntityMethods, Entry};
+use super::traits::{ASTEntry, EntityMethods, Entry, get_member_functions, Include, Access};
 use super::comment::JSDocComment;
 use super::namespace::CppItem;
 use crate::annotation::Annotations;
@@ -205,6 +205,7 @@ pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
 pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
     HtmlElement::new("details")
         .with_class("entity-desc")
+        .with_attr_opt("id", member_fun_link(fun))
         .with_child(
             HtmlElement::new("summary")
                 .with_classes(&["entity", "fun"])
@@ -371,16 +372,9 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "public_static_functions",
             fmt_section(
                 "Public static methods",
-                entry
-                    .entity()
-                    .get_children()
-                    .iter()
-                    .filter(|child| {
-                        child.get_kind() == EntityKind::Method
-                            && child.is_static_method()
-                            && child.get_accessibility() == Some(Accessibility::Public)
-                    })
-                    .map(|e| fmt_fun_decl(e, builder))
+                get_member_functions(entry.entity(), Access::Public, Include::Statics)
+                    .into_iter()
+                    .map(|e| fmt_fun_decl(&e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -388,16 +382,9 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "public_member_functions",
             fmt_section(
                 "Public member functions",
-                entry
-                    .entity()
-                    .get_children()
-                    .iter()
-                    .filter(|child| {
-                        child.get_kind() == EntityKind::Method
-                            && !child.is_static_method()
-                            && child.get_accessibility() == Some(Accessibility::Public)
-                    })
-                    .map(|e| fmt_fun_decl(e, builder))
+                get_member_functions(entry.entity(), Access::Public, Include::Members)
+                    .into_iter()
+                    .map(|e| fmt_fun_decl(&e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -406,16 +393,9 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
             "protected_member_functions",
             fmt_section(
                 "Protected member functions",
-                entry
-                    .entity()
-                    .get_children()
-                    .iter()
-                    .filter(|child| {
-                        child.get_kind() == EntityKind::Method
-                            && !child.is_static_method()
-                            && child.get_accessibility() == Some(Accessibility::Protected)
-                    })
-                    .map(|e| fmt_fun_decl(e, builder))
+                get_member_functions(entry.entity(), Access::Protected, Include::Members)
+                    .into_iter()
+                    .map(|e| fmt_fun_decl(&e, builder))
                     .collect::<Vec<_>>(),
             ),
         ),
@@ -528,4 +508,8 @@ pub fn fmt_emoji(text: &CowStr) -> String {
     }
 
     res
+}
+
+pub fn member_fun_link(entity: &Entity) -> Option<String> {
+    Some(entity.get_name()?)
 }

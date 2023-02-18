@@ -35,7 +35,7 @@ impl<'e> Entry<'e> for Function<'e> {
     }
 
     fn nav(&self) -> NavItem {
-        NavItem::new_link(&self.name(), self.url(), Some(("code", true)))
+        NavItem::new_link(&self.name(), self.url(), Some(("code", true)), Vec::new())
     }
 }
 
