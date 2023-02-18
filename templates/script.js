@@ -339,6 +339,21 @@ function updateNav() {
     }
 }
 
+function scrollAndOpenElement(id) {
+    if (id) {
+        if (id.startsWith('#')) {
+            id = id.substring(1);
+        }
+        const target = document.getElementById(id);
+        if (target) {
+            target.scrollIntoView();
+            if (target.tagName === 'DETAILS') {
+                target.open = true;
+            }
+        }
+    }
+}
+
 function showNav(id) {
     [...navModeBtns.children].forEach(node => node.classList.remove('selected'));
     navModeBtns.querySelector(`#nav-tab-${id}`).classList.add('selected');
@@ -364,15 +379,7 @@ function navigate(url) {
             highlight();
             // hide navbar
             nav.classList.add('collapsed');
-            if (head) {
-                const target = document.getElementById(head);
-                if (target) {
-                    target.scrollIntoView();
-                    if (target.tagName === 'DETAILS') {
-                        target.open = true;
-                    }
-                }
-            }
+            scrollAndOpenElement(head);
         })
         .catch(err => {
             console.error(err);
@@ -441,8 +448,15 @@ highlight();
         // Scroll the selected item into view
         a.classList.add('selected');
         a.scrollIntoView(false);
+
+        scrollAndOpenElement(window.location.hash);
     }
 }
+
+// Detect header link change
+window.addEventListener('hashchange', () => {
+    scrollAndOpenElement(window.location.hash);
+});
 
 // Restore selected theme by clicking the selected theme button
 document.querySelector(`[data-pick-theme="${
