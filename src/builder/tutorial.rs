@@ -3,7 +3,7 @@ use crate::{
     html::{Html, HtmlElement},
     url::UrlPath,
 };
-use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, ffi::OsStr, fs, path::PathBuf, sync::Arc, cmp::Ordering};
 
 use super::{
     traits::{BuildResult, Entry, NavItem, OutputEntry},
@@ -196,7 +196,14 @@ impl TutorialFolder {
 
     pub fn tutorials_sorted(&self) -> Vec<&Tutorial> {
         let mut vec = self.tutorials.iter().collect::<Vec<_>>();
-        vec.sort_by_key(|t| t.0);
+        vec.sort_unstable_by(|a, b| {
+            match (a.1.metadata.order, b.1.metadata.order) {
+                (Some(a), Some(b)) => a.cmp(&b),
+                (Some(_), None) => Ordering::Less,
+                (None, Some(_)) => Ordering::Greater,
+                (None, None) => a.0.cmp(&b.0),
+            }
+        });
         vec.into_iter().map(|(_, v)| v).collect()
     }
 }
@@ -234,7 +241,7 @@ impl<'e> Entry<'e> for TutorialFolder {
             NavItem::new_root(
                 None,
                 self.tutorials_sorted()
-                    .iter()
+                    .into_iter()
                     .map(|e| e.nav())
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),
@@ -243,7 +250,7 @@ impl<'e> Entry<'e> for TutorialFolder {
             NavItem::new_dir_open(
                 &self.name(),
                 self.tutorials_sorted()
-                    .iter()
+                    .into_iter()
                     .map(|e| e.nav())
                     .chain(self.folders_sorted().iter().map(|e| e.nav()))
                     .collect::<Vec<_>>(),

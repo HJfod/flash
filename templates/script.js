@@ -14,7 +14,7 @@ let searchQuery = '';
 
 let memberFunctionsList = null;
 
-function createCopyButton(icon, text) {
+function createCopyButton(icon, text, callback = undefined) {
     const button = document.createElement('button');
     button.innerHTML = `${icon}`;
     button.addEventListener('click', _ => {
@@ -23,6 +23,9 @@ function createCopyButton(icon, text) {
                 .then(() => {
                     button.innerHTML = `${feather.icons.check.toSvg()}`;
                     button.classList.add('success');
+                    if (callback) {
+                        callback();
+                    }
                 },
                 () => {
                     button.innerHTML = `${feather.icons.x.toSvg()}`;
@@ -99,7 +102,10 @@ function highlight() {
                 }
                 const linkBtn = createCopyButton(
                     feather.icons.link.toSvg(),
-                    `${currentUrl}#${head.getAttribute('id')}`
+                    `${currentUrl}#${head.getAttribute('id')}`,
+                    () => {
+                        window.location.hash = head.getAttribute('id');
+                    }
                 );
                 linkBtn.classList.add('get-header-link');
                 head.appendChild(linkBtn);
@@ -347,6 +353,9 @@ function scrollAndOpenElement(id) {
         const target = document.getElementById(id);
         if (target) {
             target.scrollIntoView();
+            document.querySelectorAll('.highlight')
+                .forEach(h => h.classList.remove('highlight'));
+            target.classList.add('highlight');
             if (target.tagName === 'DETAILS') {
                 target.open = true;
             }

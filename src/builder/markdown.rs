@@ -6,13 +6,43 @@ use crate::html::{Html, HtmlElement, HtmlText};
 use crate::lookahead::{CreateCachedLookahead, CachedLookahead};
 use crate::url::UrlPath;
 use pulldown_cmark::{CowStr, Event, Tag, LinkType};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
-#[derive(Deserialize, Clone)]
+#[derive(Clone, PartialEq, Default)]
+pub enum Style {
+    #[default]
+    Default,
+    QnA,
+}
+
+fn parse_style<'de, D>(deserializer: D) -> Result<Style, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match String::deserialize(deserializer)?.as_str() {
+        "default" => Ok(Style::Default),
+        "qna" => Ok(Style::QnA),
+        _ => Err(serde::de::Error::custom("Invalid style"))
+    }
+}
+
+#[derive(Deserialize, Clone, Default)]
 pub struct Metadata {
     pub title: Option<String>,
     pub description: Option<String>,
     pub icon: Option<String>,
+    pub order: Option<usize>,
+    #[serde(default = "Style::default", deserialize_with = "parse_style")]
+    pub style: Style,
+}
+
+impl Metadata {
+    pub fn new_with_title(title: String) -> Self {
+        Self {
+            title: Some(title),
+            ..Default::default()
+        }
+    }
 }
 
 fn parse_markdown_metadata<'a>(doc: &'a str) -> (&'a str, Option<Metadata>) {
@@ -36,14 +66,23 @@ fn parse_markdown_metadata<'a>(doc: &'a str) -> (&'a str, Option<Metadata>) {
     )
 }
 
+#[derive(PartialEq)]
+enum InsertP {
+    Dont,
+    Start,
+    ToEnd,
+}
+
 struct MDStream<'i, 'c, 'b, 'e, const SIZE: usize, F: Fn(UrlPath) -> Option<UrlPath>> {
     iter: CachedLookahead<pulldown_cmark::Parser<'i, 'c>, SIZE>,
     url_fixer: Option<F>,
     builder: &'b Builder<'e>,
+    metadata: Option<Metadata>,
+    insert_para_stage: InsertP,
 }
 
 impl<
-    'i, 'c, 'b, 'e,
+    'i, 'c, 'b, 'e, 'm, 
     const SIZE: usize,
     F: Fn(UrlPath) -> Option<UrlPath>,
 > MDStream<'i, 'c, 'b, 'e, SIZE, F> {
@@ -51,23 +90,38 @@ impl<
         iter: pulldown_cmark::Parser<'i, 'c>,
         url_fixer: Option<F>,
         builder: &'b Builder<'e>,
+        metadata: Option<Metadata>,
     ) -> MDStream<'i, 'c, 'b, 'e, SIZE, F> {
         MDStream {
             iter: iter.lookahead_cached::<SIZE>(),
             url_fixer,
             builder,
+            metadata,
+            insert_para_stage: InsertP::Dont,
         }
     }
 }
 
 impl<
-    'i, 'c, 'b, 'e,
+    'i, 'c, 'b, 'e, 
     const SIZE: usize,
     F: Fn(UrlPath) -> Option<UrlPath>,
 > Iterator for MDStream<'i, 'c, 'b, 'e, SIZE, F> {
     type Item = Event<'i>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.insert_para_stage == InsertP::Start {
+            self.insert_para_stage = InsertP::ToEnd;
+            return Some(Event::Start(Tag::BlockQuote));
+        }
+        else if self.insert_para_stage == InsertP::ToEnd && match self.iter.peek() {
+            Some(Event::Start(Tag::Heading(lvl, _, _))) => (*lvl as usize) == 2,
+            None => true,
+            _ => false
+        } {
+            self.insert_para_stage = InsertP::Dont;
+            return Some(Event::End(Tag::BlockQuote));
+        }
         let Some(event) = self.iter.next() else {
             return None;
         };
@@ -121,7 +175,7 @@ impl<
                     }
                 }
                 // Add id to heading so they can be navigated to with url#header
-                Tag::Heading(lvl, mut frag, classes) => {
+                Tag::Heading(lvl, mut frag, mut classes) => {
                     if frag.is_none() && (lvl as usize) < 4 {
                         let mut buf = String::new();
                         for t in self.iter.lookahead() {
@@ -151,6 +205,24 @@ impl<
                         
                         frag = Some(CowStr::Boxed(Box::from(buf)));
                     }
+                    if let Some(ref meta) = self.metadata
+                        && meta.style == Style::QnA
+                        && (lvl as usize) < 3
+                    {
+                        classes.push(CowStr::Boxed(Box::from("qna-question")));
+                    }
+                    Tag::Heading(lvl, frag, classes)
+                }
+                _ => tag
+            }),
+            Event::End(tag) => Event::End(match tag {
+                Tag::Heading(lvl, frag, classes) => {
+                    if let Some(ref meta) = self.metadata
+                        && meta.style == Style::QnA
+                        && (lvl as usize) == 2
+                    {
+                        self.insert_para_stage = InsertP::Start;
+                    }
                     Tag::Heading(lvl, frag, classes)
                 }
                 _ => tag
@@ -165,7 +237,7 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
     builder: &Builder, text: &str, url_fixer: Option<F>
 ) -> Html {
     // skip metadata
-    let (text, _) = parse_markdown_metadata(text);
+    let (text, meta) = parse_markdown_metadata(text);
 
     // pulldown_cmark doesn't automatically generate header links for me, and I 
     // need those to be able to have docs links. Unfortunately the mechanism it 
@@ -179,6 +251,7 @@ pub fn fmt_markdown<F: Fn(UrlPath) -> Option<UrlPath>>(
         ),
         url_fixer,
         builder,
+        meta,
     );
 
     let mut content = String::new();
@@ -229,22 +302,14 @@ pub fn extract_metadata_from_md(text: &String, default_title: Option<String>) ->
     else {
         if res.is_empty() {
             if let Some(title) = default_title {
-                Some(Metadata {
-                    title: Some(title),
-                    description: None,
-                    icon: None,
-                })
+                Some(Metadata::new_with_title(title))
             }
             else {
                 None
             }
         }
         else {
-            Some(Metadata {
-                title: Some(res),
-                description: None,
-                icon: None,
-            })
+            Some(Metadata::new_with_title(res))
         }
     }
 }
