@@ -6,7 +6,7 @@
 use crate::{analyze::create_docs, url::UrlPath, normalize::Normalize};
 use clap::Parser;
 use config::Config;
-use std::{fs, path::{PathBuf, Path}, process::exit, io};
+use std::{fs, path::{PathBuf, Path}, process::exit, io, time::Instant};
 
 mod analyze;
 mod builder;
@@ -107,8 +107,9 @@ async fn main() -> Result<(), String> {
         "Building docs for {} ({})",
         conf.project.name, conf.project.version
     );
+    let now = Instant::now();
     create_docs(conf.clone()).await?;
-    println!("Docs built for {}", conf.project.name);
+    println!("Docs built for {} in {}s", conf.project.name, now.elapsed().as_secs());
 
     Ok(())
 }
