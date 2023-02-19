@@ -1,6 +1,6 @@
 use clang::{Entity, EntityKind, Accessibility};
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, collections::HashMap};
 
 use tokio::task::JoinHandle;
 
@@ -205,17 +205,25 @@ impl NavItem {
         NavItem::Root(name.map(|s| s.into()), items)
     }
 
-    pub fn suboptions_titles(&self, config: Arc<Config>) -> Vec<String> {
+    pub fn suboptions_titles(&self, config: Arc<Config>) -> HashMap<String, usize> {
         match self {
-            NavItem::Link(name, _, _, suboptions) => suboptions.clone()
-                .into_iter()
-                .map(|o| format!("{}::{}", name, o.title))
-                .collect(),
+            NavItem::Link(name, _, _, suboptions) => {
+                let mut res = HashMap::new();
+                for opt in suboptions.iter().map(|o| format!("{}::{}", name, o.title)) {
+                    if let Some(r) = res.get_mut(&opt) {
+                        *r += 1;
+                    }
+                    else {
+                        res.insert(opt, 0);
+                    }
+                }
+                res
+            },
 
             NavItem::Dir(name, items, _, _) => items.iter()
                 .flat_map(|i| i.suboptions_titles(config.clone()))
                 .into_iter()
-                .map(|t| format!("{}::{}", name, t))
+                .map(|(t, count)| (format!("{}::{}", name, t), count))
                 .collect(),
             
             NavItem::Root(_, items) => items.iter()

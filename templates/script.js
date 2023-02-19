@@ -293,7 +293,7 @@ function updateNav() {
                 const match = furryMatchMany([name], searchQuery, '::');
                 if (match) {
                     const node = document.createElement('a');
-                    const url = `${FLASH_OUTPUT_URL}/classes/${f.join('/')}#${name}`;
+                    const url = `${FLASH_OUTPUT_URL}/classes/${f.join('/')}#${name.replace(/\s+\([0-9]+\)/, '')}`;
                     node.setAttribute('href', url);
                     node.addEventListener('click', e => {
                         navigate(url);

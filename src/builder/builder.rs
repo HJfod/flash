@@ -267,6 +267,9 @@ impl<'e> Builder<'e> {
             &self.config.output_dir.join("functions.json"),
             serde_json::to_string(
                 &self.root.nav().suboptions_titles(self.config.clone())
+                    .into_iter()
+                    .map(|(n, c)| if c > 0 { format!("{} ({})", n, c + 1) } else { n })
+                    .collect::<Vec<_>>()
             ).map_err(|e| format!("Unable to save metadata {e}"))?
         ).map_err(|e| format!("Unable to save metadata {e}"))?;
 
