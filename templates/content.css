@@ -420,6 +420,22 @@ details.entity-desc[open] > summary .feather-chevron-right {
     display: inline;
 }
 
+.description > .tags {
+    display: flex;
+    flex-direction: row;
+}
+
+.description > .tags > p {
+    margin: 0;
+    margin-left: .5rem;
+    padding: .15rem;
+    padding-left: .5rem;
+    padding-right: .5rem;
+    background-color: var(--flash-less-dark);
+    border-radius: .25rem;
+    font-size: .8rem;
+}
+
 .description > section {
     display: flex;
     margin: 0;

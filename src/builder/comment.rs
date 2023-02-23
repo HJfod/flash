@@ -494,6 +494,8 @@ pub struct JSDocComment<'e> {
     see: Vec<String>,
     /// Notes about this item
     notes: Vec<String>,
+    /// Short notes (tags) about this item
+    short_notes: Vec<String>,
     /// Warnings about this item
     warnings: Vec<String>,
     /// Item version
@@ -528,7 +530,13 @@ impl<'e> JSDocComment<'e> {
                 "return" | "returns" => self.returns = lexer.value_for(&cmd).into(),
                 "throws" => self.throws = lexer.value_for(&cmd).into(),
                 "see" => self.see.push(lexer.value_for(&cmd)),
-                "note" => self.notes.push(lexer.value_for(&cmd)),
+                "note" =>
+                    if cmd.attrs.contains_key("short") {
+                        self.short_notes.push(lexer.value_for(&cmd))
+                    }
+                    else {
+                        self.notes.push(lexer.value_for(&cmd))
+                    },
                 "warning" | "warn" => self.warnings.push(lexer.value_for(&cmd)),
                 "version" => self.version = lexer.value_for(&cmd).into(),
                 "since" => self.since = lexer.value_for(&cmd).into(),
@@ -557,6 +565,7 @@ impl<'e> JSDocComment<'e> {
             throws: None,
             see: Vec::new(),
             notes: Vec::new(),
+            short_notes: Vec::new(),
             warnings: Vec::new(),
             version: None,
             since: None,
@@ -580,7 +589,10 @@ impl<'e> JSDocComment<'e> {
                             .as_ref()
                             .map(|v| Html::p(format!("Version {v}"))),
                     )
-                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}")))),
+                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
+                    .with_children(
+                        self.short_notes.iter().map(Html::p).collect()
+                    )
             )
             .with_child_opt(
                 self.description
