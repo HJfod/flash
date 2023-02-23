@@ -383,7 +383,9 @@ details.entity-desc > * {
 }
 
 details.entity-desc > div {
-    padding: 1.5rem;
+    padding-left: .75rem;
+    padding-right: .75rem;
+    padding-bottom: .75rem;
 }
 
 details.entity-desc > summary {
@@ -412,12 +414,19 @@ details.entity-desc[open] > summary .feather-chevron-right {
     flex-direction: column;
     gap: .5rem;
     max-width: fit-content;
-    margin-bottom: 2rem;
+}
+
+.description > .text > p {
+    margin: 0rem;
 }
 
 .description > .text a {
     color: var(--flash-orange);
     display: inline;
+}
+
+.no-desc {
+    color: var(--flash-light);
 }
 
 .description > .tags {
@@ -427,7 +436,7 @@ details.entity-desc[open] > summary .feather-chevron-right {
 
 .description > .tags > p {
     margin: 0;
-    margin-left: .5rem;
+    margin-right: .5rem;
     padding: .15rem;
     padding-left: .5rem;
     padding-right: .5rem;
@@ -451,7 +460,7 @@ details.entity-desc[open] > summary .feather-chevron-right {
     display: grid;
     grid-template-columns: min-content 1fr;
     align-items: center;
-    gap: 1rem;
+    gap: .5rem;
 }
 
 .description > section > .title {

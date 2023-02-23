@@ -196,7 +196,7 @@ pub fn fmt_field(field: &Entity, builder: &Builder) -> Html {
                 field
                     .get_comment()
                     .map(|s| JSDocComment::parse(s, builder).to_html(true))
-                    .unwrap_or(Html::p("No description provided")),
+                    .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             ),
         )
         .into()
@@ -254,7 +254,7 @@ pub fn fmt_fun_decl(fun: &Entity, builder: &Builder) -> Html {
             HtmlElement::new("div").with_child(
                 fun.get_comment()
                     .map(|s| JSDocComment::parse(s, builder).to_html(true))
-                    .unwrap_or(Html::p("No description provided")),
+                    .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             ),
         )
         .into()
@@ -278,7 +278,7 @@ pub fn fmt_classlike_decl(class: &Entity, keyword: &str, builder: &Builder) -> H
             HtmlElement::new("div").with_child(
                 class.get_comment()
                     .map(|s| JSDocComment::parse(s, builder).to_html(true))
-                    .unwrap_or(Html::p("No description provided")),
+                    .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             ),
         )
         .into()
@@ -336,7 +336,7 @@ pub fn output_entity<'e, T: ASTEntry<'e>>(
                 .entity()
                 .get_comment()
                 .map(|s| JSDocComment::parse(s, builder).to_html(false))
-                .unwrap_or(Html::p("No Description Provided")),
+                .unwrap_or(Html::span(&["no-desc"], "No description provided")),
         ),
         (
             "header_link",

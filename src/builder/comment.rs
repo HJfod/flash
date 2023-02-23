@@ -97,6 +97,7 @@ impl<'s> CommentLexer<'s> {
                 res.push(c);
             }
         }
+        res = res.trim().to_owned();
         // println!("indent_size: {:?}", indent_size);
         (!res.is_empty()).then_some(res)
     }
@@ -171,7 +172,7 @@ impl<'s> CommentLexer<'s> {
     }
 
     pub fn next_value(&mut self) -> Option<String> {
-        self.eat_until(|c| c == '@').map(|s| s.trim().to_owned())
+        self.eat_until(|c| c == '@')
     }
 
     pub fn param_for(&mut self, cmd: &ParsedCommand) -> String {
@@ -581,27 +582,31 @@ impl<'e> JSDocComment<'e> {
     pub fn to_html(&self, include_examples: bool) -> Html {
         HtmlList::new(vec![HtmlElement::new("div")
             .with_class("description")
-            .with_child(
-                HtmlElement::new("div")
-                    .with_class("tags")
-                    .with_child_opt(
-                        self.version
-                            .as_ref()
-                            .map(|v| Html::p(format!("Version {v}"))),
-                    )
-                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
-                    .with_children(
-                        self.short_notes.iter().map(Html::p).collect()
-                    )
-            )
             .with_child_opt(
+                if self.version.is_some() || self.since.is_some() || !self.short_notes.is_empty() {
+                    HtmlElement::new("div")
+                        .with_class("tags")
+                        .with_child_opt(
+                            self.version
+                                .as_ref()
+                                .map(|v| Html::p(format!("Version {v}"))),
+                        )
+                        .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
+                        .with_children(
+                            self.short_notes.iter().map(Html::p).collect()
+                        )
+                        .into()
+                } else { None }
+            )
+            .with_child(
                 self.description
                     .as_ref()
                     .map(|d| fmt_markdown(
                         self.builder,
                         &fmt_autolinks(self.builder, d, None),
                         None::<fn(_) -> _>
-                    )),
+                    ))
+                    .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             )
             .with_child_opt(
                 (!self.params.is_empty()).then_some(
