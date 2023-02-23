@@ -54,6 +54,19 @@ main blockquote {
 
 main blockquote.warning {
     border-left: .5rem solid var(--flash-skin);
+    background-color: var(--flash-dark-skin);
+}
+
+main blockquote.warning strong {
+    color: var(--flash-orange);
+}
+
+main blockquote.info {
+    border-left: .5rem solid var(--flash-cyan);
+}
+
+main blockquote.book {
+    border-left: .5rem solid var(--flash-green);
 }
 
 main .emoji {
@@ -128,6 +141,7 @@ main h1 {
     font-weight: bold;
     font-size: 3rem;
     color: var(--flash-h1-color);
+    margin-bottom: .25rem;
 }
 
 main h1.entity-title {
@@ -168,21 +182,24 @@ main h1 a:hover {
 main h1::after {
     content: ' ';
     display: block;
-    margin-top: .5rem;
     border: .1rem solid var(--flash-border); 
+    margin-top: .5rem;
 }
 
 main h2 {
-    margin-top: 2rem;
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
     font-size: 1.75rem;
+    margin-top: 1.5rem;
+    margin-bottom: .5rem;
 }
 
 main h3 {
     font-family: 'Varela Round', sans-serif;
     font-weight: bold;
     font-size: 1.6rem;
+    margin-top: .5rem;
+    margin-bottom: .25rem;
 }
 
 main h4 {
@@ -196,6 +213,7 @@ main h2:not(.qna-question)::after {
     display: block;
     margin-top: .5rem;
     border: .1rem solid var(--flash-border); 
+    opacity: 50%;
 }
 
 main h2.qna-question {
