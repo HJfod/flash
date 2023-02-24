@@ -8,7 +8,10 @@ use swc_common::{SourceMap, GLOBALS, FileName};
 pub fn minify_html(input: String) -> Result<String, String> {
     String::from_utf8(minify_html::minify(
         input.as_bytes(),
-        &minify_html::Cfg::default()
+        &minify_html::Cfg {
+            keep_closing_tags: true,
+            ..Default::default()
+        }
     )).map_err(|e| format!("{e}"))
 }
  
