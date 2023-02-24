@@ -301,6 +301,8 @@ main .button.outlined:hover {
 .header-link {
     font-size: 1.1rem;
     color: var(--flash-purple);
+    margin-top: .25rem;
+    margin-bottom: .25rem;
 }
 
 .header-link .url {
@@ -616,7 +618,7 @@ a code:not(pre > code) {
 }
 
 code.header-link {
-    padding: 1rem;
+    padding: .75rem;
 }
 
 a:hover > code.header-link {

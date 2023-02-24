@@ -2,6 +2,7 @@
 #![feature(is_some_and)]
 #![feature(result_option_inspect)]
 #![feature(iter_advance_by)]
+#![feature(iter_intersperse)]
 
 use crate::{analyze::create_docs, url::UrlPath, normalize::Normalize};
 use clap::Parser;

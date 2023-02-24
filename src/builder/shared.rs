@@ -324,12 +324,40 @@ pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
     }
 }
 
-pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, config: Arc<Config>) -> Html {
+pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, builder: &Builder) -> Html {
+    let bases = entry.entity().get_children()
+        .into_iter()
+        .filter(|p| p.get_kind() == EntityKind::BaseSpecifier)
+        .collect::<Vec<_>>();
+
     HtmlElement::new("div")
-        .with_class("entity-desc")
+        .with_classes(&["entity", "class"])
         .with_child(Html::span(&["keyword", "space-after"], kw))
-        .with_child(Html::span(&["identifier", "space-after"], entry.name().as_str()))
-        .with_child(HtmlText::new(";"))
+        .with_child(Html::span(&["name"], entry.name().as_str()))
+        .with_child_opt((!bases.is_empty()).then_some(
+            Html::span(&["space-before", "space-after"], ":")
+        ))
+        .with_children(bases.into_iter()
+            .map(|base| HtmlList::new([
+                base.get_accessibility().map(|a|
+                    Html::span(
+                        &["keyword", "space-after"],
+                        match a {
+                            Accessibility::Public => "public",
+                            Accessibility::Private => "private",
+                            Accessibility::Protected => "protected",
+                        }
+                    )
+                ),
+                base.is_virtual_base().then_some(
+                    Html::span(&["keyword", "space-after"], "virtual")
+                ),
+                base.get_type().map(|ty| fmt_type(&ty, builder))
+            ].into_iter().flatten().collect()).into())
+            .intersperse_with(|| Html::span(&["space-after"], ",").into())
+            .collect()
+        )
+        .with_child(Html::span(&["space-before"], "{ ... }"))
         .into()
 }
 
@@ -379,7 +407,7 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
     ent.extend(vec![
         (
             "base_classes",
-            fmt_base_classes(entry, entry.category(), builder.config.clone())
+            fmt_base_classes(entry, entry.category(), builder)
         ),
         (
             "public_static_functions",
