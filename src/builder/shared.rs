@@ -112,7 +112,7 @@ fn fmt_type(entity: &Type, builder: &Builder) -> Html {
         .with_attr_opt("href", link.clone())
         .with_attr_opt(
             "onclick",
-            link.map(|link| format!("return navigate('{link}'")),
+            link.map(|link| format!("return navigate('{link}')")),
         )
         .with_child(name)
         .with_child_opt(match kind {
