@@ -659,10 +659,9 @@ impl<'e> JSDocComment<'e> {
                 self.notes
                     .iter()
                     .map(|note| {
-                        HtmlElement::new("section")
-                            .with_class("note")
-                            .with_child(Html::span(&["title"], "Note"))
-                            .with_child(Html::div(note.clone()))
+                        HtmlElement::new("blockquote")
+                            .with_class("info")
+                            .with_child(Html::p(format!("ℹ {}", note)))
                             .into()
                     })
                     .collect(),
@@ -671,10 +670,9 @@ impl<'e> JSDocComment<'e> {
                 self.warnings
                     .iter()
                     .map(|warning| {
-                        HtmlElement::new("section")
+                        HtmlElement::new("blockquote")
                             .with_class("warning")
-                            .with_child(Html::span(&["title"], "Warning"))
-                            .with_child(Html::div(warning.clone()))
+                            .with_child(Html::p(format!("⚠️ {}", warning)))
                             .into()
                     })
                     .collect(),

@@ -445,6 +445,10 @@ details.entity-desc[open] > summary .feather-chevron-right {
     display: inline;
 }
 
+.description blockquote:not(.warning) {
+    background-color: var(--flash-dark);
+}
+
 .no-desc {
     color: var(--flash-light);
 }
