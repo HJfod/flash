@@ -97,6 +97,7 @@ impl<'s> CommentLexer<'s> {
                 res.push(c);
             }
         }
+        res = res.trim().to_owned();
         // println!("indent_size: {:?}", indent_size);
         (!res.is_empty()).then_some(res)
     }
@@ -171,7 +172,7 @@ impl<'s> CommentLexer<'s> {
     }
 
     pub fn next_value(&mut self) -> Option<String> {
-        self.eat_until(|c| c == '@').map(|s| s.trim().to_owned())
+        self.eat_until(|c| c == '@')
     }
 
     pub fn param_for(&mut self, cmd: &ParsedCommand) -> String {
@@ -494,6 +495,8 @@ pub struct JSDocComment<'e> {
     see: Vec<String>,
     /// Notes about this item
     notes: Vec<String>,
+    /// Short notes (tags) about this item
+    short_notes: Vec<String>,
     /// Warnings about this item
     warnings: Vec<String>,
     /// Item version
@@ -528,7 +531,13 @@ impl<'e> JSDocComment<'e> {
                 "return" | "returns" => self.returns = lexer.value_for(&cmd).into(),
                 "throws" => self.throws = lexer.value_for(&cmd).into(),
                 "see" => self.see.push(lexer.value_for(&cmd)),
-                "note" => self.notes.push(lexer.value_for(&cmd)),
+                "note" =>
+                    if cmd.attrs.contains_key("short") {
+                        self.short_notes.push(lexer.value_for(&cmd))
+                    }
+                    else {
+                        self.notes.push(lexer.value_for(&cmd))
+                    },
                 "warning" | "warn" => self.warnings.push(lexer.value_for(&cmd)),
                 "version" => self.version = lexer.value_for(&cmd).into(),
                 "since" => self.since = lexer.value_for(&cmd).into(),
@@ -557,6 +566,7 @@ impl<'e> JSDocComment<'e> {
             throws: None,
             see: Vec::new(),
             notes: Vec::new(),
+            short_notes: Vec::new(),
             warnings: Vec::new(),
             version: None,
             since: None,
@@ -572,24 +582,31 @@ impl<'e> JSDocComment<'e> {
     pub fn to_html(&self, include_examples: bool) -> Html {
         HtmlList::new(vec![HtmlElement::new("div")
             .with_class("description")
-            .with_child(
-                HtmlElement::new("div")
-                    .with_class("tags")
-                    .with_child_opt(
-                        self.version
-                            .as_ref()
-                            .map(|v| Html::p(format!("Version {v}"))),
-                    )
-                    .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}")))),
-            )
             .with_child_opt(
+                if self.version.is_some() || self.since.is_some() || !self.short_notes.is_empty() {
+                    HtmlElement::new("div")
+                        .with_class("tags")
+                        .with_child_opt(
+                            self.version
+                                .as_ref()
+                                .map(|v| Html::p(format!("Version {v}"))),
+                        )
+                        .with_child_opt(self.since.as_ref().map(|v| Html::p(format!("Since {v}"))))
+                        .with_children(
+                            self.short_notes.iter().map(Html::p).collect()
+                        )
+                        .into()
+                } else { None }
+            )
+            .with_child(
                 self.description
                     .as_ref()
                     .map(|d| fmt_markdown(
                         self.builder,
                         &fmt_autolinks(self.builder, d, None),
                         None::<fn(_) -> _>
-                    )),
+                    ))
+                    .unwrap_or(Html::span(&["no-desc"], "No description provided")),
             )
             .with_child_opt(
                 (!self.params.is_empty()).then_some(

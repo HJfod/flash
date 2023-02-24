@@ -19,9 +19,11 @@
     --flash-purple:         #9e6ad4;
     --flash-pink:           #f49fe9;
     --flash-skin:           #EC897C;
+    --flash-dark-skin:      #58342f;
     --flash-red:            #e23485;
     --flash-yellow:         #f5dd9f;
     --flash-orange:         #f5c99f;
+    --flash-dark-orange:    #5c4c3e;
     --flash-border:         rgba(255, 255, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
     --flash-hover-light:    rgba(255, 255, 255, .3);
@@ -57,9 +59,11 @@
     --flash-purple:         #9e6ad4;
     --flash-pink:           #f49fe9;
     --flash-skin:           #EC897C;
+    --flash-dark-skin:      #58342f;
     --flash-red:            #e23485;
     --flash-yellow:         #f5dd9f;
     --flash-orange:         #f5c99f;
+    --flash-dark-orange:    #5c4c3e;
     --flash-border:         rgba(155, 155, 255, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
     --flash-hover-light:    rgba(255, 255, 255, .3);
@@ -95,9 +99,11 @@
     --flash-purple:         #9e6ad4;
     --flash-pink:           #f49fe9;
     --flash-skin:           #EC897C;
+    --flash-dark-skin:      #58342f;
     --flash-red:            #e23485;
     --flash-yellow:         #f5dd9f;
     --flash-orange:         #f5c99f;
+    --flash-dark-orange:    #5c4c3e;
     --flash-border:         rgba(255, 225, 155, .2);
     --flash-hover:          rgba(255, 255, 255, .1);
     --flash-hover-light:    rgba(255, 255, 255, .3);

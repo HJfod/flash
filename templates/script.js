@@ -111,6 +111,20 @@ function highlight() {
                 head.appendChild(linkBtn);
             }
         });
+    
+    // Highlight warning quotes
+    document.querySelectorAll('blockquote > p')
+        .forEach(quote => {
+            if (quote.innerText.includes('⚠️')) {
+                quote.parentElement.classList.add('warning');
+            }
+            if (quote.innerText.includes('ℹ️')) {
+                quote.parentElement.classList.add('info');
+            }
+            if (quote.innerText.includes('📗')) {
+                quote.parentElement.classList.add('book');
+            }
+        });
 
     Prism.highlightAll();
     feather.replace();
