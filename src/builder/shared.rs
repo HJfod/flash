@@ -324,6 +324,15 @@ pub fn fmt_header_link(entity: &Entity, config: Arc<Config>) -> Html {
     }
 }
 
+pub fn fmt_base_classes<'e, T: ASTEntry<'e>>(entry: &T, kw: &str, config: Arc<Config>) -> Html {
+    HtmlElement::new("div")
+        .with_class("entity-desc")
+        .with_child(Html::span(&["keyword", "space-after"], kw))
+        .with_child(Html::span(&["identifier", "space-after"], entry.name().as_str()))
+        .with_child(HtmlText::new(";"))
+        .into()
+}
+
 pub fn output_entity<'e, T: ASTEntry<'e>>(
     entry: &T,
     builder: &Builder,
@@ -368,6 +377,10 @@ pub fn output_classlike<'e, T: ASTEntry<'e>>(
 ) -> Vec<(&'static str, Html)> {
     let mut ent = output_entity(entry, builder);
     ent.extend(vec![
+        (
+            "base_classes",
+            fmt_base_classes(entry, entry.category(), builder.config.clone())
+        ),
         (
             "public_static_functions",
             fmt_section(
