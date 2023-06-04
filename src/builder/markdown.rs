@@ -79,6 +79,7 @@ struct MDStream<'i, 'c, 'b, 'e, const SIZE: usize, F: Fn(UrlPath) -> Option<UrlP
     builder: &'b Builder<'e>,
     metadata: Option<Metadata>,
     insert_para_stage: InsertP,
+    inside_code_block: bool,
 }
 
 impl<
@@ -98,6 +99,7 @@ impl<
             builder,
             metadata,
             insert_para_stage: InsertP::Dont,
+            inside_code_block: false,
         }
     }
 }
@@ -126,9 +128,14 @@ impl<
             return None;
         };
         Some(match event {
-            Event::Text(t) => Event::Text(CowStr::Boxed(Box::from(
-                fmt_emoji(&t).as_str()
-            ))),
+            // Don't format emojis inside code blocks lol
+            Event::Text(t) => if self.inside_code_block {
+                Event::Text(t)
+            } else {
+                Event::Text(CowStr::Boxed(Box::from(
+                    fmt_emoji(&t).as_str()
+                )))
+            }
             Event::Start(tag) => Event::Start(match tag {
                 // Fix urls to point to root
                 Tag::Link(ty, ref dest, ref title) | Tag::Image(ty, ref dest, ref title) => {
@@ -213,6 +220,10 @@ impl<
                     }
                     Tag::Heading(lvl, frag, classes)
                 }
+                Tag::CodeBlock(b) => {
+                    self.inside_code_block = true;
+                    Tag::CodeBlock(b)
+                }
                 _ => tag
             }),
             Event::End(tag) => Event::End(match tag {
@@ -224,6 +235,10 @@ impl<
                         self.insert_para_stage = InsertP::Start;
                     }
                     Tag::Heading(lvl, frag, classes)
+                }
+                Tag::CodeBlock(b) => {
+                    self.inside_code_block = false;
+                    Tag::CodeBlock(b)
                 }
                 _ => tag
             }),
